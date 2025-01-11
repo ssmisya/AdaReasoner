@@ -23,9 +23,11 @@ from .utils import *
 
 @dataclass
 class ModelArguments:
-    model: Optional[str] = field(default="reasoneval")
-    model_args: Optional[str] = field(default="pretrained=EleutherAI/pythia-160m,dtype=float32")
+    model: Optional[str] = field(default="qwen2vl")
+    model_args: Optional[str] = field(default="pretrained=/mnt/petrelfs/share_data/quxiaoye/models/Qwen2-VL-72B-Instruct")
     batch_size: Optional[int] = field(default=1)
+    stop_token: Optional[str] = field(default="<stop>")
+    max_rounds: Optional[int] = field(default=3)
 
 @dataclass
 class TaskArguments:
@@ -61,6 +63,7 @@ class ScriptArguments:
     verbosity: Optional[str] = field(default="INFO")
     wandb_args: Optional[str] = field(default="project=mr_eval,entity=mr_eval")
     output_path: Optional[str] = field(default="output")
+    controller_addr: Optional[str] = field(default="http://localhost:20001")
 
 
 def parse_str_into_dict(args_str: str) -> Dict:

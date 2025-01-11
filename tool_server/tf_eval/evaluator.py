@@ -13,14 +13,15 @@ import argparse
 from torch.utils.data import DataLoader
 import torch.distributed as dist
 
-from tool_server.inferencer.models import get_model
-from tool_server.inferencer.tasks import get_task_object, get_task_functions
-from tool_server.inferencer.tasks.base_dataset.base_evaluation_dataset import BaseEvalDataset, DataCollatorForSupervisedDataset
+from .models import get_model
+from .tasks import get_task_object, get_task_functions
+from .tasks.base_dataset.base_evaluation_dataset import BaseEvalDataset, DataCollatorForSupervisedDataset
 
-from tool_server.inferencer.utils.utils import *
-from tool_server.inferencer.utils.arguments import *
+from .utils.utils import *
+from .utils.arguments import *
 
-from tool_server.inferencer.utils.log_utils import get_logger
+from .utils.log_utils import get_logger, set_verbosity
+from .tool_inferencer import BaseToolInferencer
 
 logger = get_logger(__name__)
 
@@ -32,8 +33,18 @@ class TFEvaluator():
         self.script_args = script_args
         self.tasks = self.task_args.task_name
         self.model = get_model(self.model_args.model)(**self.model_args.model_args)
-        self.tokenizer = self.model.tokenizer
+        max_rounds = self.model_args.max_rounds
+        stop_token = self.model_args.stop_token
         
+        set_verbosity(self.script_args.verbosity)
+        
+        self.inferencer = BaseToolInferencer(
+            tp_model=self.model,
+            batch_size=self.model_args.batch_size,
+            controller_addr = self.script_args.controller_addr,
+            max_rounds = max_rounds,
+            stop_token = stop_token,
+        )
     
     def evaluate(self):
 
@@ -45,15 +56,13 @@ class TFEvaluator():
 
             dataset = BaseEvalDataset(
                 load_data_function=load_data_function,
-                getitem_function=self.model.getitem_function,
+                getitem_function=self.model.getitem_fn,
                 evaluate_function=evaluate_function,
                 task_config = task_config,
                 task_args = self.task_args,
                 model_args = self.model_args,
             )
-            data_collator = DataCollatorForSupervisedDataset(tokenizer=self.tokenizer, max_length=task_config.generation_config.max_length, padding_side=dataset.padding_side)
-            dataloader = DataLoader(dataset, batch_size=self.model_args.batch_size, num_workers=4, collate_fn=data_collator)
-            self.model.respond(dataloader)
+            self.inferencer.batch_inference(dataset)
             res_log = dataset.evaluate()
             if is_main_process():
                 logger.info(f"evaluation of {task_name} completed")

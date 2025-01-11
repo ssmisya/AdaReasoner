@@ -206,3 +206,23 @@ def load_image(image) -> Image.Image:
             return Image.open(image).convert('RGB')
         else:
             return load_image_from_base64(image)
+
+def remove_pil_objects(data):
+    """
+    递归遍历混合数据结构，移除所有 PIL 图像对象。
+    
+    Args:
+        data (dict, list, or other): 输入的数据结构，可能包含 PIL 对象。
+    
+    Returns:
+        清理后的数据结构。
+    """
+    if isinstance(data, list):
+        # 如果是列表，对每个元素递归调用
+        return [remove_pil_objects(item) for item in data if not isinstance(item, Image.Image)]
+    elif isinstance(data, dict):
+        # 如果是字典，对键值递归调用
+        return {key: remove_pil_objects(value) for key, value in data.items() if not isinstance(value, Image.Image)}
+    else:
+        # 如果是其他类型，直接返回
+        return data

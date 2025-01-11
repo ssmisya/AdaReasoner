@@ -8,10 +8,10 @@ from typing import Union
 import gc
 from accelerate import Accelerator
 
-from tool_server.inferencer.utils.utils import *
-from tool_server.inferencer.evaluator import TFEvaluator
-from tool_server.inferencer.utils.arguments import *
-from tool_server.inferencer.utils.log_utils import get_logger
+from tool_server.tf_eval.utils.utils import *
+from tool_server.tf_eval.evaluator import TFEvaluator
+from tool_server.tf_eval.utils.arguments import *
+from tool_server.tf_eval.utils.log_utils import get_logger
 
 logger = get_logger(__name__)
 import os

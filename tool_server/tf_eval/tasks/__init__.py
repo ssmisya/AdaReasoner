@@ -18,7 +18,7 @@ logger.add(sys.stdout, level="WARNING")
 
 def get_task_object(task_name,object_name):
     try:
-        module = __import__(f"mr_eval.tasks.{task_name}.task", fromlist=[object_name])
+        module = __import__(f"tool_server.tf_eval.tasks.{task_name}.task", fromlist=[object_name])
         return getattr(module, object_name)
     except Exception as e:
         logger.error(f"Failed to import {object_name} from {task_name}: {e}")
@@ -36,7 +36,7 @@ def get_task_functions(task_name):
     '''
     function_list = ["load_data_function","evaluate_function","task_config"]
     try:
-        module = __import__(f"mr_eval.tasks.{task_name}.task", fromlist=["*"])
+        module = __import__(f"tool_server.tf_eval.tasks.{task_name}.task", fromlist=["*"])
         res_dict = {func:getattr(module, func) for func in function_list}
         return res_dict
     

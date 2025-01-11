@@ -1,21 +1,21 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field, asdict
 from typing import Dict, Sequence, Optional,List
-from tool_server.inferencer.utils.log_utils import get_logger
+from tool_server.tf_eval.utils.log_utils import get_logger
+from ...utils.utils import *
 
 logger = get_logger(__name__)
 
 @dataclass
 class DynamicBatchItem:
-
     max_rounds: int
     current_round : int
     status: str = "pending" # pending, processing, finished
-    meta_data: Dict
-    conversation: object = None
-    model_response: str = ""
-    tool_cfg = None
-    tool_response = None
-    new_round_input = None
+    meta_data: Dict = field(default = None)
+    conversation: object = field(default = None)
+    model_response: List[str] = field(default_factory=list)
+    tool_cfg :  List[str] = field(default_factory=list)
+    tool_response :  List[str] = field(default_factory=list)
+    new_round_input :  List[str] = field(default_factory=list)
     
     
     
@@ -42,7 +42,9 @@ class DynamicBatchManager():
         new_batch = []
         for idx,item in enumerate(self.dynamic_batch):
             if item.status == "finished":
-                res.append(item.meta_data)
+                item = asdict(item)
+                item = remove_pil_objects(item)
+                res.append(item)
             else:
                 new_batch.append(item)
         self.dynamic_batch = new_batch
@@ -61,19 +63,21 @@ class DynamicBatchManager():
                 image = meta_data["image"],
                 role = "user"
             )
+            
             self.dynamic_batch.append(candidate_item)
         else:
             raise ValueError("Batch is full")
-        
-    def append_item_to_full(self,generator,progress_bar=None):
-        for idx,item in enumerate(generator):
+    
+    
+    def append_item_to_full(self,dataloader,progress_bar=None):
+        while len(self.dynamic_batch) < self.batch_size:
             try:
-                self.append_item(item)
-                if progress_bar is not None:
+                self.append_item(next(dataloader))
+                if progress_bar:
                     progress_bar.update(1)
-            except Exception as e:
-                logger.info(f"Batch is full, yielding {idx+1} items")
-                return idx+1
+            except:
+                break
+        
     
 
     def get_current_batch(self):
@@ -92,6 +96,8 @@ class DynamicBatchManager():
             elif item.status == "processing":
                 if item.current_round == item.max_rounds:
                     item.status = "finished"
+                else:
+                    item.current_round += 1
             elif item.status == "finished":
                 pass
             else:

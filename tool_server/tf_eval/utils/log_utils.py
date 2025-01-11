@@ -6,7 +6,9 @@ from accelerate.logging import get_logger as get_accelerator_logger
 current_file_path = os.path.abspath(__file__)
 current_folder_path = os.path.dirname(current_file_path)
 
-def get_logger(name, level=logging.INFO, log_dir=f"{current_folder_path}/../scripts/logs/auto_generate"):
+verbosity = logging.INFO
+
+def get_logger(name, log_dir=f"{current_folder_path}/../scripts/logs/auto_generate",level=verbosity):
     try:
         logger = get_accelerator_logger(name)
     except:
@@ -35,4 +37,7 @@ def get_logger(name, level=logging.INFO, log_dir=f"{current_folder_path}/../scri
 
     return logger
 
+def set_verbosity(level):
+    global verbosity
+    verbosity = getattr(logging, level.upper())
 

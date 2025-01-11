@@ -16,34 +16,32 @@ class BaseToolInferencer(object):
     def __init__(
         self,
         tp_model: tp_model = None,
-        dataset: Dataset = None,
+        # dataset: Dataset = None,
         batch_size: int = 1,
         controller_addr: str = None,
         max_rounds: int = 3,
         stop_token: str = "<stop>",
     ):
+        self.accelerator = Accelerator()
         self.tp_model = tp_model
         
         self.generate_conversation_fn = self.tp_model.generate_conversation_fn
         self.append_conversation_fn = self.tp_model.append_conversation_fn
-        
-        self.accelerator = Accelerator()
-        self.dataset = dataset
-        self.dataloader = DataLoader(
-            dataset, 
-            batch_size=1, 
-            num_workers=2, 
-            collate_fn=lambda x: x[0]
-        )
-        self.manager = DynamicBatchManager(
-            batch_size=batch_size, 
-            max_rounds=max_rounds, 
-            stop_token=stop_token,
-            generate_conversation_fn = self.tp_model.generate_conversation_fn,
-        )
-        self.controller_addr = controller_addr
+        self.tp_model = self.tp_model.to(self.accelerator.device)
+        self.tp_model = self.tp_model.to(torch.bfloat16)
+        self.batch_size = batch_size
         self.max_rounds = max_rounds
         self.stop_token = stop_token
+        self.manager = DynamicBatchManager(
+            batch_size=self.batch_size, 
+            max_rounds=self.max_rounds, 
+            stop_token=self.stop_token,
+            generate_conversation_fn = self.tp_model.generate_conversation_fn,
+        )
+
+        self.headers = {"User-Agent": "LLaVA-Plus Client"}
+        
+        self.controller_addr = controller_addr
         self.init_workers()
         
     ## Init Tool Workers
@@ -57,7 +55,7 @@ class BaseToolInferencer(object):
         ret = requests.post(self.controller_addr + "/list_models")
         models = ret.json()["models"]
         logger.info(f"Models: {models}")
-        self.model_list = models
+        self.available_models = models
         
     def init_model_addr_dict(self):
         self.model_addr_dict = {}
@@ -74,10 +72,6 @@ class BaseToolInferencer(object):
     def get_worker_addr(self, model_name):
         return self.model_addr_dict[model_name]
         
-    ## Data Generator
-    def data_generator(self):
-        for batch in self.dataloader:
-            yield batch
     
 
     ## Tool Response
@@ -89,11 +83,11 @@ class BaseToolInferencer(object):
             if item.model_response is None or item.status != "processing":
                 continue
             
-            tool_cfg = item.tool_cfg[item.current_round]
-            tool_response = item.tool_response[item.current_round]
-            assert len(item.tool_cfg) == item.current_round + 1
-            assert len(item.tool_response) == item.current_round + 1
-            original_prompt = item.question
+            tool_cfg = item.tool_cfg[item.current_round-1]
+            tool_response = item.tool_response[item.current_round-1]
+            assert len(item.tool_cfg) == item.current_round 
+            assert len(item.tool_response) == item.current_round 
+            original_prompt = item.meta_data.get("text", "")
             
             if tool_response is not None:
                 try:
@@ -117,9 +111,9 @@ class BaseToolInferencer(object):
             else:
                 edited_image = None
                 new_round_prompt = original_prompt
-            new_round_input = dict(question=new_round_prompt,image=edited_image)
+            new_round_input = dict(text=new_round_prompt,image=edited_image)
             item.new_round_input.append(new_round_input)
-            item.conversation = self.apppend_conversation_fn(
+            item.conversation = self.append_conversation_fn(
                 conversation=item.conversation, text=new_round_prompt, image=edited_image, role="user"
             )
 
@@ -130,8 +124,8 @@ class BaseToolInferencer(object):
             if item.model_response is None or item.status != "processing":
                 continue
             
-            tool_cfg = item.tool_cfg[item.current_round]
-            assert len(item.tool_cfg) == item.current_round + 1
+            tool_cfg = item.tool_cfg[item.current_round-1]
+            assert len(item.tool_cfg) == item.current_round
             
             image = item.meta_data.get("image", None)
             
@@ -142,7 +136,7 @@ class BaseToolInferencer(object):
                     api_name = tool_cfg[0].get("API_name", tool_cfg[0].get("api_name", ""))
                     if api_name not in self.available_models:
                         logger.error(f"API_name {api_name} not in available models, {self.available_models}")
-                        item.tool_response=dict(text=f"There is no tool names {api_name}.")
+                        item.tool_response.append(dict(text=f"There is no tool names {api_name}."))
                         continue
                     
                     if api_name in ["line","ocr","crop","grounding","grounding_dino"]:
@@ -175,7 +169,7 @@ class BaseToolInferencer(object):
                     tool_response_clone = copy.deepcopy(tool_response)
                     if "edited_image" in tool_response:
                         tool_response.pop("edited_image", None)
-                    print("tool_response: ", tool_response)
+                    logger.info(f"tool_response: {tool_response}")
                     item.tool_response.append(tool_response_clone) 
                     continue
                     # return tool_response_clone
@@ -185,16 +179,16 @@ class BaseToolInferencer(object):
                     continue
                     # return dict(text=f"Tool {api_name} failed to answer the question.")
             else:
-                logger.info(f"Tool {api_name} failed to answer the question.")
-                item.tool_response.append(dict(text=f"Tool {api_name} failed to answer the question."))
+                item.tool_response.append(None)
+                
                 continue
             
     
     def batch_parse_tool_config(self):
         current_batch = self.manager.get_current_batch()
         for item in current_batch:
-            model_response = item.model_response[item.current_round]
-            assert len(item.model_response) == item.current_round + 1
+            model_response = item.model_response[item.current_round-1]
+            assert len(item.model_response) == item.current_round
             
             if model_response is None or item.status != "processing":
                 continue
@@ -207,7 +201,7 @@ class BaseToolInferencer(object):
                     except Exception as e:
                         tool_cfg = json.loads(
                             matches[0][1].strip().replace("\'", "\""))
-                    logger.info("tool_cfg:", tool_cfg)
+                    logger.info(f"tool_cfg: {tool_cfg}")
                 else:
                     tool_cfg = None
             except Exception as e:
@@ -218,10 +212,16 @@ class BaseToolInferencer(object):
     
     
     ## Batch Inference
-    def batch_inference(self):
+    def batch_inference(self,dataset):
+        self.dataset = dataset
+        self.dataloader = DataLoader(
+            dataset, 
+            batch_size=1, 
+            num_workers=2, 
+            collate_fn=lambda x: x[0]
+        )
         self.dataloader = self.accelerator.prepare(self.dataloader)
-        data_generator = self.data_generator()
-        self.tp_model = self.tp_model.to(self.accelerator.device)
+        self.dataloader_iter = iter(self.dataloader)
         self.tp_model.eval()
 
         progress_bar = tqdm_rank0(len(self.dataloader), desc="Model Responding")
@@ -230,15 +230,20 @@ class BaseToolInferencer(object):
             return
         
         # Generate the first batch
-        self.manager.append_item_to_full(data_generator, progress_bar=progress_bar)
+        # import debugpy
+        # debugpy.listen(address = ('0.0.0.0', 7119))
+        # debugpy.wait_for_client() 
+        # breakpoint() #在下一句代码处暂停
+        self.manager.append_item_to_full(self.dataloader_iter, progress_bar=progress_bar)
         current_batch = self.manager.get_current_batch()
         self.tp_model.generate(current_batch)
-        while True:
+        self.manager.update_item_status()
+        while len(current_batch) > 0:
             try:
                 # Inspect and yield output
                 results = self.manager.pop_qualified_items()
                 for res in results:
-                    idx = res.meta_data["idx"]
+                    idx = res["meta_data"]["idx"]
                     self.dataset.store_results(dict(idx=idx,results=res))
                 
                 # Parse tool config and generate too response
@@ -247,11 +252,13 @@ class BaseToolInferencer(object):
                 self.batch_tool_response_to_next_round_input()
                 
                 # Refill the current batch
-                self.manager.append_item_to_full(data_generator,progress_bar=progress_bar)
+                self.manager.append_item_to_full(self.dataloader_iter,progress_bar=progress_bar)
                 
                 current_batch = self.manager.get_current_batch()
                 self.tp_model.generate(current_batch)
+                self.manager.update_item_status()
             except StopIteration:
                 break
+        assert len(self.manager.get_current_batch()) == 0
             
     

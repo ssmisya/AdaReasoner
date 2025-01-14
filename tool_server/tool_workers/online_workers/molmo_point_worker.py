@@ -10,12 +10,12 @@ import argparse
 import torch
 import numpy as np
 from PIL import Image
-from tool_server.tool_workers.utils import build_logger, pretty_print_semaphore
+from tool_server.utils import build_logger, pretty_print_semaphore
 from tool_server.utils.utils import *
 from tool_server.utils.server_utils import *
 import matplotlib.pyplot as plt
 
-from tool_server.tool_workers.restructure_worker.base_tool_worker import BaseToolWorker
+from tool_server.tool_workers.online_workers.base_tool_worker import BaseToolWorker
 
 from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig, BitsAndBytesConfig
 

@@ -1,5 +1,6 @@
 # R1-V: Reinforce Super Generalization Ability in Vision Langauge Models with Less Than $3
 
+*Contributors: Liang Chen, Lei Li, Haozhe Zhao, Yifan Song*
 
 1. We firstly reveal that **Reinforcement Learning with Verifiable Rewards (RLVR)** outperforms chain-of-thought supervised fine-tuning (CoT-SFT) in both **effectiveness and out-of-distribution (OOD) robustness** for multimodal large language models.
 
@@ -14,7 +15,7 @@
 
 ---
 
-*Contributors: Liang Chen, Lei Li, Haozhe Zhao, Yifan Song*
+
 
 ![image](./images/ood.png)
 

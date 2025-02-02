@@ -2,9 +2,9 @@
 
 *Contributors: Liang Chen, Lei Li, Haozhe Zhao, Yifan Song*
 
-1. We firstly reveal that **Reinforcement Learning with Verifiable Rewards (RLVR)** outperforms chain-of-thought supervised fine-tuning (CoT-SFT) in both **effectiveness and out-of-distribution (OOD) robustness** for multimodal large language models.
+1. We firstly reveal that **Reinforcement Learning with Verifiable Rewards (RLVR)** outperforms chain-of-thought supervised fine-tuning (CoT-SFT) in both **effectiveness and out-of-distribution (OOD) robustness** for vision language models.
 
-2. In our experiment, we **incentivize** MLLMs to learn **generalizable** visual counting abilities, rather than overfitting to the training set.
+2. In our experiment, we **incentivize** VLMs to learn **generalizable** visual counting abilities, rather than overfitting to the training set.
 
 3. The 2B model outperforms the 72B model in OOD tests within just **100** training steps.
 

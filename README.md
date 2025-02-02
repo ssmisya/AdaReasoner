@@ -2,6 +2,6 @@
 
 Contributors: Liang Chen, Lei Li, Haozhe Zhao, Yifan Song
 
-![image](./ood.png)
+![image](./images/ood.png)
 
-![image](./super_ood.png)
+![image](./images/super_ood.png)

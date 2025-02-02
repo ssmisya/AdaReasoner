@@ -1,4 +1,4 @@
-# R1-V: Reinforce Super Generalization Ability in Vision Langauge Models with Less Than $3
+# R1-V: Reinforcing Super Generalization Ability in Vision Langauge Models with Less Than $3
 
 
 
@@ -14,7 +14,11 @@
 
 **Contributors:** Liang Chen · Lei Li · Haozhe Zhao · Yifan Song
 
+[🤗 Train Datasets](https://huggingface.co/datasets/leonardPKU/clevr_cogen_a_train)
+
 ---
+
+
 
 
 
@@ -24,19 +28,20 @@
 
 ![image](./images/training.png)
 
+## Acknowledgements
 
+We sincerely thank DeepSeek, [Open-R1](https://github.com/huggingface/open-r1), [Open-R1-Multimodal](https://github.com/EvolvingLMMs-Lab/open-r1-multimodal), [CLEVR](https://cs.stanford.edu/people/jcjohns/clevr/), [SuperCLEVR](https://github.com/Lizw14/Super-CLEVR) for providing open source resources for us to build the project.
 
 ## Citation
 
 ```bib
-@misc{R1-V,
-author       = {Liang Chen and Lei Li and Haozhe Zhao and Yifan Song},
-title        = {R1-V: Reinforce Super Generalization Ability in Vision Langauge Models with Less Than $3},
-howpublished = {https://github.com/Deep-Agent/R1-V},
-note         = {Accessed: 2025-02-02},
-year         = {2025}
+@misc{chen2025r1v,
+  author       = {Chen, Liang and Li, Lei and Zhao, Haozhe and Song, Yifan},
+  title        = {R1-V: Reinforcing Super Generalization Ability in Vision-Language Models with Less Than \$3},
+  howpublished = {\url{https://github.com/Deep-Agent/R1-V}},
+  note         = {Accessed: 2025-02-02},
+  year         = {2025}
 }
-
 ```
 
 

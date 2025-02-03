@@ -21,7 +21,7 @@
 [🤗 R1-Distilled Visual Reasoning Dataset](https://huggingface.co/datasets/MMInstruction/Clevr_CoGenT_TrainA_R1)
 
 News:
-- 2025-02-03: We curate and upload some verified Deepseek-R1 visual reasoning traces. We haven't train on it, feel free to explore.
+- 2025-02-03: We curate and upload some verified Deepseek-R1 visual reasoning traces with some special tricks. Current training code does not rely on it, feel free to explore.
 - 2025-02-03: We upload the training codebase.
 
 ---

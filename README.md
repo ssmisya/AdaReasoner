@@ -1,4 +1,4 @@
-# R1-V: Reinforcing Super Generalization Ability in Vision Langauge Models with Less Than $3
+# R1-V: Reinforcing Super Generalization Ability in Vision Language Models with Less Than $3
 
 
 

@@ -23,7 +23,7 @@
 Updates:
 
 - 2025-02-03: We upload the training codebase.
-- 2025-02-03: We curate and upload some verified Deepseek-R1 visual reasoning traces with some special tricks. Current training code does not rely on it, feel free to explore.
+- 2025-02-03: We curate and upload some verified Deepseek-R1 visual reasoning traces with some special tricks (see `R1-V/src/distill_r1/`). Current training code does not rely on it, feel free to explore.
 
 
 ---

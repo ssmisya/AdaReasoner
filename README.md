@@ -86,7 +86,7 @@ We sincerely thank [DeepSeek](https://github.com/deepseek-ai/DeepSeek-R1), [Open
 
 ```bib
 @misc{chen2025r1v,
-  author       = {Chen, Liang and Li, Lei and Zhao, Haozhe and Song, Yifan},
+  author       = {Chen, Liang and Li, Lei and Zhao, Haozhe and Song, Yifan and Vinci},
   title        = {R1-V: Reinforcing Super Generalization Ability in Vision-Language Models with Less Than \$3},
   howpublished = {\url{https://github.com/Deep-Agent/R1-V}},
   note         = {Accessed: 2025-02-02},

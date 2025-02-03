@@ -12,7 +12,7 @@
 
 5. Codes, models, datasets, more details and **all open-source** resources will be shared (within CNY holidays).
 
-**Contributors:** Liang Chen · Lei Li · Haozhe Zhao · Yifan Song
+**Contributors:** [Liang Chen](https://github.com/chenllliang) · [Lei Li](https://lilei-nlp.github.io) · [Haozhe Zhao](https://haozhezhao.github.io/) · Yifan Song
 
 [🤗 Train Datasets](https://huggingface.co/datasets/leonardPKU/clevr_cogen_a_train)
 

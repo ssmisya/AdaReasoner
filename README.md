@@ -38,6 +38,8 @@ Updates:
 
 ![image](./images/training.png)
 
+![image](./images/curves.png)
+
 
 
 ## Training

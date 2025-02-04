@@ -25,7 +25,7 @@
 
 ---
 
-[🤗 Train Dataset](https://huggingface.co/datasets/leonardPKU/clevr_cogen_a_train)
+[🤗 Train Dataset: CLEVR-70k](https://huggingface.co/datasets/leonardPKU/clevr_cogen_a_train)
 
 [🤗 R1-Distilled Visual Reasoning Dataset](https://huggingface.co/datasets/MMInstruction/Clevr_CoGenT_TrainA_R1)
 

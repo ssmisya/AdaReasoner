@@ -35,7 +35,7 @@
 - 2025-02-03: We release the R1-V repo.
 
 ### For contributors
-- Our top development priority is addressing the issues marked with `help wanted` labels, and we welcome contributions from the community to help solve them.
+- Our top development priority is addressing the issues marked with `help wanted` labels, and we welcome ideas/PRs from the community to help solve them.
 
 ---
 

@@ -7,6 +7,8 @@
 > 
 > Our goal: 🔄 Algorithm Enhancement ⚡ Efficiency Optimization 🎯 Task Diversity 🌲 Impactful Open Source Research. 
 >
+> Our interests: General Vision-Language Intelligence & Visual/GUI Agent
+> 
 > Welcome Ideas and Contribution. Stay tuned!
 
 

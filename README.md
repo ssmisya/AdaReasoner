@@ -1,15 +1,6 @@
 # R1-V: Reinforcing Super Generalization Ability in Vision Language Models with Less Than $3
 
-1. We firstly reveal that **Reinforcement Learning with Verifiable Rewards (RLVR)** outperforms chain-of-thought supervised fine-tuning (CoT-SFT) in both **effectiveness and out-of-distribution (OOD) robustness** for vision language models.
-
-2. In our experiment, we **incentivize** VLMs to learn **generalizable** visual counting abilities, rather than overfitting to the training set.
-
-3. The 2B model outperforms the 72B model in OOD tests within just **100** training steps.
-
-4. The training was conducted on 8 A100 GPUs for **30 minutes, costing $2.62**.
-
-
-**Contributors:** [Liang Chen](https://github.com/chenllliang) · [Lei Li](https://lilei-nlp.github.io) · [Haozhe Zhao](https://haozhezhao.github.io/) · [Yifan Song](https://github.com/Yifan-Song793) · [Vinci](https://github.com/0xvincii)
+![image](./images/counting_stars.png)
 
 > ### Roadmap for R1-V
 > We are building a general framework for RLVR in VLM. We believe in the power of **trenches** and **longtermism**.
@@ -18,6 +9,16 @@
 >
 > Welcome Ideas and Contribution. Stay tuned!
 
+
+1. We firstly reveal that **Reinforcement Learning with Verifiable Rewards (RLVR)** outperforms chain-of-thought supervised fine-tuning (CoT-SFT) in both **effectiveness and out-of-distribution (OOD) robustness** for vision language models.
+
+2. In our experiment, we **incentivize** VLMs to learn **generalizable** visual counting abilities, rather than overfitting to the training set.
+
+3. The 2B model outperforms the 72B model in OOD tests within just **100** training steps.
+
+4. The training was conducted on 8 A100 GPUs for **30 minutes, costing $2.62**.
+
+**Contributors:** [Liang Chen](https://github.com/chenllliang) · [Lei Li](https://lilei-nlp.github.io) · [Haozhe Zhao](https://haozhezhao.github.io/) · [Yifan Song](https://github.com/Yifan-Song793) · [Vinci](https://github.com/0xvincii)
 
 ---
 

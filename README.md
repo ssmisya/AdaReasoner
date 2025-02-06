@@ -1,6 +1,6 @@
 # R1-V: Reinforcing Super Generalization Ability in Vision Language Models with Less Than $3
 
-![image](./images/counting_stars.png)
+![image](./images/counting_star.png)
 
 > ### Roadmap for R1-V
 > We are building a general framework for RLVR in VLM. We believe in the power of **trenches** and **longtermism**.
@@ -18,21 +18,22 @@
 
 4. The training was conducted on 8 A100 GPUs for **30 minutes, costing $2.62**.
 
-**Contributors:** [Liang Chen](https://github.com/chenllliang) · [Lei Li](https://lilei-nlp.github.io) · [Haozhe Zhao](https://haozhezhao.github.io/) · [Yifan Song](https://github.com/Yifan-Song793) · [Vinci](https://github.com/0xvincii)
-
----
 
 [🤗 Train Dataset: CLEVR-70k](https://huggingface.co/datasets/leonardPKU/clevr_cogen_a_train)
 
 [🤗 R1-Distilled Visual Reasoning Dataset](https://huggingface.co/datasets/MMInstruction/Clevr_CoGenT_TrainA_R1)
 
-**Updates:**
+**Contributors:** [Liang Chen](https://github.com/chenllliang) · [Lei Li](https://lilei-nlp.github.io) · [Haozhe Zhao](https://haozhezhao.github.io/) · [Yifan Song](https://github.com/Yifan-Song793) · [Vinci](https://github.com/0xvincii)
+
+---
+
+### Updates
 
 - 2025-02-06: We upload the evaluation script and polish the README. We are writing a blog post summarizing the statistics, findings and underexplored questions. 
 - 2025-02-03: We upload the training codebase.
 - 2025-02-03: We curate and upload some verified Deepseek-R1 visual reasoning traces with some special tricks (see `R1-V/src/distill_r1/`). Current training code does not rely on it, feel free to explore.
 
-**For contributors:**
+### For contributors
 - Our top development priority is addressing the issues marked with `help wanted` labels, and we welcome contributions from the community to help solve them.
 
 ---

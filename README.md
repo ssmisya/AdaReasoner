@@ -91,8 +91,9 @@ torchrun --nproc_per_node="8" \
 
 ```
 
-> [!WARNING] 
-> To reproduce the result, keep the per_device_train_batch_size to 1 for now, as there is a revealed bug about batched training. See the [reproduction report](https://github.com/Deep-Agent/R1-V/issues/4#issuecomment-2633348354) here. We realize it is important for effiency and are working on solving it with the community.
+> [!NOTE] 
+> 1. To reproduce the result, keep the per_device_train_batch_size to 1 for now, as there is a revealed bug about batched training. See the [reproduction report](https://github.com/Deep-Agent/R1-V/issues/4#issuecomment-2633348354) here. We realize it is important for effiency and are working on solving it with the community.
+> 2. To reduce GPU cost with deepspeed and train larger model, please refer to this solution https://github.com/Deep-Agent/R1-V/issues/18.
 
 ## Evaluation
 

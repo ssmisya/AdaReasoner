@@ -98,7 +98,9 @@ torchrun --nproc_per_node="8" \
 
 ## Evaluation
 
-![image](https://github.com/user-attachments/assets/70a3cb1a-4588-48aa-9469-011fbd776be3)
+
+
+![image](https://github.com/user-attachments/assets/4f48233c-0546-432f-94e6-723f91fbd086)
 
 We provide the example script to evaluate OOD counting performance on a subset of SuperCLEVR within 1 minute. You can also modify the script and dataset to test on your own dataset.
 

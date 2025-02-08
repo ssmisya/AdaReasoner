@@ -87,13 +87,14 @@ torchrun --nproc_per_node="8" \
     --num_train_epochs 2 \
     --run_name Qwen2-VL-2B-GRPO-CLEVR-70k \
     --save_steps 100 \
-    --save_only_model true
+    --save_only_model true \
+    --num_generations 8   # number of outputs G in grpo, reduce it would lead to faster training and smaller memory cost but higher variance  
 
 ```
 
 > [!NOTE] 
 > 1. To reproduce the result, keep the per_device_train_batch_size to 1 for now, as there is a revealed bug about batched training. See the [reproduction report](https://github.com/Deep-Agent/R1-V/issues/4#issuecomment-2633348354) here. We realize it is important for effiency and are working on solving it with the community.
-> 2. If you meet OOM Error, add `--deepspeed local_scripts/zero3.json` following https://github.com/Deep-Agent/R1-V/issues/18
+> 2. If you meet **OOM Error**, add `--deepspeed local_scripts/zero3.json` following https://github.com/Deep-Agent/R1-V/issues/18 or you can reduce `--num_generations`
 
 ## Evaluation
 

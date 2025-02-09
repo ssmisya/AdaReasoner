@@ -63,13 +63,14 @@ if is_peft_available():
 
 if is_wandb_available():
     import wandb
-import torch.nn as nn 
+import torch.nn as nn
+
 # What we call a reward function is a callable that takes a list of prompts and completions and returns a list of
 # rewards. When it's a string, it's a model ID, so it's loaded as a pretrained model.
 RewardFunc = Union[str, PreTrainedModel, Callable[[list, list], list[float]]]
 
 
-class Qwen2VLGRPOVLLMTrainer(GRPOTrainer):
+class Qwen2VLGRPOVLLMTrainer(Trainer):
     def __init__(
         self,
         model: Union[str, PreTrainedModel],
@@ -93,18 +94,168 @@ class Qwen2VLGRPOVLLMTrainer(GRPOTrainer):
         min_pixels: Optional[int] = 3136,
         attn_implementation: str = "flash_attention_2",
     ):
-        super().__init__(
-            model=model,
-            reward_funcs=reward_funcs,
-            args=args,
-            train_dataset=train_dataset,
-            eval_dataset=eval_dataset,
-            processing_class=processing_class,
-            reward_processing_classes=reward_processing_classes,
-            callbacks=callbacks,
-            optimizers=optimizers,
-            peft_config=peft_config,
+
+        # Args
+        if args is None:
+            model_name = model if isinstance(model, str) else model.config._name_or_path
+            model_name = model_name.split("/")[-1]
+            args = GRPOConfig(f"{model_name}-GRPO")
+
+        # Models
+        # Trained model
+        model_init_kwargs = args.model_init_kwargs or {}
+        model_init_kwargs["attn_implementation"] = attn_implementation
+        if isinstance(model, str):
+            model_id = model
+            torch_dtype = model_init_kwargs.get("torch_dtype")
+            if (
+                isinstance(torch_dtype, torch.dtype)
+                or torch_dtype == "auto"
+                or torch_dtype is None
+            ):
+                pass  # torch_dtype is already a torch.dtype or "auto" or None
+            elif isinstance(torch_dtype, str):  # it's a str, but not "auto"
+                torch_dtype = getattr(torch, torch_dtype)
+                model_init_kwargs["torch_dtype"] = torch_dtype
+            else:
+                raise ValueError(
+                    "Invalid `torch_dtype` passed to `GRPOConfig`. Expected either 'auto' or a string representing "
+                    f"a `torch.dtype` (e.g., 'float32'), but got {torch_dtype}."
+                )
+            # Disable caching if gradient checkpointing is enabled (not supported)
+            model_init_kwargs["use_cache"] = (
+                False
+                if args.gradient_checkpointing
+                else model_init_kwargs.get("use_cache")
+            )
+            if "Qwen2-VL" in model_id:
+                model = Qwen2VLForConditionalGeneration.from_pretrained(
+                    model, **model_init_kwargs
+                )
+            elif "Aria" in model_id:
+                model_init_kwargs.pop("use_cache")
+                model = AriaForConditionalGeneration.from_pretrained(
+                    model, **model_init_kwargs
+                )
+            else:
+                model = AutoModelForCausalLM.from_pretrained(model, **model_init_kwargs)
+        else:
+            model_id = model.config._name_or_path
+            if args.model_init_kwargs is not None:
+                raise ValueError(
+                    "You passed `model_init_kwargs` to the `GRPOConfig`, but your model is already instantiated. "
+                    "This argument can only be used when the `model` argument is a string."
+                )
+
+        if peft_config is not None:
+            model = get_peft_model(model, peft_config)
+
+        # Reference model
+        if is_deepspeed_zero3_enabled():
+            if "Qwen2-VL" in model_id:
+                self.ref_model = Qwen2VLForConditionalGeneration.from_pretrained(
+                    model_id, **model_init_kwargs
+                )
+            elif "Aria" in model_id:
+                self.ref_model = AriaForConditionalGeneration.from_pretrained(
+                    model_id, **model_init_kwargs
+                )
+            else:
+                self.ref_model = AutoModelForCausalLM.from_pretrained(
+                    model_id, **model_init_kwargs
+                )
+        elif peft_config is None:
+            # If PEFT configuration is not provided, create a reference model based on the initial model.
+            self.ref_model = create_reference_model(model)
+        else:
+            # If PEFT is used, the reference model is not needed since the adapter can be disabled
+            # to revert to the initial model.
+            self.ref_model = None
+
+        # Processing class
+        if processing_class is None:
+            if "Qwen2-VL" in model_id or "Aria" in model_id:
+                processing_class = AutoProcessor.from_pretrained(model_id)
+                pad_token_id = processing_class.tokenizer.pad_token_id
+                processing_class.pad_token_id = pad_token_id
+                processing_class.eos_token_id = processing_class.tokenizer.eos_token_id
+                if "Qwen2-VL" in model_id:
+                    processing_class.image_processor.max_pixels = max_pixels
+                    processing_class.image_processor.min_pixels = min_pixels
+            else:
+                processing_class = AutoTokenizer.from_pretrained(
+                    model.config._name_or_path, padding_side="left"
+                )
+                pad_token_id = processing_class.pad_token_id
+
+        # Reward functions
+        if not isinstance(reward_funcs, list):
+            reward_funcs = [reward_funcs]
+        for i, reward_func in enumerate(reward_funcs):
+            if isinstance(reward_func, str):
+                reward_funcs[i] = AutoModelForSequenceClassification.from_pretrained(
+                    reward_func, num_labels=1, **model_init_kwargs
+                )
+        self.reward_funcs = reward_funcs
+
+        # Reward processing class
+        if reward_processing_classes is None:
+            reward_processing_classes = [None] * len(reward_funcs)
+        elif not isinstance(reward_processing_classes, list):
+            reward_processing_classes = [reward_processing_classes]
+        else:
+            if len(reward_processing_classes) != len(reward_funcs):
+                raise ValueError(
+                    "The number of reward processing classes must match the number of reward functions."
+                )
+
+        for i, (reward_processing_class, reward_func) in enumerate(
+            zip(reward_processing_classes, reward_funcs)
+        ):
+            if isinstance(reward_func, PreTrainedModel):
+                if reward_processing_class is None:
+                    reward_processing_class = AutoTokenizer.from_pretrained(
+                        reward_func.config._name_or_path
+                    )
+                if reward_processing_class.pad_token_id is None:
+                    reward_processing_class.pad_token = (
+                        reward_processing_class.eos_token
+                    )
+                # The reward model computes the reward for the latest non-padded token in the input sequence.
+                # So it's important to set the pad token ID to the padding token ID of the processing class.
+                reward_func.config.pad_token_id = reward_processing_class.pad_token_id
+                reward_processing_classes[i] = reward_processing_class
+        self.reward_processing_classes = reward_processing_classes
+
+        # Data collator
+        def data_collator(features):  # No data collation is needed in GRPO
+            return features
+
+        # Training arguments
+        self.max_prompt_length = args.max_prompt_length
+        self.max_completion_length = (
+            args.max_completion_length
+        )  # = |o_i| in the GRPO paper
+        self.num_generations = args.num_generations  # = G in the GRPO paper
+        self.generation_config = GenerationConfig(
+            max_new_tokens=self.max_completion_length,
+            do_sample=True,
+            temperature=1,  # HACK
+            num_return_sequences=self.num_generations,
+            pad_token_id=pad_token_id,
         )
+        self.beta = args.beta
+
+        # The trainer estimates the number of FLOPs (floating-point operations) using the number of elements in the
+        # input tensor associated with the key "input_ids". However, in GRPO, the sampled data does not include the
+        # "input_ids" key. Instead, the available keys is "prompt". As a result, the trainer issues the warning:
+        # "Could not estimate the number of tokens of the input, floating-point operations will not be computed." To
+        # suppress this warning, we set the "estimate_tokens" key in the model's "warnings_issued" dictionary to True.
+        # This acts as a flag to indicate that the warning has already been issued.
+        model.warnings_issued["estimate_tokens"] = True
+
+        # Initialize the metrics
+        self._metrics = defaultdict(list)
 
         # rewrite the processing AutoTokenizer -> AutoProcessor
         model_id = model if isinstance(model, str) else model.config._name_or_path
@@ -123,7 +274,33 @@ class Qwen2VLGRPOVLLMTrainer(GRPOTrainer):
                 )
                 pad_token_id = processing_class.pad_token_id
 
-        assert self.use_vllm, "Qwen2VLGRPOVLLMTrainer only supports  vllm generation"
+        assert args.use_vllm, "Qwen2VLGRPOVLLMTrainer only supports  vllm generation"
+
+        super().__init__(
+            model=model,
+            args=args,
+            data_collator=data_collator,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            processing_class=processing_class,
+            callbacks=callbacks,
+            optimizers=optimizers,
+        )
+        # Gradient accumulation requires scaled loss. Normally, loss scaling in the parent class depends on whether the
+        # model accepts loss-related kwargs. Since we compute our own loss, this check is irrelevant. We set
+        # self.model_accepts_loss_kwargs to False to enable scaling.
+        self.model_accepts_loss_kwargs = False
+
+        if self.ref_model is not None:
+            if self.is_deepspeed_enabled:
+                self.ref_model = prepare_deepspeed(self.ref_model, self.accelerator)
+            else:
+                self.ref_model = self.accelerator.prepare_model(self.ref_model, evaluation_mode=True)
+
+        for i, reward_func in enumerate(self.reward_funcs):
+            if isinstance(reward_func, PreTrainedModel):
+                self.reward_funcs[i] = self.accelerator.prepare_model(reward_func, evaluation_mode=True)
+
 
     def _set_signature_columns_if_needed(self):
         # If `self.args.remove_unused_columns` is True, non-signature columns are removed.
@@ -135,7 +312,13 @@ class Qwen2VLGRPOVLLMTrainer(GRPOTrainer):
 
     # Get the per-token log probabilities for the completions for the model and the reference model
     def _get_per_token_logps(
-        self, model, input_ids, attention_mask, pixel_values, image_grid_thw, logits_to_keep
+        self,
+        model,
+        input_ids,
+        attention_mask,
+        pixel_values,
+        image_grid_thw,
+        logits_to_keep,
     ):
         logits = model(
             input_ids,
@@ -279,7 +462,7 @@ class Qwen2VLGRPOVLLMTrainer(GRPOTrainer):
                     attention_mask,
                     pixel_values,
                     image_grid_thw,
-                    logits_to_keep
+                    logits_to_keep,
                 )
             else:
                 with self.accelerator.unwrap_model(self.model).disable_adapter():
@@ -289,7 +472,7 @@ class Qwen2VLGRPOVLLMTrainer(GRPOTrainer):
                         attention_mask,
                         pixel_values,
                         image_grid_thw,
-                        logits_to_keep
+                        logits_to_keep,
                     )
 
         # Decode the generated completions
@@ -397,4 +580,5 @@ class Qwen2VLGRPOVLLMTrainer(GRPOTrainer):
             "ref_per_token_logps": ref_per_token_logps,
             "advantages": advantages,
         }
+
     # other function as such compute_loss is the same with the original GRPOTrainer

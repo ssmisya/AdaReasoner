@@ -263,6 +263,7 @@ class Qwen2VLGRPOVLLMTrainer(Trainer):
 
         # Initialize the metrics
         self._metrics = defaultdict(list)
+        self.use_vllm = args.use_vllm 
 
         # rewrite the processing AutoTokenizer -> AutoProcessor
         model_id = model if isinstance(model, str) else model.config._name_or_path
@@ -365,16 +366,17 @@ class Qwen2VLGRPOVLLMTrainer(Trainer):
                     return_value=None,
                 )
                 with world_size_patch, profiling_patch:
+                    print('vllm_device: ', vllm_device)
                     self.llm = LLM(
                         model=model.name_or_path,
                         device=vllm_device,
                         gpu_memory_utilization=self.args.vllm_gpu_memory_utilization,
-                        dtype=self.args.vllm_dtype,
+                        dtype=torch.bfloat16,
                         # Automatic Prefix Caching caches the KV cache of existing queries, so that a new query can
                         # directly reuse the KV cache if it shares the same prefix with one of the existing queries.
                         # This is particularly useful here because we generate completions from the same prompts.
                         enable_prefix_caching=True,
-                        max_model_len=self.args.vllm_max_model_len,
+                        max_model_len=2048,
                     )
                 self.sampling_params = SamplingParams(
                     temperature=args.temperature,

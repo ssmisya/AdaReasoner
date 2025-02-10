@@ -41,13 +41,15 @@ from transformers import (
     is_wandb_available,
 )
 from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
-from transformers.utils import is_peft_available
+from transformers.utils import is_peft_available 
 
 from trl.data_utils import (
     apply_chat_template,
     is_conversational,
     maybe_apply_chat_template,
 )
+from trl.import_utils import is_vllm_available 
+
 from trl.models import (
     create_reference_model,
     prepare_deepspeed,
@@ -63,7 +65,8 @@ if is_peft_available():
     from peft import PeftConfig, get_peft_model
 
 if is_vllm_available():
-    from vllm import LLM, SamplingParams
+    from vllm import LLM, SamplingParams 
+
 
 if is_wandb_available():
     import wandb

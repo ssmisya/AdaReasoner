@@ -21,6 +21,8 @@ from accelerate.utils import broadcast_object_list, gather, gather_object
 import torch
 import torch.utils.data
 import transformers
+import warnings
+from unittest.mock import patch
 from datasets import Dataset, IterableDataset
 from packaging import version
 from transformers import (
@@ -57,9 +59,11 @@ from trl import GRPOTrainer
 
 import copy
 
-
 if is_peft_available():
     from peft import PeftConfig, get_peft_model
+
+if is_vllm_available():
+    from vllm import LLM, SamplingParams
 
 if is_wandb_available():
     import wandb
@@ -274,8 +278,6 @@ class Qwen2VLGRPOVLLMTrainer(Trainer):
                 )
                 pad_token_id = processing_class.pad_token_id
 
-        assert args.use_vllm, "Qwen2VLGRPOVLLMTrainer only supports  vllm generation"
-
         super().__init__(
             model=model,
             args=args,
@@ -290,17 +292,118 @@ class Qwen2VLGRPOVLLMTrainer(Trainer):
         # model accepts loss-related kwargs. Since we compute our own loss, this check is irrelevant. We set
         # self.model_accepts_loss_kwargs to False to enable scaling.
         self.model_accepts_loss_kwargs = False
+        # Check if the per_device_train/eval_batch_size * num processes can be divided by the number of generations
+        num_processes = self.accelerator.num_processes
+        global_batch_size = args.per_device_train_batch_size * num_processes
+        possible_values = [
+            n_gen
+            for n_gen in range(2, global_batch_size + 1)
+            if (global_batch_size) % n_gen == 0
+        ]
+
+        if self.num_generations not in possible_values:
+            raise ValueError(
+                f"The global train batch size ({num_processes} x {args.per_device_train_batch_size}) must be evenly "
+                f"divisible by the number of generations per prompt ({self.num_generations}). Given the current train "
+                f"batch size, the valid values for the number of generations are: {possible_values}."
+            )
+        if self.args.eval_strategy != "no":
+            global_batch_size = args.per_device_eval_batch_size * num_processes
+            possible_values = [
+                n_gen
+                for n_gen in range(2, global_batch_size + 1)
+                if (global_batch_size) % n_gen == 0
+            ]
+            if self.num_generations not in possible_values:
+                raise ValueError(
+                    f"The global eval batch size ({num_processes} x {args.per_device_eval_batch_size}) must be evenly "
+                    f"divisible by the number of generations per prompt ({self.num_generations}). Given the current "
+                    f"eval batch size, the valid values for the number of generations are: {possible_values}."
+                )
+
+        if self.use_vllm:
+            if not is_vllm_available():
+                raise ImportError(
+                    "vLLM is not available and `use_vllm` is set to True. Please install vLLM with "
+                    "`pip install vllm` to use it."
+                )
+
+            if self.accelerator.is_main_process:
+                vllm_device = self.args.vllm_device
+                if vllm_device == "auto":
+                    vllm_device = f"cuda:{self.accelerator.num_processes}"  # take the next GPU idx
+                # Check that the requested device is available
+                if (
+                    vllm_device.split(":")[0] == "cuda"
+                    and int(vllm_device.split(":")[1]) >= torch.cuda.device_count()
+                ):
+                    raise ValueError(
+                        f"The requested device for vllm ({vllm_device}) is not available. You are likely using vLLM "
+                        "without restricting the number of GPUs for training. Set the `--num_processes` argument to a "
+                        "value lower than the number of GPUs available on your machine—typically, reducing it by one "
+                        f"is sufficient. In your case: `--num_processes {torch.cuda.device_count() - 1}`."
+                    )
+                # Check that the requested device is not also used for training
+                if vllm_device in {
+                    f"cuda:{idx}" for idx in range(self.accelerator.num_processes)
+                }:
+                    warnings.warn(
+                        f"The requested device {vllm_device} is also used for training. This may lead to unexpected "
+                        "behavior. It is recommended to use a dedicated device for vLLM."
+                    )
+                # vLLM is not compatible with accelerate. So we need to patch it to make sure we can (1) place the vLLM
+                # model on the desired device (world_size_patch) and (2) avoid a test that is not designed for our
+                # setting (profiling_patch).
+                world_size_patch = patch(
+                    "torch.distributed.get_world_size", return_value=1
+                )
+                profiling_patch = patch(
+                    "vllm.worker.worker.Worker._assert_memory_footprint_increased_during_profiling",
+                    return_value=None,
+                )
+                with world_size_patch, profiling_patch:
+                    self.llm = LLM(
+                        model=model.name_or_path,
+                        device=vllm_device,
+                        gpu_memory_utilization=self.args.vllm_gpu_memory_utilization,
+                        dtype=self.args.vllm_dtype,
+                        # Automatic Prefix Caching caches the KV cache of existing queries, so that a new query can
+                        # directly reuse the KV cache if it shares the same prefix with one of the existing queries.
+                        # This is particularly useful here because we generate completions from the same prompts.
+                        enable_prefix_caching=True,
+                        max_model_len=self.args.vllm_max_model_len,
+                    )
+                self.sampling_params = SamplingParams(
+                    temperature=args.temperature,
+                    max_tokens=self.max_completion_length,
+                )
+
+            self._last_loaded_step = (
+                0  # tag to avoid useless loading during grad accumulation
+            )
+
+            # When using vLLM, the main process is responsible for loading the model weights. This can cause process
+            # desynchronization and seems to lead to DeepSpeed hanging during initialization. To prevent this, we
+            # synchronize all processes after vLLM has been fully initialized.
+            self.accelerator.wait_for_everyone()
+        else:
+            raise ValueError(
+                "Qwen2VLGRPOVLLMTrainer only supports vllm generation, please set --use_vllm True"
+            )
 
         if self.ref_model is not None:
             if self.is_deepspeed_enabled:
                 self.ref_model = prepare_deepspeed(self.ref_model, self.accelerator)
             else:
-                self.ref_model = self.accelerator.prepare_model(self.ref_model, evaluation_mode=True)
+                self.ref_model = self.accelerator.prepare_model(
+                    self.ref_model, evaluation_mode=True
+                )
 
         for i, reward_func in enumerate(self.reward_funcs):
             if isinstance(reward_func, PreTrainedModel):
-                self.reward_funcs[i] = self.accelerator.prepare_model(reward_func, evaluation_mode=True)
-
+                self.reward_funcs[i] = self.accelerator.prepare_model(
+                    reward_func, evaluation_mode=True
+                )
 
     def _set_signature_columns_if_needed(self):
         # If `self.args.remove_unused_columns` is True, non-signature columns are removed.

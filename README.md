@@ -73,7 +73,7 @@ torchrun --nproc_per_node="8" \
     --master_port="12345" \
     src/open_r1/grpo.py \
     --output_dir <OUTPUT_DIR> \
-    --model_name_or_path <PATH-TO-Qwen2-VL-2B-Instruct> \
+    --model_name_or_path <PATH-TO-Qwen2-VL-2B-Instruct> \ # Currently supported models: Qwen2-VL, Qwen2.5-VL
     --dataset_name leonardPKU/clevr_cogen_a_train \  #https://huggingface.co/datasets/leonardPKU/clevr_cogen_a_train
     --max_prompt_length 1024 \
     --per_device_train_batch_size 1 \

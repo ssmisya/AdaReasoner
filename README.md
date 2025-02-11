@@ -151,7 +151,7 @@ python test_qwen2vl_counting_superclevr.py
 
 <img width="379" alt="Image" src="https://github.com/user-attachments/assets/f0203ab3-6b4a-463b-af71-f37114ab4036" />
 
-We provide the example script to evaluate on the test set (direct answer form) of [GEQQA](https://arxiv.org/abs/2312.11370).
+We provide the example script to evaluate on the test set (direct answer form) of [GEOQA](https://arxiv.org/abs/2312.11370).
 
 
 ```bash

@@ -74,7 +74,7 @@ bash setup.sh
 ### Supported Models
 
 1. Qwen2-VL
-2. Qwen2.5-VL (need to reinstall the latest repo, see https://github.com/Deep-Agent/R1-V/issues/56)
+2. Qwen2.5-VL 
 
 ### Supported Training Datasets
 

@@ -41,7 +41,7 @@
 
 ### Updates
 
-- 2025-02-11: R1-V now supports Qwen2.5-VL and [GEQQA](https://arxiv.org/abs/2312.11370) task.
+- 2025-02-11: R1-V now supports Qwen2.5-VL and [GEOQA](https://arxiv.org/abs/2312.11370) task.
 - 2025-02-06: We upload the evaluation script and polish the README. We are writing a blog post summarizing the statistics, findings and underexplored questions. 
 - 2025-02-03: We upload the training codebase.
 - 2025-02-03: We curate and upload some verified Deepseek-R1 visual reasoning traces with some special tricks (see `R1-V/src/distill_r1/`). Current training code does not rely on it, feel free to explore.

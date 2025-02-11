@@ -82,8 +82,8 @@ bash setup.sh
 
 ### Supported Evaluations
 
-1. SuperClevr-200
-2. GeoQA-Test-Direct-Answer-735
+1. [SuperClevr-200](https://github.com/Deep-Agent/R1-V?tab=readme-ov-file#superclevr)
+2. [GeoQA-Test-Direct-Answer-735](https://github.com/Deep-Agent/R1-V?tab=readme-ov-file#geoqa)
 
 ## Training
 
@@ -168,7 +168,7 @@ python test_qwen2vl_geoqa.py
 
 # tested scores: 
 # Qwen2VL-7B-Instruct: 30.63%
-# Qwen2VL-7B-Instruct-GRPO-2epochs: 38.72%
+# Qwen2VL-7B-Instruct-GRPO-2epoches: 38.72%
 ```
 
 

@@ -152,7 +152,10 @@ python test_qwen2vl_counting_superclevr.py
 
 ### GEOQA
 
-<img width="379" alt="Image" src="https://github.com/user-attachments/assets/f0203ab3-6b4a-463b-af71-f37114ab4036" />
+<img width="379" alt="截屏2025-02-11 13 38 50" src="https://github.com/user-attachments/assets/0282872d-bfe5-40fa-ac00-8986450a0b1e" />
+<img width="379" alt="截屏2025-02-11 14 54 16" src="https://github.com/user-attachments/assets/053ebb99-5f19-4599-be51-a7c335ab2b8b" />
+
+
 
 We provide the example script to evaluate on the test set (direct answer form) of [GEOQA](https://arxiv.org/abs/2312.11370).
 

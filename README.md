@@ -21,16 +21,27 @@
 4. The training was conducted on 8 A100 GPUs for **30 minutes, costing $2.62**.
 
 
-[🤗 Train Dataset: CLEVR-70k](https://huggingface.co/datasets/leonardPKU/clevr_cogen_a_train)
+[🤗 R1V Training Dataset: CLEVR-70k](https://huggingface.co/datasets/leonardPKU/clevr_cogen_a_train)
+
+[🤗 R1V Training Dataset: GEOQA-8k](https://huggingface.co/datasets/leonardPKU/GEOQA_R1V_Train_8K)
 
 [🤗 R1-Distilled Visual Reasoning Dataset](https://huggingface.co/datasets/MMInstruction/Clevr_CoGenT_TrainA_R1)
 
-**Contributors:** [Liang Chen](https://github.com/chenllliang) · [Lei Li](https://lilei-nlp.github.io) · [Haozhe Zhao](https://haozhezhao.github.io/) · [Yifan Song](https://github.com/Yifan-Song793) · [Vinci](https://github.com/0xvincii)
+**R1-V Team:** [Liang Chen](https://github.com/chenllliang) · [Lei Li](https://lilei-nlp.github.io) · [Haozhe Zhao](https://haozhezhao.github.io/) · [Yifan Song](https://github.com/Yifan-Song793) · [Vinci](https://github.com/0xvincii) · [Zihao Yue](https://yuezih.github.io/) 
+
+**Contributors**:
+
+<a href="https://github.com/Deep-Agent/R1-V/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Deep-Agent/R1-V" />
+</a>
+
+
 
 ---
 
 ### Updates
 
+- 2025-02-11: R1-V now supports Qwen2.5-VL and GEO-QA task.
 - 2025-02-06: We upload the evaluation script and polish the README. We are writing a blog post summarizing the statistics, findings and underexplored questions. 
 - 2025-02-03: We upload the training codebase.
 - 2025-02-03: We curate and upload some verified Deepseek-R1 visual reasoning traces with some special tricks (see `R1-V/src/distill_r1/`). Current training code does not rely on it, feel free to explore.
@@ -62,6 +73,18 @@ bash setup.sh
 1. Qwen2-VL
 2. Qwen2.5-VL
 
+### Supported Training Datasets
+
+1. [🤗 R1V Training Dataset: CLEVR-70k](https://huggingface.co/datasets/leonardPKU/clevr_cogen_a_train)
+
+2. [🤗 R1V Training Dataset: GEOQA-8k](https://huggingface.co/datasets/leonardPKU/GEOQA_R1V_Train_8K)
+
+
+### Supported Evaluations
+
+1. SuperClevr-200
+2. GeoQA-Test-Direct-Answer-735
+
 ## Training
 
 ```bash
@@ -78,7 +101,7 @@ torchrun --nproc_per_node="8" \
     src/open_r1/grpo.py \
     --output_dir <OUTPUT_DIR> \
     --model_name_or_path <PATH-TO-Qwen2-VL-2B-Instruct> \ # Currently supported models: Qwen2-VL, Qwen2.5-VL
-    --dataset_name leonardPKU/clevr_cogen_a_train \  #https://huggingface.co/datasets/leonardPKU/clevr_cogen_a_train
+    --dataset_name leonardPKU/clevr_cogen_a_train \  # Currently supported datasets: leonardPKU/clevr_cogen_a_train, leonardPKU/GEOQA_R1V_Train_8K
     --max_prompt_length 1024 \
     --per_device_train_batch_size 1 \
     --gradient_accumulation_steps 2 \
@@ -103,6 +126,7 @@ torchrun --nproc_per_node="8" \
 ## Evaluation
 
 
+### SuperCLEVR
 
 ![image](https://github.com/user-attachments/assets/4f48233c-0546-432f-94e6-723f91fbd086)
 
@@ -123,11 +147,37 @@ python test_qwen2vl_counting_superclevr.py
 # Qwen2VL-2B-Instruct-GRPO-100step: 82.5%
 ```
 
+### GEOQA
+
+<img width="379" alt="Image" src="https://github.com/user-attachments/assets/f0203ab3-6b4a-463b-af71-f37114ab4036" />
+
+We provide the example script to evaluate on the test set (direct answer form) of [GEQQA](https://arxiv.org/abs/2312.11370).
+
+
+```bash
+# prepare images for testing
+cd ./src/eval
+git lfs install
+git clone https://huggingface.co/datasets/Luckyjhg/Geo170K
+cd Geo170K
+unzip images.zip
+
+
+# change the model path in the script
+python test_qwen2vl_geoqa.py 
+
+# tested scores: 
+# Qwen2VL-7B-Instruct: 30.63%
+# Qwen2VL-7B-Instruct-GRPO-2epochs: 38.72%
+```
+
 
 
 ## Acknowledgements
 
-We sincerely thank [DeepSeek](https://github.com/deepseek-ai/DeepSeek-R1), [Open-R1](https://github.com/huggingface/open-r1), [QwenVL](https://github.com/QwenLM/Qwen2.5-VL), [Open-R1-Multimodal](https://github.com/EvolvingLMMs-Lab/open-r1-multimodal) (our initial codebase), [CLEVR](https://cs.stanford.edu/people/jcjohns/clevr/), [SuperCLEVR](https://github.com/Lizw14/Super-CLEVR) for providing open source resources and help for us to build the project.
+We sincerely thank [DeepSeek](https://github.com/deepseek-ai/DeepSeek-R1), [Open-R1](https://github.com/huggingface/open-r1), [QwenVL](https://github.com/QwenLM/Qwen2.5-VL), [Open-R1-Multimodal](https://github.com/EvolvingLMMs-Lab/open-r1-multimodal) (our initial codebase), [CLEVR](https://cs.stanford.edu/people/jcjohns/clevr/), [SuperCLEVR](https://github.com/Lizw14/Super-CLEVR), [G-LLAVA](https://arxiv.org/abs/2312.11370) for providing open source resources and to build the project. 
+
+
 
 [![Star History Chart](https://api.star-history.com/svg?repos=Deep-Agent/R1-V&type=Timeline)](https://star-history.com/#Deep-Agent/R1-V&Timeline)
 

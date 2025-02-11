@@ -57,6 +57,10 @@
 bash setup.sh
 ```
 
+### Supported Models
+
+1. Qwen2-VL
+2. Qwen2.5-VL
 
 ## Training
 

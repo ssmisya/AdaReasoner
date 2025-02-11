@@ -176,7 +176,10 @@ python test_qwen2vl_geoqa.py
 
 # tested scores: 
 # Qwen2VL-7B-Instruct: 30.63%
-# Qwen2VL-7B-Instruct-GRPO-2epoches: 38.72%
+# Qwen2VL-7B-Instruct-GRPO-2epochs: 38.72%
+
+# Qwen2.5VL-3B-Instruct: 35.41%
+# Qwen2.5VL-3B-Instruct-GRPO-1epochs: 47.48%
 ```
 
 

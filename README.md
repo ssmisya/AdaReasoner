@@ -74,7 +74,7 @@ bash setup.sh
 ### Supported Models
 
 1. Qwen2-VL
-2. Qwen2.5-VL (not stable, see https://github.com/Deep-Agent/R1-V/issues/56)
+2. Qwen2.5-VL (need to install latest repo, see https://github.com/Deep-Agent/R1-V/issues/56)
 
 ### Supported Training Datasets
 
@@ -106,7 +106,8 @@ torchrun --nproc_per_node="8" \
     --model_name_or_path <PATH-TO-Qwen2-VL-2B-Instruct> \ # Currently supported models: Qwen2-VL, Qwen2.5-VL
     --dataset_name leonardPKU/clevr_cogen_a_train \  # Currently supported datasets: leonardPKU/clevr_cogen_a_train, leonardPKU/GEOQA_R1V_Train_8K
     --deepspeed local_scripts/zero3.json \
-    --max_prompt_length 1024 \
+    --max_prompt_length 512 \
+    --max_completion_length 512 \
     --per_device_train_batch_size 1 \
     --gradient_accumulation_steps 2 \
     --logging_steps 1 \

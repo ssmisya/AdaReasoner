@@ -40,13 +40,14 @@ import os
 import sys
 
 import datasets
+from dataclasses import dataclass, field
+from typing import Optional
 import torch
 import transformers
 from datasets import load_dataset
 from transformers import AutoTokenizer, set_seed, AutoProcessor
 from transformers.trainer_utils import get_last_checkpoint
-from open_r1.configs import SFTConfig
-from open_r1.utils.callbacks import get_callbacks
+import trl
 from trl import (
     ModelConfig,
     ScriptArguments,
@@ -59,6 +60,31 @@ from trl import (
 
 from qwen_vl_utils import process_vision_info
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class SFTConfig(trl.SFTConfig):
+    """
+    args for callbacks, benchmarks etc
+    """
+
+    benchmarks: list[str] = field(
+        default_factory=lambda: [], metadata={"help": "The benchmarks to run after training."}
+    )
+    callbacks: list[str] = field(
+        default_factory=lambda: [], metadata={"help": "The callbacks to run during training."}
+    )
+    system_prompt: Optional[str] = field(
+        default=None,
+        metadata={"help": "The optional system prompt to use for benchmarking."},
+    )
+    hub_model_revision: Optional[str] = field(
+        default="main",
+        metadata={"help": "The Hub model branch to push the model to."},
+    )
+    overwrite_hub_revision: bool = field(default=False, metadata={"help": "Whether to overwrite the Hub revision."})
+    push_to_hub_revision: bool = field(default=False, metadata={"help": "Whether to push to a Hub revision/branch."})
+
 
 
 processor = None
@@ -236,7 +262,7 @@ def main(script_args, training_args, model_args):
         processing_class=processor.tokenizer,
         data_collator=collate_fn,
         peft_config=get_peft_config(model_args),
-        callbacks=get_callbacks(training_args, model_args),
+        callbacks=[],
     )
 
     ###############
@@ -267,7 +293,7 @@ def main(script_args, training_args, model_args):
         "finetuned_from": model_args.model_name_or_path,
         "dataset": list(script_args.dataset_name),
         "dataset_tags": list(script_args.dataset_name),
-        "tags": ["open-r1"],
+        "tags": ["R1-V"],
     }
     if trainer.accelerator.is_main_process:
         trainer.create_model_card(**kwargs)

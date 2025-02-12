@@ -46,7 +46,7 @@
 
 ### Updates
 
-- 2025-02-12: R1-V now supports vLLM to accelerate training.
+- 2025-02-12: R1-V now supports vLLM to accelerate training and SFT.
 - 2025-02-11: R1-V now supports Qwen2.5-VL and [GEOQA](https://arxiv.org/abs/2312.11370) task.
 - 2025-02-06: We upload the evaluation script and polish the README. We are writing a blog post summarizing the statistics, findings and underexplored questions. 
 - 2025-02-03: We upload the training codebase.
@@ -95,6 +95,8 @@ bash setup.sh
 
 ## Training
 
+### GRPO
+
 ```bash
 cd src/open-r1-multimodal
 
@@ -132,6 +134,15 @@ torchrun --nproc_per_node="8" \
 > [!NOTE] 
 > 1. To reproduce the result, keep the per_device_train_batch_size to 1 for now, as there is a revealed bug about batched training. See the [reproduction report](https://github.com/Deep-Agent/R1-V/issues/4#issuecomment-2633348354) here. We realize it is important for effiency and are working on solving it with the community.
 > 2. If you meet **OOM Error**, you can try reduce `--num_generations`
+
+
+### SFT
+
+We also provide SFT code, please follow the script and edit the config to customize the sft task.
+
+```bash
+accelerate launch --config_file src/open-r1-multimodal/configs/zero2.yaml src/open-r1-multimodal/src/open_r1/sft.py --config src/open-r1-multimodal/configs/qwen2vl_sft_config.yaml 
+```
 
 ## Evaluation
 

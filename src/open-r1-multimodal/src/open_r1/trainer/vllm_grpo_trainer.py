@@ -741,7 +741,7 @@ class Qwen2VLGRPOVLLMTrainer(Trainer):
         }
 
     def compute_loss(
-        self, model, inputs, return_outputs=False
+        self, model, inputs, return_outputs=False, num_items_in_batch=None
     ):
         if return_outputs:
             raise ValueError("The GRPOTrainer does not support returning outputs")

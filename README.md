@@ -46,7 +46,7 @@
 
 ### Updates
 
-- 2025-02-12: R1-V now supports vLLM to accelerate training and SFT.
+- 2025-02-12: R1-V now supports vLLM to accelerate training (`pip install vllm==0.7.2` before use) and SFT.
 - 2025-02-11: R1-V now supports Qwen2.5-VL and [GEOQA](https://arxiv.org/abs/2312.11370) task.
 - 2025-02-06: We upload the evaluation script and polish the README. We are writing a blog post summarizing the statistics, findings and underexplored questions. 
 - 2025-02-03: We upload the training codebase.

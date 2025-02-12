@@ -45,7 +45,7 @@ from typing import Optional
 import torch
 import transformers
 from datasets import load_dataset
-from transformers import AutoTokenizer, set_seed, AutoProcessor, TrainerCallback
+from transformers import AutoTokenizer, set_seed, AutoProcessor
 from transformers.trainer_utils import get_last_checkpoint
 import trl
 from trl import (

@@ -382,36 +382,8 @@ class Qwen2VLGRPOTrainer(Trainer):
 
         # Generate completions
         with unwrap_model_for_generation(model, self.accelerator) as unwrapped_model:
-            #prompt_completion_ids = unwrapped_model.generate(**prompt_inputs, generation_config=self.generation_config)
-
-            # Generate N times, each generate one with the temp_generation_config , stack the output_ids to prompt_completion_ids, pad the empty places with number 151613
-            num_generations = self.generation_config.num_return_sequences
-            temp_generation_config = copy.deepcopy(self.generation_config)
-            temp_generation_config.num_return_sequences = 1
-
-            all_completions = []
-
-            for i in range(num_generations):  # -1 because we already have one generation
-                completion = unwrapped_model.generate(**prompt_inputs, generation_config=temp_generation_config)
-                all_completions.append(completion)
-            
-            # Stack all completions and pad if needed
-            max_length = max(completion.size(1) for completion in all_completions)
-            padded_completions = []
-
-            for completion in all_completions:
-                if completion.size(1) < max_length:
-                    padding = torch.full((completion.size(0), max_length - completion.size(1)), 
-                                    self.processing_class.tokenizer.pad_token_id, 
-                                    dtype=completion.dtype,
-                                    device=completion.device)
-                    padded_completion = torch.cat([completion, padding], dim=1)
-                else:
-                    padded_completion = completion
-                padded_completions.append(padded_completion)
-
-            # Stack all padded completions
-            prompt_completion_ids = torch.cat(padded_completions, dim=0)
+            prompt_inputs['pixel_values'] = prompt_inputs['pixel_values'][None]
+            prompt_completion_ids = unwrapped_model.generate(**prompt_inputs, generation_config=self.generation_config)
 
             prompt_length = prompt_ids.size(1)
             prompt_ids = prompt_completion_ids[:, :prompt_length]
@@ -428,7 +400,7 @@ class Qwen2VLGRPOTrainer(Trainer):
 
         # Concatenate prompt_mask with completion_mask for logit computation
         attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)  # (B*G, P+C)
-        pixel_values = prompt_inputs["pixel_values"][None].repeat_interleave(self.num_generations, dim=0)
+        pixel_values = prompt_inputs["pixel_values"].repeat_interleave(self.num_generations, dim=0).view(-1, pixel_values.shape[-1])
         image_grid_thw = prompt_inputs["image_grid_thw"].repeat_interleave(self.num_generations, dim=0)
 
         per_token_logps = self._get_per_token_logps(model, prompt_completion_ids, attention_mask, pixel_values, image_grid_thw)

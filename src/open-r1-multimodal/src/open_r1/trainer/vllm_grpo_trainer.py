@@ -402,7 +402,7 @@ class Qwen2VLGRPOVLLMTrainer(Trainer):
                     return_value=None,
                 )
                 with world_size_patch, profiling_patch:
-                    print("vllm_device: ", vllm_device)
+                    print("vllm is running on: ", vllm_device)
                     self.llm = LLM(
                         model=model.name_or_path,
                         device=vllm_device,
@@ -413,7 +413,7 @@ class Qwen2VLGRPOVLLMTrainer(Trainer):
                         # This is particularly useful here because we generate completions from the same prompts.
                         enable_prefix_caching=True,
                         enforce_eager=True,
-                        max_model_len=2048,
+                        max_model_len=args.max_completion_length,
                     )
                 self.sampling_params = SamplingParams(
                     temperature=args.temperature,
@@ -741,7 +741,7 @@ class Qwen2VLGRPOVLLMTrainer(Trainer):
         }
 
     def compute_loss(
-        self, model, inputs, return_outputs=False, num_items_in_batch=None
+        self, model, inputs, return_outputs=False
     ):
         if return_outputs:
             raise ValueError("The GRPOTrainer does not support returning outputs")
@@ -804,3 +804,19 @@ class Qwen2VLGRPOVLLMTrainer(Trainer):
         )
 
         return loss
+
+        
+    def log(self, logs: dict[str, float], start_time: Optional[float] = None) -> None:
+        metrics = {key: sum(val) / len(val) for key, val in self._metrics.items()}  # average the metrics
+
+        # This method can be called both in training and evaluation. When called in evaluation, the keys in `logs`
+        # start with "eval_". We need to add the prefix "eval_" to the keys in `metrics` to match the format.
+        if next(iter(logs.keys())).startswith("eval_"):
+            metrics = {f"eval_{key}": val for key, val in metrics.items()}
+
+        logs = {**logs, **metrics}
+        if version.parse(transformers.__version__) >= version.parse("4.47.0.dev0"):
+            super().log(logs, start_time)
+        else:  # transformers<=4.46
+            super().log(logs)
+        self._metrics.clear()

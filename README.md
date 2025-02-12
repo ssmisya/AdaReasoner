@@ -22,7 +22,9 @@
 
 **Resources:** 
 
-[🤗 R1V Training Dataset: CLEVR-70k](https://huggingface.co/datasets/leonardPKU/clevr_cogen_a_train)
+[🤗 R1V Training Dataset: CLEVR-70k-Counting](https://huggingface.co/datasets/leonardPKU/clevr_cogen_a_train)
+
+[🤗 R1V Training Dataset: CLEVR-70k-Complex](https://huggingface.co/datasets/MMInstruction/Clevr_CoGenT_TrainA_70K_Complex)
 
 [🤗 R1V Training Dataset: GEOQA-8k](https://huggingface.co/datasets/leonardPKU/GEOQA_R1V_Train_8K)
 
@@ -44,6 +46,7 @@
 
 ### Updates
 
+- 2025-02-12: R1-V now supports vLLM to accelerate training.
 - 2025-02-11: R1-V now supports Qwen2.5-VL and [GEOQA](https://arxiv.org/abs/2312.11370) task.
 - 2025-02-06: We upload the evaluation script and polish the README. We are writing a blog post summarizing the statistics, findings and underexplored questions. 
 - 2025-02-03: We upload the training codebase.
@@ -78,9 +81,11 @@ bash setup.sh
 
 ### Supported Training Datasets
 
-1. [🤗 R1V Training Dataset: CLEVR-70k](https://huggingface.co/datasets/leonardPKU/clevr_cogen_a_train)
+1. [🤗 R1V Training Dataset: CLEVR-70k-Counting](https://huggingface.co/datasets/leonardPKU/clevr_cogen_a_train): Item Counting Problems
 
-2. [🤗 R1V Training Dataset: GEOQA-8k](https://huggingface.co/datasets/leonardPKU/GEOQA_R1V_Train_8K)
+2. [🤗 R1V Training Dataset: CLEVR-70k-Complex](https://huggingface.co/datasets/MMInstruction/Clevr_CoGenT_TrainA_70K_Complex): Number Related Reasoning 
+
+3. [🤗 R1V Training Dataset: GEOQA-8k](https://huggingface.co/datasets/leonardPKU/GEOQA_R1V_Train_8K): Geometry Reasoning
 
 
 ### Supported Evaluations

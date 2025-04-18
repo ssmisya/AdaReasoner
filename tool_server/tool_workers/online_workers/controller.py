@@ -22,7 +22,7 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from tool_server.tool_workers.online_workers.utils import build_logger, server_error_msg
+from tool_server.tool_workers.online_workers.utils import build_logger, SERVER_ERROR_MSG
 from tool_server.tool_workers.online_workers.constants import CONTROLLER_HEART_BEAT_EXPIRATION
 
 logger = build_logger("controller", "controller.log")

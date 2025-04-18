@@ -28,9 +28,12 @@ import numpy as np
 
 np.random.seed(3)
 
+
 def extract_points(generate_param, image_w, image_h):
     all_points = []
-    for match in re.finditer(r'x\d*="\s*([0-9]+(?:\.[0-9]+)?)"\s+y\d*="\s*([0-9]+(?:\.[0-9]+)?)"', generate_param):
+    pattern = r'x\d*=\s*\\?"?([0-9]+(?:\.[0-9]*)?)\\?"?\s*y\d*=\s*\\?"?([0-9]+(?:\.[0-9]*)?)\\?"?'
+    
+    for match in re.finditer(pattern, generate_param):
         try:
             point = [float(match.group(i)) for i in range(1, 3)]
         except ValueError:
@@ -42,6 +45,7 @@ def extract_points(generate_param, image_w, image_h):
             point /= 100.0
             point = point * np.array([image_w, image_h])
             all_points.append(point)
+    
     return all_points
 
 def show_mask(mask, ax, random_color=False, borders = True):
@@ -72,7 +76,7 @@ def show_box(box, ax):
     ax.add_patch(plt.Rectangle((x0, y0), w, h, edgecolor='green', facecolor=(0, 0, 0, 0), lw=2))
     
 def show_masks(image, masks, scores, point_coords=None, box_coords=None, input_labels=None, borders=True):
-    fig, ax = plt.subplots(figsize=(image.width / 100, image.height / 100), dpi=100)
+    fig, ax = plt.subplots()
     ax.imshow(image)
     image_format = image.format.lower() if image.format else 'png'
     if image_format not in ['png', 'jpeg', 'jpg']:
@@ -116,7 +120,7 @@ class SAM2ToolWorker(BaseToolWorker):
                  host = "0.0.0.0",
                  port = None,
                  model_semaphore = None,
-                 sam2_checkpoint = "/mnt/petrelfs/haoyunzhuo/mmtool/checkpoints/sam2_hiera_large.pt",
+                 sam2_checkpoint = "/mnt/petrelfs/share_data/suzhaochen/models/sam2-hiera-large/sam2_hiera_large.pt",
                  sam2_model_cfg = "sam2_hiera_l.yaml",
                  ):
         self.sam2_checkpoint = sam2_checkpoint

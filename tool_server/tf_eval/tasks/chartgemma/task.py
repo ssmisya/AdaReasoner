@@ -3,31 +3,57 @@ from ...utils.task_utils import *
 from ...utils.utils import *
 from ...utils.log_utils import get_logger
 import os
+from datasets import Dataset
 
 logger = get_logger(__name__)
 task_config = get_task_config_from_current_dir(__file__)
 
+# def load_dataset(file_path, already_processed_path, num_samples=None):
+#     with open(file_path, 'r', encoding='utf-8') as f:
+#         dataset = json.load(f)
+#     process_data = set()
+#     with open(already_processed_path, 'r', encoding='utf-8') as f:
+#         for line in f:
+#             data = json.loads(line)
+#             process_data.add(data['results']['results']['meta_data']['text'])
+#     selected_dataset = []
+#     for data in dataset:
+#         if data['question'] not in process_data:
+#             selected_dataset.append(data)
+
+#     if num_samples is None:
+#         return Dataset.from_dict({"data": selected_dataset})
+#     return Dataset.from_dict({"data": selected_dataset[:num_samples]})
+
+def load_dataset(file_path, num_samples=None):
+    with open(file_path, 'r', encoding='utf-8') as f:
+        dataset = json.load(f)
+    if num_samples is None:
+        return Dataset.from_dict({"data": dataset})
+    return Dataset.from_dict({"data": dataset[:num_samples]})
 
 def load_data_function():
     
     # raw_data = load_dir_of_jsonl_data_function_default(task_config)
     dataset_path = task_config["dataset_path"]
     image_dir_path = task_config["image_dir_path"]
+    num_samples = task_config['num_sample']
 
-    raw_data = []
-    for k,v in load_json_file(dataset_path).items():
-        raw_data.append(v)
-        
+    # dataset = load_dataset(dataset_path, already_processed_path, num_samples)
+    dataset = load_dataset(dataset_path, num_samples)
+
     meta_data = []
-    for idx,item in enumerate(raw_data):
-        figure_id = item["figure_id"]
-        item_id = f"charxiv_{figure_id}_{idx}"
+    for idx,item in enumerate(dataset):
+        item = item["data"]
+        item_id = f"chartgemma_{idx}"
+        image_file = item.get("image_path")
 
-        image_path = os.path.join(image_dir_path, f"{figure_id}.jpg")
-        text = item["query"]
-        data_item = dict(idx=item_id, image_path=image_path, text=text, **item)
+        image_path = image_file
+        text = item["question"]
+        data_item = dict(idx=item_id, text=text, **item)
+        data_item["image_path"] = image_path
         meta_data.append(data_item)
-    meta_data = meta_data[:100]
+
     ## Show statistics
     logger.info(f"Total data number: {len(meta_data)}")
     return meta_data

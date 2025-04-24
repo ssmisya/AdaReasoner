@@ -164,3 +164,27 @@ cython_debug/
 
 tool_server/tool_workers/logs/*
 LLaVA-Plus-Codebase/
+
+
+*logs
+*__pycache__
+
+
+
+# all files
+chart_results/*
+chartcot_default/*
+chartgemma4cota/*
+chartgemma4cotagemini_4/*
+chartgemma4cota_4/*
+charxiv_gemini/*
+clean_results/*
+results/*
+
+output/
+
+**/controller.log.*
+r1_v/scripts/** 
+tool_server/tf_eval/scripts
+r1_v/wandb
+r1_v/scripts

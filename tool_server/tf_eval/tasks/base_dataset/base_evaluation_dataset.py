@@ -71,7 +71,11 @@ class BaseEvalDataset(Dataset):
         else:
             self.padding_side = "right"
             
+<<<<<<< HEAD
         if dist.is_available() and dist.is_initialized() and not is_vllm_environment():
+=======
+        if dist.is_available() and dist.is_initialized() and not 'vllm' in self.model_name:
+>>>>>>> main
             dist.barrier()
             
     
@@ -91,7 +95,7 @@ class BaseEvalDataset(Dataset):
     
     def evaluate(self):
         self.collect_results_from_multi_process()
-        res = self.evaluate_function(results=self.results,meta_data=self.full_data)
+        res = self.evaluate_function(results=self.results, meta_data=self.full_data)
         res["task_name"] = self.task_name
         res["model_name"] = self.model_name
         return res
@@ -125,16 +129,21 @@ class BaseEvalDataset(Dataset):
         
         
     def collect_results_from_multi_process(self):
+<<<<<<< HEAD
         if dist.is_available() and dist.is_initialized() and not is_vllm_environment():
+=======
+        # breakpoint()
+        if dist.is_available() and dist.is_initialized() and not 'vllm' in self.model_name:
+>>>>>>> main
             dist.barrier()
-            self.results = gather_dict_lists(self.results)
-            results_dict = {}
-            renewed_results = []
-            for item in self.results:
-                if item["idx"] not in results_dict:
-                    results_dict[item["idx"]] = 1
-                    renewed_results.append(item)
-            self.results = renewed_results
+        self.results = gather_dict_lists(self.results)
+        results_dict = {}
+        renewed_results = []
+        for item in self.results:
+            if item["idx"] not in results_dict:
+                results_dict[item["idx"]] = 1
+                renewed_results.append(item)
+        self.results = renewed_results
     
     def set_gen_kwargs(self, config):
         if isinstance(config, dict):

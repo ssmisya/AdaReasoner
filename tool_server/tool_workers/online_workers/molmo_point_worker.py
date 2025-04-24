@@ -81,9 +81,9 @@ class MolmoToolWorker(BaseToolWorker):
                  worker_addr = "auto",
                  worker_id = worker_id, 
                  no_register = False,
-                 model_path = "/mnt/petrelfs/share_data/mmtool/Molmo-7B-D-0924", 
+                 model_path = "/mnt/petrelfs/share_data/suzhaochen/models/Molmo-7B-D-0924", 
                  model_base = "", 
-                 model_name = "point",
+                 model_name = "Point",
                  load_8bit = False, 
                  load_4bit = False, 
                  device = "auto",
@@ -136,7 +136,7 @@ class MolmoToolWorker(BaseToolWorker):
         generate_param = params["param"]
         image = params["image"]
         image =  base64_to_pil(image) #  PIL image
-
+        # breakpoint()
         text_prompt = "Point to the {} in the scene.".format(generate_param)
         
         ret = {"text": "", "error_code": 0}
@@ -151,6 +151,7 @@ class MolmoToolWorker(BaseToolWorker):
                 inputs = {k: v.to(self.model.device).unsqueeze(0) for k, v in inputs.items()}
                 with torch.no_grad():
                     with torch.cuda.amp.autocast(dtype=torch.bfloat16):
+
                         output = self.model.generate_from_batch(
                             inputs,
                             GenerationConfig(max_new_tokens=self.max_length, stop_strings="<|endoftext|>"),
@@ -163,24 +164,24 @@ class MolmoToolWorker(BaseToolWorker):
                         
                         if response is not None:
                             ret["text"] = response
-                            width, height = image.size
-                            all_points = extract_points(response, width, height)
+                        #     width, height = image.size
+                        #     all_points = extract_points(response, width, height)
                             
-                            if all_points.size > 0:
-                                input_labels = np.ones(len(all_points))
-                                image = create_image_with_points(image, all_points, input_labels)
-                                ret['edited_image'] = pil_to_base64(image)
-                            else:
-                                ret["text"] = "No region found in image."
-                                ret['edited_image'] = None
-                        else:
-                            ret["text"] = "No region found in image."
-                            ret['edited_image'] = None
+                        #     if all_points.size > 0:
+                        #         input_labels = np.ones(len(all_points))
+                        #         image = create_image_with_points(image, all_points, input_labels)
+                        #         ret['edited_image'] = pil_to_base64(image)
+                        #     else:
+                        #         ret["text"] = "No region found in image."
+                        #         ret['edited_image'] = None
+                        # else:
+                        #     ret["text"] = "No region found in image."
+                        #     ret['edited_image'] = None
                 
         except Exception as e:
-            logger.error(f"Error when using cogcom to ground: {e}")
-            ret["text"] = f"Error when using cogcom to ground: {e}"
-            ret['edited_image'] = None
+            logger.error(f"Error when using molmo to point: {e}")
+            ret["text"] = f"Error when using molmo to point: {e}"
+            # ret['edited_image'] = None
         
         return ret
 
@@ -196,7 +197,7 @@ if __name__ == "__main__":
     parser.add_argument("--limit-model-concurrency", type=int, default=5)
     parser.add_argument("--stream-interval", type=int, default=1)
     parser.add_argument("--no-register", action="store_true")
-    parser.add_argument("--model_path", type=str, default="/mnt/petrelfs/share_data/mmtool/Molmo-7B-D-0924")
+    parser.add_argument("--model_path", type=str, default="/mnt/petrelfs/share_data/suzhaochen/models/Molmo-7B-D-0924")
     args = parser.parse_args()
     logger.info(f"args: {args}")
 

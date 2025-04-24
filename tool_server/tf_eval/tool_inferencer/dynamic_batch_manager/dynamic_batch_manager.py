@@ -2,6 +2,7 @@ from dataclasses import dataclass, field, asdict
 from typing import Dict, Sequence, Optional,List
 from tool_server.tf_eval.utils.log_utils import get_logger
 from ...utils.utils import *
+from PIL import Image
 
 logger = get_logger(__name__)
 
@@ -16,7 +17,7 @@ class DynamicBatchItem:
     tool_cfg :  List[str] = field(default_factory=list)
     tool_response :  List[str] = field(default_factory=list)
     new_round_input :  List[str] = field(default_factory=list)
-    
+    current_image : Image = field(default=None)
     
     
 
@@ -69,9 +70,10 @@ class DynamicBatchManager():
             raise ValueError("Batch is full")
     
     
-    def append_item_to_full(self,dataloader,progress_bar=None):
+    def append_item_to_full(self, dataloader, progress_bar=None):
         while len(self.dynamic_batch) < self.batch_size:
             try:
+                # breakpoint()
                 self.append_item(next(dataloader))
                 if progress_bar:
                     progress_bar.update(1)
@@ -88,13 +90,13 @@ class DynamicBatchManager():
     def update_item_status(self):
         for item in self.dynamic_batch:
             if item.status == "pending":
-                if item.current_round == item.max_rounds:
+                if item.current_round == item.max_rounds or "Terminate" in item.model_response[-1]:
                     item.status = "finished"
                 else:
                     item.current_round += 1
                     item.status = "processing"
             elif item.status == "processing":
-                if item.current_round == item.max_rounds:
+                if item.current_round == item.max_rounds or "Terminate" in item.model_response[-1]:
                     item.status = "finished"
                 else:
                     item.current_round += 1

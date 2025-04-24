@@ -1,6 +1,7 @@
 task_name: "charxiv"
-dataset_path: /mnt/petrelfs/share_data/mmtool/CharXiv/code-CharXiv/data/reasoning_val.json
-image_dir_path: /mnt/petrelfs/share_data/mmtool/CharXiv/images
+dataset_path: /mnt/petrelfs/share_data/suzhaochen/new_tool/Tool-Factory/test_dataset/reasoning_val_200.json
+image_dir_path: /mnt/petrelfs/share_data/suzhaochen/datasets/CharXiv/images
+num_sample: 500
 dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv
 generation_config:
   max_length: 2048

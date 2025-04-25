@@ -24,17 +24,25 @@ tool_worker_config:
   - Point:
       worker_name: Point
       job_name: point
-      calculate_type: calculate
+      calculate_type: control
+      conda_env: "vllm2"
+      srun_kwargs:
+        w: SH-IDCA1404-10-140-54-15
+      cuda_visible_devices: "1"
       cmd:
         script-addr: ./online_workers/molmo_point_worker.py
         port: 20027
         host: "0.0.0.0"
-        model_path: "/mnt/petrelfs/share_data/suzhaochen/models/Molmo-7B-D-0924"
+        model_path: "/mnt/petrelfs/share_data/songmingyang/model/mm/tools/Molmo-7B-D-0924"
 
   - SegmentRegionAroundPoint:
       worker_name: SegmentRegionAroundPoint
       job_name: sam2
-      calculate_type: calculate
+      calculate_type: control
+      conda_env: "vllm2"
+      srun_kwargs:
+        w: SH-IDCA1404-10-140-54-15
+      cuda_visible_devices: "0"
       cmd:
         script-addr: ./online_workers/SAMAroundPoint_worker.py
         port: 20036

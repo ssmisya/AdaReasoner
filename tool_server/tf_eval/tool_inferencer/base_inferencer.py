@@ -31,13 +31,8 @@ class BaseToolInferencer(object):
         self.model_mode = model_mode 
         self.generate_conversation_fn = self.tp_model.generate_conversation_fn
         self.append_conversation_fn = self.tp_model.append_conversation_fn
-<<<<<<< HEAD
-        
-        if dist.is_initialized() and self.accelerator.device.type == "cuda" and not is_vllm_environment():
-=======
 
         if dist.is_initialized() and self.accelerator.device.type == "cuda" and not 'vllm_models' in str(type(self.tp_model)):
->>>>>>> main
             self.tp_model = self.tp_model.to(self.accelerator.device)
             self.tp_model = self.tp_model.to(torch.bfloat16)
 
@@ -51,17 +46,9 @@ class BaseToolInferencer(object):
             stop_token=self.stop_token,
             generate_conversation_fn = self.tp_model.generate_conversation_fn,
         )
-<<<<<<< HEAD
         self.tool_manager = ToolManager()
         self.available_models = self.tool_manager.available_tools
         
-        
-    
-=======
-        self.tool_manager = ToolManager(controller_addr)
-
-        self.available_models = self.tool_manager.available_tools
->>>>>>> main
 
     def batch_tool_response_to_next_round_input(self):
         current_batch = self.manager.get_current_batch()
@@ -87,7 +74,7 @@ class BaseToolInferencer(object):
                             edited_image = base64_to_pil(edited_image)
                         if self.model_mode == "general": 
                             edited_image = edited_image
-                        edited_image
+                        
                     else:
                         edited_image = None
                     
@@ -285,12 +272,8 @@ class BaseToolInferencer(object):
             num_workers=2, 
             collate_fn=lambda x: x[0]
         )
-<<<<<<< HEAD
-        if dist.is_initialized() and not is_vllm_environment():
-=======
 
         if dist.is_initialized() and not 'vllm_models' in str(type(self.tp_model)):
->>>>>>> main
             self.dataloader = self.accelerator.prepare(self.dataloader)
         self.dataloader_iter = iter(self.dataloader)
         self.tp_model.eval()
@@ -300,13 +283,6 @@ class BaseToolInferencer(object):
         if len(self.dataloader) == 0 and not 'vllm_models' in str(type(self.tp_model)):
             self.accelerator.wait_for_everyone()
             return
-<<<<<<< HEAD
-        
-        
-        
-=======
-
->>>>>>> main
         self.manager.append_item_to_full(self.dataloader_iter, progress_bar=progress_bar)
 
 
@@ -314,15 +290,6 @@ class BaseToolInferencer(object):
         self.tp_model.generate(current_batch)
 
         self.manager.update_item_status()
-<<<<<<< HEAD
-        # import debugpy
-        # debugpy.listen(address = ('0.0.0.0', 7119))
-        # debugpy.wait_for_client() 
-        # breakpoint() # 在下一句代码处暂停
-        # dist.barrier()
-=======
-
->>>>>>> main
         while len(current_batch) > 0:
             try:
                 # Inspect and yield output
@@ -350,4 +317,5 @@ class BaseToolInferencer(object):
         assert len(self.manager.get_current_batch()) == 0
         if not 'vllm_models' in str(type(self.tp_model)):
             self.accelerator.wait_for_everyone()
+    
     

@@ -27,7 +27,7 @@ tool_worker_config:
       calculate_type: control
       conda_env: "vllm2"
       srun_kwargs:
-        w: SH-IDCA1404-10-140-54-15
+        w: SH-IDCA1404-10-140-54-38
       cuda_visible_devices: "1"
       cmd:
         script-addr: ./online_workers/molmo_point_worker.py
@@ -41,8 +41,8 @@ tool_worker_config:
       calculate_type: control
       conda_env: "vllm2"
       srun_kwargs:
-        w: SH-IDCA1404-10-140-54-15
-      cuda_visible_devices: "0"
+        w: SH-IDCA1404-10-140-54-38
+      cuda_visible_devices: "2"
       cmd:
         script-addr: ./online_workers/SAMAroundPoint_worker.py
         port: 20036
@@ -81,6 +81,9 @@ tool_worker_config:
       worker_name: OCR
       job_name: ocr
       calculate_type: control
+      srun_kwargs:
+        w: SH-IDCA1404-10-140-54-38
+      cuda_visible_devices: "3"
       cmd:
         script-addr: ./online_workers/ocr_worker.py
         port: 20009

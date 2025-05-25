@@ -27,7 +27,7 @@ class ModelArguments:
     model_args: Optional[str] = field(default="pretrained=/mnt/petrelfs/share_data/quxiaoye/models/Qwen2-VL-72B-Instruct")
     model_mode: Optional[str] = field(default="opensource")
     batch_size: Optional[int] = field(default=1)
-    stop_token: Optional[str] = field(default="<stop>")
+    stop_token: Optional[str] = field(default=None)
     max_rounds: Optional[int] = field(default=3)
 
 @dataclass
@@ -64,7 +64,7 @@ class ScriptArguments:
     verbosity: Optional[str] = field(default="INFO")
     wandb_args: Optional[str] = field(default="project=mr_eval,entity=mr_eval")
     output_path: Optional[str] = field(default="output")
-    controller_addr: Optional[str] = field(default="http://localhost:20001")
+    controller_addr: Optional[str] = field(default=None)
 
 
 def parse_str_into_dict(args_str: str) -> Dict:

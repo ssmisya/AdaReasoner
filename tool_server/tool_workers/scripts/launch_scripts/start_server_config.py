@@ -58,7 +58,7 @@ class ServerManager:
             "--ntasks-per-node=1",
             f"-c {cpus}",
             "--kill-on-bad-exit=1",
-            "--quotatype=spot",
+            "--quotatype=reserved",
             f"--output={log_file}",
         ]
         

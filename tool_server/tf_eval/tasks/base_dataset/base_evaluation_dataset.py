@@ -71,11 +71,7 @@ class BaseEvalDataset(Dataset):
         else:
             self.padding_side = "right"
             
-<<<<<<< HEAD
-        if dist.is_available() and dist.is_initialized() and not is_vllm_environment():
-=======
         if dist.is_available() and dist.is_initialized() and not 'vllm' in self.model_name:
->>>>>>> main
             dist.barrier()
             
     
@@ -129,12 +125,8 @@ class BaseEvalDataset(Dataset):
         
         
     def collect_results_from_multi_process(self):
-<<<<<<< HEAD
-        if dist.is_available() and dist.is_initialized() and not is_vllm_environment():
-=======
         # breakpoint()
         if dist.is_available() and dist.is_initialized() and not 'vllm' in self.model_name:
->>>>>>> main
             dist.barrier()
         self.results = gather_dict_lists(self.results)
         results_dict = {}

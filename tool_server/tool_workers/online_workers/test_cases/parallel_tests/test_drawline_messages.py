@@ -134,7 +134,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # worker parameters
     parser.add_argument(
-        "--controller-address", type=str, default="http://SH-IDCA1404-10-140-54-1:20001"
+        "--controller-address", type=str, default="http://SH-IDCA1404-10-140-54-2:20001"
     )
     parser.add_argument("--worker-address", type=str)
     parser.add_argument("--model-name", type=str, default='DrawHorizontalLineByY')
@@ -156,7 +156,7 @@ if __name__ == "__main__":
         "--send_image", action="store_true",
     )
     parser.add_argument(
-        "--num-threads", type=int, default=1000, help="Number of parallel requests"
+        "--num-threads", type=int, default=100, help="Number of parallel requests"
     )
     args = parser.parse_args()
     args.send_image = True

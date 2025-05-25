@@ -1,6 +1,6 @@
 task_name: "chartgemma"
-dataset_path: /mnt/petrelfs/share_data/suzhaochen/new_tool/Tool-Factory/test_dataset/chartgemma200.json
-image_dir_path: /mnt/petrelfs/share_data/suzhaochen/datasets/chartgemma_cot
+dataset_path: /mnt/petrelfs/songmingyang/songmingyang/data/mm/reasoning/tool_dataset/datasets/chargemma_final/eval/OpenThinkIMG-Chart-Test-1000/chartgemma_test.json
+image_dir_path: /mnt/petrelfs/songmingyang/songmingyang/data/mm/reasoning/tool_dataset/datasets/chartgemma_cot
 num_sample: 1000
 dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv
 generation_config:

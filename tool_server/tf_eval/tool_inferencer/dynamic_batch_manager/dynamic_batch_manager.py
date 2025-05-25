@@ -35,7 +35,13 @@ class DynamicBatchManager():
         self.stop_token = stop_token
         self.max_rounds = max_rounds
         self.generate_conversation_fn = generate_conversation_fn
-        
+    
+    def extract_final_answer(self, final_response: str):
+        res_prefix = "{\"name\": \"Terminate\", \"arguments\": {\"ans\":"
+        res_postfix = "}"
+        temp = final_response.split(res_prefix)[-1].strip()
+        res = temp.split(res_postfix)[0].strip()
+        return res
     
         
     def pop_qualified_items(self):
@@ -45,6 +51,11 @@ class DynamicBatchManager():
             if item.status == "finished":
                 item = asdict(item)
                 item = remove_pil_objects(item)
+                
+                final_model_output = item["model_response"][-1]
+                final_answer = self.extract_final_answer(final_model_output)
+                item["final_answer"] = final_answer
+                
                 res.append(item)
             else:
                 new_batch.append(item)

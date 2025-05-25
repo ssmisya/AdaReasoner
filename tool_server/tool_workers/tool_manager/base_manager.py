@@ -6,8 +6,14 @@ from ..offline_workers import offline_tool_workers, get_tool_generate_fn
 from tool_server.utils.utils import load_json_file
 from tool_server.utils.server_utils import build_logger
 from contextlib import contextmanager
+import signal
+import time
 
 logger = build_logger("tool_manager")
+class TimeoutException(Exception): pass
+def _timeout_handler(signum, frame):
+    raise TimeoutException("chat() timed out.")
+signal.signal(signal.SIGALRM, _timeout_handler)
 
 class ToolManager(object):
     def __init__(self, controller_url_location=None):
@@ -71,28 +77,39 @@ class ToolManager(object):
             self.online_tool_addr_dict[model_name] = worker_addr
     
     def call_tool(self,tool_name,params):
-        if tool_name in self.available_offline_tools:
-            try:
-                tool_generate_fn = get_tool_generate_fn(tool_name)
-                if tool_generate_fn is None:
-                    return {"text": f"Tool {tool_name} not found.", "error_code": 1}
-                else:
-                    return tool_generate_fn(params)
-            except Exception as e:
-                logger.error(f"Failed to call tool {tool_name}: {e}")
-                return {"text": f"Failed to call tool {tool_name}: {e}", "error_code": 1}
-            
-        elif tool_name in self.available_online_tools:
-            try:
-                tool_worker_addr = self.online_tool_addr_dict[tool_name]
-                with self.disable_proxy():
-                    ret = requests.post(tool_worker_addr + "/worker_generate",headers=self.headers,json=params)
-                return ret.json()
-            except Exception as e:
-                logger.error(f"Failed to call tool {tool_name}: {e}")
-                return {"text": f"Failed to call tool {tool_name}: {e}", "error_code": 1}
-        else:
-            return {"text": f"Tool {tool_name} not found.", "error_code": 1}
+        timeout_sec = 60  # timeout per attempt
+        ret_message = {"text": f"Failed to call tool {tool_name} for unknown reason, ", "error_code": 1}
+        try:
+            signal.alarm(timeout_sec)
+            if tool_name in self.available_offline_tools:
+                try:
+                    tool_generate_fn = get_tool_generate_fn(tool_name)
+                    if tool_generate_fn is None:
+                        ret_message = {"text": f"Tool {tool_name} not found.", "error_code": 1}
+                    else:
+                        ret_message = tool_generate_fn(params)
+                except Exception as e:
+                    logger.error(f"Failed to call tool {tool_name}: {e}")
+                    ret_message =  {"text": f"Failed to call tool {tool_name}: {e}", "error_code": 1}
+                
+            elif tool_name in self.available_online_tools:
+                try:
+                    tool_worker_addr = self.online_tool_addr_dict[tool_name]
+                    with self.disable_proxy():
+                        ret = requests.post(tool_worker_addr + "/worker_generate",headers=self.headers,json=params)
+                    ret_message = ret.json()
+                except Exception as e:
+                    logger.error(f"Failed to call tool {tool_name}: {e}")
+                    ret_message = {"text": f"Failed to call tool {tool_name}: {e}", "error_code": 1}
+            else:
+                ret_message = {"text": f"Tool {tool_name} not found.", "error_code": 1}
+            signal.alarm(0)
+        except TimeoutException as te:
+            logger.error(f"Timeout calling tool {tool_name}: {te}")
+            ret_message = {"text": f"Timeout calling tool {tool_name}: {te}", "error_code": 1}
+        finally:
+            signal.alarm(0)
+            return ret_message
             
     @contextmanager
     def disable_proxy(self):

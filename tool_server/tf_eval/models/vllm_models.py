@@ -1,17 +1,9 @@
-<<<<<<< HEAD
-=======
-import os
-# os.environ['CUDA_VISIBLE_DEVICES']='4,5'
->>>>>>> main
 from .abstract_model import tp_model
 import uuid,requests,time
 from transformers import Qwen2VLForConditionalGeneration, AutoTokenizer, AutoProcessor
 from PIL import Image
 from typing import List
-<<<<<<< HEAD
-=======
 import torch
->>>>>>> main
 from vllm import LLM, SamplingParams
 
 
@@ -28,13 +20,6 @@ class VllmModels(tp_model):
       self,  
       pretrained : str = None,
       tensor_parallel: str = "1",
-<<<<<<< HEAD
-    ):
-        tensor_parallel = int(tensor_parallel)  
-        self.model = LLM(
-            model=pretrained,
-            tensor_parallel_size=tensor_parallel,
-=======
       limit_mm_per_prompt: str = "1"
     ):
         tensor_parallel = eval(tensor_parallel)
@@ -42,7 +27,6 @@ class VllmModels(tp_model):
             model=pretrained,
             tensor_parallel_size=tensor_parallel,
             limit_mm_per_prompt={"image": int(limit_mm_per_prompt)}
->>>>>>> main
         )
 
     def generate_conversation_fn(
@@ -51,12 +35,6 @@ class VllmModels(tp_model):
         image, 
         role = "user",
     ):  
-<<<<<<< HEAD
-        text = fs_cota + "\n" + "Question: " + text
-        
-        image = pil_to_base64(image)
-        messages=[
-=======
         text = "Question: " + text
         
         image = pil_to_base64(image)
@@ -70,7 +48,6 @@ class VllmModels(tp_model):
                     },
                 ],
             },
->>>>>>> main
             {
                 "role": "user",
                 "content": [
@@ -101,11 +78,7 @@ class VllmModels(tp_model):
         if image:
             new_messages=[
                 {
-<<<<<<< HEAD
-                    "role": "user",
-=======
                     "role": role,
->>>>>>> main
                     "content": [
                         {
                             "type": "text",
@@ -123,11 +96,7 @@ class VllmModels(tp_model):
         else:
             new_messages=[
                 {
-<<<<<<< HEAD
-                    "role": "user",
-=======
                     "role": role,
->>>>>>> main
                     "content": [
                         {
                             "type": "text",
@@ -142,14 +111,6 @@ class VllmModels(tp_model):
         return conversation
     
     
-    def getitem_fn(self, meta_data, idx):
-        item = meta_data[idx]
-        image = Image.open(item["image_path"])
-        text = item["text"]
-        item_idx = item["idx"]
-        res = dict(image=image, text=text, idx=item_idx)
-        return res
-    
     def form_input_from_dynamic_batch(self, batch: List[DynamicBatchItem]):
         if len(batch) == 0:
             return None
@@ -162,18 +123,6 @@ class VllmModels(tp_model):
         if not batch or len(batch) == 0:
             return
         max_new_tokens = self.generation_config.get("max_new_tokens", 2048)
-<<<<<<< HEAD
-        sampling_params = SamplingParams(max_tokens=max_new_tokens)
-        
-        inputs = self.form_input_from_dynamic_batch(batch)
-        response = self.model.chat(inputs, sampling_params)
-        
-        # import debugpy
-        # debugpy.listen(address = ('0.0.0.0', 7119))
-        # debugpy.wait_for_client() 
-        # breakpoint() # 在下一句代码处暂停
-        # dist.barrier()
-=======
         sampling_params = SamplingParams(max_tokens=max_new_tokens, temperature=0.6)
         
         inputs = self.form_input_from_dynamic_batch(batch)
@@ -181,19 +130,12 @@ class VllmModels(tp_model):
         response = self.model.chat(inputs, sampling_params)
 
 
->>>>>>> main
         for item, output_item in zip(batch, response):
             output_text = output_item.outputs[0].text
             item.model_response.append(output_text)
             self.append_conversation_fn(
                 item.conversation, output_text, None, "assistant"
             )
-<<<<<<< HEAD
-=======
-
-
->>>>>>> main
-    
     def to(self, *args, **kwargs):
         return self
     

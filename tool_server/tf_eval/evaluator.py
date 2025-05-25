@@ -25,7 +25,10 @@ from .utils.log_utils import get_logger, set_verbosity
 from .tool_inferencer import BaseToolInferencer
 import pdb
 import re
-from math_verify import parse, verify
+try:
+    from math_verify import parse, verify
+except ImportError:
+    print("math_verify package not found. Please install it to use math verification features.")
 
 logger = get_logger(__name__)
 
@@ -72,13 +75,13 @@ class TFEvaluator():
             self.inferencer.batch_inference(dataset)
             # breakpoint()
             res_log = dataset.evaluate()
-            # if is_main_process():
-            #     logger.info(f"evaluation of {task_name} completed")
-            #     append_jsonl(res_log, self.script_args.output_path)
+            if is_main_process() or "vllm_models" in self.model_args.model:
+                logger.info(f"evaluation of {task_name} completed")
+                append_jsonl(res_log, self.script_args.output_path)
             
             # pdb.set_trace()
             result_data = []
-            with open(self.script_args.output_path, 'r', encoding='utf-8') as f:
+            with open(self.task_args.resume_from_ckpt["chartgemma"], 'r', encoding='utf-8') as f:
                 for line in f:
                     result_data.append(json.loads(line))
                 

@@ -91,18 +91,18 @@ def build_logger(logger_name, logger_filename):
     logger = logging.getLogger(logger_name)
     logger.setLevel(logging.INFO)
 
-    os.makedirs(LOGDIR, exist_ok=True)
-    filename = os.path.join(LOGDIR, logger_filename)
-    handler = logging.handlers.TimedRotatingFileHandler(
-        filename, when="D", utc=True, encoding="utf-8"
-    )
-    handler.setFormatter(formatter)
+    # os.makedirs(LOGDIR, exist_ok=True)
+    # filename = os.path.join(LOGDIR, logger_filename)
+    # handler = logging.handlers.TimedRotatingFileHandler(
+    #     filename, when="D", utc=True, encoding="utf-8"
+    # )
+    # handler.setFormatter(formatter)
 
     for logger in [stdout_logger, stderr_logger, logger]:
         if logger in visited_loggers:
             continue
         visited_loggers.add(logger)
-        logger.addHandler(handler)
+        # logger.addHandler(handler)
 
     return logger
 

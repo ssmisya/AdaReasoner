@@ -20,8 +20,6 @@ from enum import IntEnum
 
 from tool_server.utils.utils import *
 from tool_server.utils.server_utils import *
-from contextlib import asynccontextmanager
-
 
 SERVER_ERROR_MSG = "**NETWORK ERROR DUE TO HIGH TRAFFIC. PLEASE REGENERATE OR REFRESH THIS PAGE.**"
 class ErrorCode(IntEnum):
@@ -74,8 +72,8 @@ class BaseToolWorker:
                  host = "0.0.0.0",
                  port = None,
                  model_semaphore = None,
-                 service_timeout = 30.0,
                  wait_timeout = 120.0,
+                 task_timeout = 30.0,
                  ):
         self.controller_addr = controller_addr
         assert port is not None, "Port must be specified"
@@ -109,11 +107,11 @@ class BaseToolWorker:
         self.limit_model_concurrency = limit_model_concurrency
         self.host = host
         self.port = port
-        self.service_timeout = service_timeout
-        # self.wait_timeout = wait_timeout
-        self.semaphore_timeout = wait_timeout  # seconds
         
         self.global_counter = 0
+        # self.wait_timeout = wait_timeout
+        self.task_timeout = task_timeout
+        self.semaphore_timeout = wait_timeout
         
         if not no_register:
             self.register_to_controller()
@@ -143,18 +141,6 @@ class BaseToolWorker:
             self.model_semaphore.release()
             if fn is not None:
                 fn()
-                
-    @asynccontextmanager
-    async def timeout_context(self, timeout_seconds):
-        """超时上下文管理器，确保在指定时间内完成操作"""
-        try:
-            task = asyncio.create_task(asyncio.sleep(timeout_seconds))
-            try:
-                yield
-            finally:
-                task.cancel()
-        except asyncio.CancelledError:
-            raise TimeoutError(f"Service execution timed out after {timeout_seconds} seconds")
     
     async def acquire_model_semaphore(self):
         self.global_counter += 1
@@ -163,7 +149,6 @@ class BaseToolWorker:
             self.model_semaphore = threading.Semaphore(self.limit_model_concurrency)
         # For thread-safe acquisition in async context with timeout
         loop = asyncio.get_event_loop()
-        # Default timeout of 30 seconds for semaphore acquisition
         
         future = loop.run_in_executor(None, lambda: self.model_semaphore.acquire(timeout=self.semaphore_timeout))
         try:
@@ -190,34 +175,34 @@ class BaseToolWorker:
                 if self.model_semaphore._value < self.limit_model_concurrency:
                     self.release_model_semaphore()
         
-        @self.app.post("/worker_generate_stream")
-        async def generate_stream(request: Request):
-            params = await request.json()
-            # Use atomic counter increment
-            with threading.Lock():
-                self.global_counter += 1
+        # @self.app.post("/worker_generate_stream")
+        # async def generate_stream(request: Request):
+        #     params = await request.json()
+        #     # Use atomic counter increment
+        #     with threading.Lock():
+        #         self.global_counter += 1
             
-            try:
-                await self.acquire_model_semaphore()
-                self.send_heart_beat()
-                generator = self.generate_stream_gate(params)
-                background_tasks = BackgroundTasks()
-                # Ensure proper release in the background task
-                background_tasks.add_task(
-                    partial(self.release_model_semaphore, fn=self.send_heart_beat)
-                )
-                return StreamingResponse(generator, background=background_tasks)
-            except TimeoutError:
-                error_response = {
-                    "text": "Request timed out while waiting in queue",
-                    "error_code": ErrorCode.TIMEOUT_ERROR
-                }
-                return JSONResponse(error_response, status_code=503)
-            except Exception as e:
-                # In case of exception before returning response, release manually
-                if self.model_semaphore._value < self.limit_model_concurrency:
-                    self.release_model_semaphore(fn=self.send_heart_beat)
-                raise e
+        #     try:
+        #         await self.acquire_model_semaphore()
+        #         self.send_heart_beat()
+        #         generator = self.generate_stream_gate(params)
+        #         background_tasks = BackgroundTasks()
+        #         # Ensure proper release in the background task
+        #         background_tasks.add_task(
+        #             partial(self.release_model_semaphore, fn=self.send_heart_beat)
+        #         )
+        #         return StreamingResponse(generator, background=background_tasks)
+        #     except TimeoutError:
+        #         error_response = {
+        #             "text": "Request timed out while waiting in queue",
+        #             "error_code": ErrorCode.TIMEOUT_ERROR
+        #         }
+        #         return JSONResponse(error_response, status_code=503)
+        #     except Exception as e:
+        #         # In case of exception before returning response, release manually
+        #         if self.model_semaphore._value < self.limit_model_concurrency:
+        #             self.release_model_semaphore(fn=self.send_heart_beat)
+        #         raise e
 
         @self.app.post("/worker_get_status")
         async def get_status(request: Request):

@@ -119,6 +119,44 @@ DESCRIPTIVE_GRADING_QMAP = {
     19: "What is the number of subplots?",
 }
 
+DESCRIPTIVE_CLASSIFICATION = {
+    "information_extraction": [1,2,3,4,5,6,7],
+    "enumeration":[8,9,13,14,15],
+    "pattern_recognition":[11,16,18],
+    "compositionality":[17],
+    "counting":[10,12,19],
+}
+
+REASONING_CLASSIFICATION = {
+    1:"TC",
+    2:"TG",
+    3:"NC",
+    4:"NG",
+}
+
+DESCRIPTIVE_CLASSIFICATION_MAP = {
+    1: "information_extraction",
+    2: "information_extraction",
+    3: "information_extraction",
+    4: "information_extraction",
+    5: "information_extraction",
+    6: "information_extraction",
+    7: "information_extraction",
+    8: "enumeration",
+    9: "enumeration",
+    10: "counting",
+    11: "pattern_recognition",
+    12: "counting",
+    13: "enumeration",
+    14: "enumeration",
+    15: "enumeration",
+    16: "pattern_recognition",
+    17: "compositionality",
+    18: "pattern_recognition",
+    19: "counting"
+}
+
+
 DESCRIPTIVE_GRADING_ICL = {
     'title': """
 Rubric: 

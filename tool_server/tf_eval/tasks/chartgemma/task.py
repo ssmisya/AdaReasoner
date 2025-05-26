@@ -55,8 +55,8 @@ def load_data_function():
 
         image_path = image_file
         text = item["question"]
-        label = item["label"].replace("<answer> ", "").replace(" </answer>", "").strip()
-        data_item = dict(idx=item_id, text=text, **item)
+        label = item.pop("label").replace("<answer> ", "").replace(" </answer>", "").strip()
+        data_item = dict(idx=item_id, text=text, label=label, **item)
         data_item["image_path"] = image_path
         meta_data.append(data_item)
 

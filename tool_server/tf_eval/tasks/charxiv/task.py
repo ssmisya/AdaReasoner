@@ -2,8 +2,16 @@
 from ...utils.task_utils import *
 from ...utils.utils import *
 from ...utils.log_utils import get_logger
-import os
+import os, sys
 from datasets import load_dataset
+try:
+    from math_verify import parse, verify
+except ImportError:
+    print("math_verify package not found. Please install it to use math verification features.")
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from charxiv_constants import DESCRIPTIVE_RESP_INST, DESCRIPTIVE_CLASSIFICATION_MAP, REASONING_CLASSIFICATION
+
 logger = get_logger(__name__)
 task_config = get_task_config_from_current_dir(__file__)
 
@@ -14,32 +22,68 @@ def load_data_function():
     dataset_path = task_config["dataset_path"]
     dataset = load_dataset(dataset_path)
     valset = dataset["validation"]
-    testset = dataset["test"]
-    
-    val_metadata = []
-    test_metadata = []
+    meta_data = []
     
     for idx,item in enumerate(valset):
-        pass
+        image = item["image"]
+        category = item["category"]
         
-    for idx,item in enumerate(testset):
-        pass
-    
-    raw_data = []
-    for k,v in load_json_file(dataset_path).items():
-        raw_data.append(v)
+        # Descriptive evaluation
+        for qid_idx in [1,2,3,4]:
+            qid = item[f"descriptive_q{qid_idx}"]
+            answer = item[f"descriptive_a{qid_idx}"]
+            if answer == "Not Applicable":
+                # Skip questions that are not applicable
+                continue
+            
+            descriptive_classification = DESCRIPTIVE_CLASSIFICATION_MAP[qid]
+            if qid in [18, 19]:
+                # skip subplot location when asking about the layout of the subplots
+                desc_question = DESCRIPTIVE_RESP_INST[qid] 
+            else:
+                subplot_row = item[f"subplot_row"]
+                subplot_col = item[f"subplot_col"]
+                subplot_loc = item[f"subplot_loc"]
+                if subplot_row:
+                    if subplot_row == 0:
+                        # when there is only one subplot
+                        prefix = "For the current plot, "
+                    else:
+                        # when there are multiple subplots
+                        prefix = f"For the subplot at row {subplot_row} and column {subplot_col}, "
+                elif subplot_loc:
+                    prefix = f"For {subplot_loc}, "
+                else:
+                    raise ValueError(f"Either 'subplot_row' or 'subplot_loc' must be provided for question {qid}.")
+                # return the question with the subplot location
+                desc_question = DESCRIPTIVE_RESP_INST[qid].format(prefix)
+            item_id = f"charxiv_{idx}_descriptive_{qid_idx}"
+            res = dict(
+                image = image,
+                text = desc_question,
+                idx = item_id,
+                category = category,
+                type = "descriptive",
+                classification = descriptive_classification,
+                answer = answer
+            )
+            meta_data.append(res)
         
-    meta_data = []
-    for idx,item in enumerate(raw_data):
-        figure_id = item["figure_id"]
-        item_id = f"charxiv_{figure_id}_{idx}"
-        image_path = os.path.join(image_dir_path, f"{figure_id}.jpg")
-        text = item["query"]
+        # Reasoning Questions
+        reasoning_question = item["reasoning_q"]
+        reasoning_a = item["reasoning_a"]
+        reasoning_classification = REASONING_CLASSIFICATION[item["reasoning_a_type"]]
+        res = dict(
+            image = image,
+            text = reasoning_question,
+            idx = f"charxiv_{idx}_reasoning",
+            category = category,
+            type = "reasoning",
+            classification = reasoning_classification,
+            answer = reasoning_a
+        )
+        meta_data.append(res)
 
-        data_item = dict(idx=item_id, image_path=image_path, text=text, **item)
-        meta_data.append(data_item)
-    meta_data = meta_data[:num_samples]
-    ## Show statistics
     logger.info(f"Total data number: {len(meta_data)}")
     return meta_data
 
@@ -59,42 +103,93 @@ def evaluate_function(results, meta_data):
     Returns:
         dict: A dictionary containing evaluation metrics like accuracy (ACC).
     """
-    if not results or not meta_data or len(results) != len(meta_data):
-        raise ValueError("Results and meta_data must be non-empty and of the same length.")
+    results_dict = {res["idx"]: res for res in results}
+    meta_dict = {meta["idx"]: meta for meta in meta_data}
+    res_list = []
+    compare_logs = []
+    classification_dict = {item : [] for item in set(DESCRIPTIVE_CLASSIFICATION_MAP.values()) | set(REASONING_CLASSIFICATION.values())}
+    type_dict = {item : [] for item in ["descriptive", "reasoning"]}
+    
+    for idx, meta in meta_dict.items():
+        if idx in results_dict:
+            meta["prediction"] = results_dict[idx]["results"]["final_answer"]
+        else:
+            meta["prediction"] = "None"
+        classification = meta["classification"]
+        item_type = meta["type"]
+        prediction = meta["prediction"]
+        ground_truth = meta["answer"]
+        score = rule_based_verify(ground_truth, prediction)
+        meta["score"] = score
+        classification_dict[classification].append(score)
+        type_dict[item_type].append(score)
+        compare_logs.append(
+            f"QID: {idx}, Type: {item_type}, Classification: {classification}, "
+            f"Ground Truth: {ground_truth}, Prediction: {prediction}, Score: {score}"
+        )
+    for k,v in classification_dict.items():
+        if len(v) > 0:
+            classification_dict[k] = sum(v) / len(v)
+        else:
+            classification_dict[k] = 0.0
+    
+    for k,v in type_dict.items():
+        if len(v) > 0:
+            type_dict[k] = sum(v) / len(v)
+        else:
+            type_dict[k] = 0.0
+    
+    res_dict = dict(
+        type_res = type_dict,
+        classification_res = classification_dict,
+        compare_logs = compare_logs,
+        meta_data = meta_dict,
+    )
+    return res_dict
+    
+        
+        
+        
+        
 
-    correct_count = 0
-    total_count = len(results)
-    type_correct = {'descriptive': 0, 'reasoning': 0}
-    type_total = {'descriptive': 0, 'reasoning': 0}
+def rule_based_verify(
+    gold: str,
+    pred: str,
+) -> bool:
+    """
+    A rule-based verification function to check if the prediction matches the gold standard.
+    
+    Args:
+        gold (str): The ground truth answer.
+        pred (str): The predicted answer.
+        
+    Returns:
+        bool: True if the prediction is correct, False otherwise.
+    """
+    
+    gold = gold.replace("\"","").strip().lower()
+    pred = pred.replace("\"","").strip().lower()
+    gold_latex = parse('${0}$'.format(gold))
+    pred_latex = parse('${0}$'.format(pred))
+    score = 0.0
+    if verify(gold_latex, pred_latex) or gold == pred or verify(gold, pred):
+        score = 1.0
+        
+    elif '%' in pred:
+        pred = pred.replace('%','')
+        if '.' in pred:
+            pred = pred.split('.')[0]
+        if pred == gold or verify(gold, pred):
+            score = 1.0
+        else:
+            score = 0.0
 
-    # Evaluate each result
-    for result, meta in zip(results, meta_data):
-        question_type = meta.get('type', 'unknown')
-        ground_truth = meta.get('ground_truth', '').strip().lower()
-        prediction = result.strip().lower()
-
-        # Count totals by type
-        if question_type in type_total:
-            type_total[question_type] += 1
-
-        # Check if the prediction matches the ground truth
-        if prediction == ground_truth:
-            correct_count += 1
-            if question_type in type_correct:
-                type_correct[question_type] += 1
-
-    # Calculate overall accuracy
-    overall_acc = correct_count / total_count if total_count > 0 else 0.0
-
-    # Calculate accuracy by type
-    acc_by_type = {
-        q_type: type_correct[q_type] / type_total[q_type] if type_total[q_type] > 0 else 0.0
-        for q_type in type_total
-    }
-
-    return {
-        'overall_accuracy': overall_acc,
-        'accuracy_by_type': acc_by_type,
-        'total_questions': total_count,
-        'correct_answers': correct_count,
-    }
+    elif '.' in pred:
+        pred = pred.split('.')[0]
+        if pred == gold or verify(gold, pred):
+            score = 1.0
+        else:
+            score = 0.0
+    else:
+        score = 0.0
+    return score

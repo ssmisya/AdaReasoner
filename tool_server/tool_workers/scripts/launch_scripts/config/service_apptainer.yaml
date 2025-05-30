@@ -1,6 +1,6 @@
 # 基本目录配置 - 修改为您本地的路径
-base_dir: /app/tool-agent/tool_server/tool_workers
-log_folder: /app/tool-agent/tool_server/tool_workers/logs/server_log
+base_dir: /workspace/tool/OpenThinkIMG/tool_server/tool_workers
+log_folder: /app/tool/server_log
 
 # 本地配置中这些参数不会被使用，但保留以保持结构一致
 default_calculate_gpus: 1
@@ -34,7 +34,7 @@ tool_worker_config:
         script-addr: ./online_workers/molmo_point_worker.py
         port: 20027
         host: "0.0.0.0"
-        model_path: "/weights/Molmo-7B-D-0924"
+        model_path: "/workspace/tool/weights/Molmo-7B-D-0924"
 
   - SegmentRegionAroundPoint:
       worker_name: SegmentRegionAroundPoint
@@ -45,8 +45,8 @@ tool_worker_config:
         script-addr: ./online_workers/SAMAroundPoint_worker.py
         port: 20036
         host: "0.0.0.0"
-        sam2_checkpoint: /weights/sam2-hiera-large/sam2_hiera_large.pt
-        sam2_model_cfg: /weights/sam2-hiera-large/sam2_hiera_l.yaml
+        sam2_checkpoint: /workspace/tool/weights/sam2-hiera-large/sam2_hiera_large.pt
+        sam2_model_cfg: sam2_hiera_l.yaml
       
   - OCR:
       worker_name: OCR
@@ -63,13 +63,13 @@ tool_worker_config:
       worker_name: GroundingDINO
       job_name: groundingdino
       calculate_type: control
-      cuda_visible_devices: "3"  # 可根据您的硬件修改
+      cuda_visible_devices: "0"  # 可根据您的硬件修改
       cmd:
         script-addr: ./online_workers/grounding_dino_worker.py
         port: 20003
         host: "0.0.0.0"
-        model-path: /weights/groundingdino_swint_ogc.pth
-        model-config: /weights/GroundingDINO_SwinT_OGC.py
+        model-path: /workspace/tool/weights/groundingdino_swint_ogc.pth
+        model-config: /workspace/tool/weights/GroundingDINO_SwinT_OGC.py
 
   - DrawHorizontalLineByY:
       worker_name: DrawHorizontalLineByY

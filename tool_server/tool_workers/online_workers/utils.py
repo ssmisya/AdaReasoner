@@ -320,11 +320,16 @@ def annotate_xyxy(image_source: np.ndarray, boxes: torch.Tensor, logits: torch.T
             anno += f'{logits[i]:.2f}'
         labels.append(anno)
 
-    box_annotator = sv.BoxAnnotator()
+    box_annotator = sv.BoxAnnotator(
+        thickness=2,
+        # text_thickness=2,
+        # text_padding=4,
+        color_lookup=sv.ColorLookup.INDEX 
+    )
     # annotated_frame = cv2.cvtColor(image_source, cv2.COLOR_RGB2BGR)
     annotated_frame = image_source
     annotated_frame = box_annotator.annotate(
-        scene=annotated_frame, detections=detections, labels=labels)
+        scene=annotated_frame, detections=detections, ) #labels=labels
     return annotated_frame
 
 

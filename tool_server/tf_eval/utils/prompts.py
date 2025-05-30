@@ -1,104 +1,87 @@
 policy_model_system_prompt = """
-You are a mathematical reasoning evaluator. Your task is to analyze mathematical problem-solving steps and provide structured assessments in JSON format.
+You are a visual assistant capable of solving visual reasoning problems. You can rely on your own capabilities or use external tools to assist in solving. Here are the available tools and their protocols:
 
-For each solution step, you need to evaluate two aspects:
-1. Validity Score (-1 to +1):
-   * +1: Completely correct mathematical reasoning
-   * 0: Partially correct with some mistakes
-   * -1: Completely incorrect
-   * Use any value in between to indicate varying degrees of correctness
+{tool_desc}
 
-2. Redundancy Score (-1 to +1):
-   * -1: Critical step, absolutely necessary for the solution
-   * 0: Moderately important step
-   * +1: Completely redundant, can be omitted
-   * Use any value in between to indicate varying degrees of redundancy
-
-Requirements:
-- Evaluate each step independently
-- Provide scores as floating-point numbers
-- Return results in strict JSON format: {"validity": [scores], "redundancy": [scores]}
-- Ensure both arrays have the same length as the number of steps
-- Maintain mathematical rigor in your evaluation
-- Consider mathematical accuracy, logical coherence, and solution efficiency
-
-Example output format:
-{"validity": [0.8, -0.5, 1.0], "redundancy": [-1.0, 0.3, 0.7]}
-
-You will be presented with a mathematical problem and its step-by-step solution. Please analyze each step and provide your evaluation in the specified JSON format.
-
+Notes:
+1. You can select actions from the provided tools list, combining them logically and building on previous steps. Call one action at a time, using its output for the next.
+2. To use `SegmentRegionAroundPoint`, `DrawHorizontalLineByY`, or `DrawVerticalLineByX`, first call "Point" to get coordinates for further actions.
+3. When you have the final answer, use the "Terminate" action to end the task and provide the answer. Be sure the answer is correct before terminating and the "Terminate" action should be the last action you call.
+4. Your output should be in a strict JSON format as follows:
+{"thought": "the reasoning process", "actions": [{"name": "the name of the tool you selected", "arguments": {"argument1": "value1", "argument2": "value2"}}]}
 """
 
-policy_model_fewshot_q1 = """
-Question:
-
-In 1992, a scoop of gelato could be purchased in Italy for 1200 lire. The same gelato would have cost $\$1.50$ in the U.S. At the equivalent exchange rate between the lire and the dollar, how many dollars would be equivalent to 1,000,000 lire?
-
-Solution:
-
-Step 1. Let's call the number of dollars x. So, the problem is asking us to solve the equation x=1000000*$\\frac{1.50}{1200}$.
-
-Step 2. There are two ways to solve this equation. We could either divide 1000000 by 1200 and then multiply the result by 1.50 or we could divide 1.50 by 1200 and then multiply the result by 1000000.
-
-Step 3. I think the second way will be easier. $\\frac{1.50}{1200}=0.00125$.
-
-Step 4. That's true. Now we just have to solve the equation x=1000000*0.00125.
-
-Step 5. So x=$1250$.
-
-Step 6. So x=$1250$.
-
-Step 7. That's the final answer.
-
-Step 8. Right. So 1,000,000 lire is equivalent to $\$1250$.
-
-# Answer
-
-1250
-"""
-policy_model_fewshot_a1="{\"validity\": [1.0, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],\"redundancy\": [-1.0, 0.5, -0.5, -0.5, -1.0, 1.0, 0.5, 1.0]}"
-
-policy_model_fewshot_q2 = """
-Question:
-
-Four points, $A$, $B$, $C$, and $D$, are chosen randomly and independently on the circumference of a circle. What is the probability that segments $AB$ and $CD$ intersect?
-
-Solution:
-
-Step 1. Let's think about what it means for the segments to intersect.
-
-Step 2. Whether they intersect is entirely a function of the order of $B,C,D$ on the circle, when we look at it counterclockwise and consider $A$ to come first.
-
-Step 3. Exactly. So let's consider the different possible orders of $B,C,D$.
-
-Step 4. The number of possible orders is $3!=6$.
-
-Step 5. Yes, that's right. Now, we need to figure out how many of these result in the segments intersecting.
-
-Step 6. If $C$ is in between $B$ and $D$, then the segments will intersect.
-
-Step 7. If $B$ is in between $C$ and $D$, then the segments will intersect.
-
-Step 8. Right. That's two of the possible orders.
-
-Step 9. So, the probability that the segments intersect is $\dfrac{2}{6}=\dfrac{1}{3}$.
-
-Step 10. And that's our answer.
-
-# Answer
-
-1/3
+ocr_instruction = """
+OCR: 
+Extracts all texts from an image. 
+Input: The image that you want to apply OCR. 
+Output: All texts that appear on the input image. 
+Format Requirement: `{"name": "OCR", "arguments": {"image": "img_1"}}`
+Example: `{"name": "OCR", "arguments": {"image": "img_1"}}`
 """
 
-policy_model_fewshot_a2="{\"validity\": [1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 0.8, 1.0, 1.0, 1.0],\"redundancy\": [-1.0, -0.5, -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -1.0, 1.0]}"
+point_instruction = """
+Point:
+Identifies a point in the image based on description and returns coordinates. 
+Input: The image that you want to point at and the description of the point location.
+Output: Coordinates of the point in the image.
+Format Requirement: `{"name": "Point", "arguments": {"image": "img_1", "param": "The description that you want to point at."}}`
+Example: `{"name": "Point", "arguments": {"image": "img_1", "param": "A dog."}}`
+"""
 
+segment_around_point_instruction = """
+SegmentRegionAroundPoint:
+Segments a region around a given point. 
+Input: The image that you want to segement and the point coordinate of the point that you want to segment near.
+Output: The segemented image.
+Format Requirement: `{"name": "SegmentRegionAroundPoint", "arguments": {"image": "img_1", "param": "x=the x coordinate of the point y=the y coordinate of the point"}}`
+Example: `{"name": "SegmentRegionAroundPoint", "arguments": {"image": "img_1", "param": "x=21.5 y=28.5"}}`
+"""
 
-PROMPT_DICT=dict(
-   policy_model_as_an_evaluator=dict(
-      system_prompt=policy_model_system_prompt,
-      fewshots=[
-         (policy_model_fewshot_q1, policy_model_fewshot_a1),
-         (policy_model_fewshot_q2, policy_model_fewshot_a2)
-      ]
-   )
+drawhorizontal_line_instruction = """
+DrawHorizontalLineByY:
+Draws a horizontal line at a given y-coordinate.
+Input: The image that you want to draw a horizontal line on and the y-coordinate of the line.
+Output: The image with a horizontal line drawn.
+Format Requirement: `{"name": "DrawHorizontalLineByY", "arguments": {"image": "img_1", "param": "y=the y coordinate of the line"}}`
+Example: `{"name": "DrawHorizontalLineByY", "arguments": {"image": "img_1", "param": "y=28.5"}}`
+"""
+
+drawvertical_line_instruction = """
+DrawVerticalLineByX:
+Draws a vertical line at a given x-coordinate.
+Input: The image that you want to draw a vertical line on and the x-coordinate of the line.
+Output: The image with a vertical line drawn.
+Format Requirement: `{"name": "DrawVerticalLineByX", "arguments": {"image": "img_1", "param": "x=the x coordinate of the line"}}`
+Example: `{"name": "DrawVerticalLineByX", "arguments": {"image": "img_1", "param": "x=21.5"}}`
+"""
+
+grounding_dino_instruction = """
+GroundingDINO:
+Locates objects in the image based on a description.
+Input: The image that you want to locate objects in and the description of the object.
+Output: The coordinates of the located object in the image.
+Format Requirement: `{"name": "GroundingDINO", "arguments": {"image": "img_1", "param": "The description of the object you want to locate."}}`
+Example: `{"name": "GroundingDINO", "arguments": {"image": "img_1", "param": "A Dog"}}`
+"""
+
+terminate_instruction = """
+Terminate:
+Ends the task and provides the final answer.
+Input: The final answer to the task.
+Output: No outputs.
+Format Requirement: `{"name": "Terminate", "arguments": {"ans": "The final answer"}}`
+Example: `{"name": "Terminate", "arguments": {"ans": "1985"}}`
+"""
+
+tool_desc_dict = dict(
+   OCR=ocr_instruction,
+   Point=point_instruction,
+   SegmentRegionAroundPoint=segment_around_point_instruction,
+   DrawHorizontalLineByY=drawhorizontal_line_instruction,
+   DrawVerticalLineByX=drawvertical_line_instruction,
+   GroundingDINO=grounding_dino_instruction,
+   Terminate=terminate_instruction,
+   all=f"{ocr_instruction}\n{point_instruction}\n{segment_around_point_instruction}\n{drawhorizontal_line_instruction}\n{drawvertical_line_instruction}\n{grounding_dino_instruction}\n{terminate_instruction}",
 )
+

@@ -56,12 +56,19 @@ class tp_model(abc.ABC):
     ):
         raise NotImplementedError
     
-    def getitem_fn(
-        self,
-        meta_data: List,
-        idx: int,
-    ):
-        raise NotImplementedError
+    def getitem_fn(self, meta_data, idx):
+        item = meta_data[idx]
+        if "image" in item:
+            image = item["image"]
+        elif "image_path" in item:
+            image = Image.open(item["image_path"])
+        else:
+            raise ValueError("Item must contain 'image' or 'image_path' key.")
+        
+        text = item["text"]
+        item_idx = item["idx"]
+        res = dict(image=image, text=text, idx=item_idx)
+        return res
     
     def set_generation_config(self, generation_configs: dict = None) -> None:
         if generation_configs is not None:

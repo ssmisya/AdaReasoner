@@ -46,9 +46,9 @@ class BaseToolInferencer(object):
             stop_token=self.stop_token,
             generate_conversation_fn = self.tp_model.generate_conversation_fn,
         )
-        self.tool_manager = ToolManager(controller_addr)
-
+        self.tool_manager = ToolManager()
         self.available_models = self.tool_manager.available_tools
+        
 
     def batch_tool_response_to_next_round_input(self):
         current_batch = self.manager.get_current_batch()
@@ -74,7 +74,7 @@ class BaseToolInferencer(object):
                             edited_image = base64_to_pil(edited_image)
                         if self.model_mode == "general": 
                             edited_image = edited_image
-                        edited_image
+                        
                     else:
                         edited_image = None
                     
@@ -283,7 +283,6 @@ class BaseToolInferencer(object):
         if len(self.dataloader) == 0 and not 'vllm_models' in str(type(self.tp_model)):
             self.accelerator.wait_for_everyone()
             return
-
         self.manager.append_item_to_full(self.dataloader_iter, progress_bar=progress_bar)
 
 
@@ -291,7 +290,6 @@ class BaseToolInferencer(object):
         self.tp_model.generate(current_batch)
 
         self.manager.update_item_status()
-
         while len(current_batch) > 0:
             try:
                 # Inspect and yield output
@@ -319,4 +317,5 @@ class BaseToolInferencer(object):
         assert len(self.manager.get_current_batch()) == 0
         if not 'vllm_models' in str(type(self.tp_model)):
             self.accelerator.wait_for_everyone()
+    
     

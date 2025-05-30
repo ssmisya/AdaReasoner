@@ -1,5 +1,3 @@
-import os
-# os.environ['CUDA_VISIBLE_DEVICES']='4,5'
 from .abstract_model import tp_model
 import uuid,requests,time
 from transformers import Qwen2VLForConditionalGeneration, AutoTokenizer, AutoProcessor
@@ -113,14 +111,6 @@ class VllmModels(tp_model):
         return conversation
     
     
-    def getitem_fn(self, meta_data, idx):
-        item = meta_data[idx]
-        image = Image.open(item["image_path"])
-        text = item["text"]
-        item_idx = item["idx"]
-        res = dict(image=image, text=text, idx=item_idx)
-        return res
-    
     def form_input_from_dynamic_batch(self, batch: List[DynamicBatchItem]):
         if len(batch) == 0:
             return None
@@ -146,9 +136,6 @@ class VllmModels(tp_model):
             self.append_conversation_fn(
                 item.conversation, output_text, None, "assistant"
             )
-
-
-    
     def to(self, *args, **kwargs):
         return self
     

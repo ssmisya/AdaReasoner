@@ -72,6 +72,8 @@ class BaseToolWorker:
                  host = "0.0.0.0",
                  port = None,
                  model_semaphore = None,
+                 wait_timeout = 120.0,
+                 task_timeout = 30.0,
                  ):
         self.controller_addr = controller_addr
         assert port is not None, "Port must be specified"
@@ -107,6 +109,9 @@ class BaseToolWorker:
         self.port = port
         
         self.global_counter = 0
+        # self.wait_timeout = wait_timeout
+        self.task_timeout = task_timeout
+        self.semaphore_timeout = wait_timeout
         
         if not no_register:
             self.register_to_controller()
@@ -137,38 +142,71 @@ class BaseToolWorker:
             if fn is not None:
                 fn()
     
-    def acquire_model_semaphore(self):
+    async def acquire_model_semaphore(self):
         self.global_counter += 1
         if self.model_semaphore is None:
-            self.model_semaphore = asyncio.Semaphore(self.limit_model_concurrency)
-        return self.model_semaphore.acquire()
+            # Use a threading semaphore instead of asyncio semaphore for thread safety
+            self.model_semaphore = threading.Semaphore(self.limit_model_concurrency)
+        # For thread-safe acquisition in async context with timeout
+        loop = asyncio.get_event_loop()
+        
+        future = loop.run_in_executor(None, lambda: self.model_semaphore.acquire(timeout=self.semaphore_timeout))
+        try:
+            return await asyncio.wait_for(future, timeout=self.semaphore_timeout)
+        except asyncio.TimeoutError:
+            logger.error(f"Semaphore acquisition timed out after {self.semaphore_timeout}s")
+            raise TimeoutError("Model is busy, request timed out while waiting in queue")
                 
     def setup_routes(self):
         @self.app.post("/worker_generate")
         async def api_generate(request: Request):
             params = await request.json()
-            await self.acquire_model_semaphore()
-            output = self.generate_gate(params)
-            self.release_model_semaphore()
-            return JSONResponse(output)
+            try:
+                await self.acquire_model_semaphore()
+                output = self.generate_gate(params)
+                return JSONResponse(output)
+            except TimeoutError:
+                return JSONResponse({
+                    "text": "Request timed out while waiting in queue",
+                    "error_code": ErrorCode.TIMEOUT_ERROR
+                }, status_code=503)
+            finally:
+                # Only release if we actually acquired it
+                if self.model_semaphore._value < self.limit_model_concurrency:
+                    self.release_model_semaphore()
         
-        @self.app.post("/worker_generate_stream")
-        async def generate_stream(request: Request):
-            self.global_counter += 1
-            params = await request.json()
-            await self.acquire_model_semaphore()
-            self.send_heart_beat()
-            generator = self.generate_stream_gate(params)
-            background_tasks = BackgroundTasks()
-            background_tasks.add_task(
-                partial(self.release_model_semaphore, fn=self.send_heart_beat)
-            )
-            return StreamingResponse(generator, background=background_tasks)
+        # @self.app.post("/worker_generate_stream")
+        # async def generate_stream(request: Request):
+        #     params = await request.json()
+        #     # Use atomic counter increment
+        #     with threading.Lock():
+        #         self.global_counter += 1
+            
+        #     try:
+        #         await self.acquire_model_semaphore()
+        #         self.send_heart_beat()
+        #         generator = self.generate_stream_gate(params)
+        #         background_tasks = BackgroundTasks()
+        #         # Ensure proper release in the background task
+        #         background_tasks.add_task(
+        #             partial(self.release_model_semaphore, fn=self.send_heart_beat)
+        #         )
+        #         return StreamingResponse(generator, background=background_tasks)
+        #     except TimeoutError:
+        #         error_response = {
+        #             "text": "Request timed out while waiting in queue",
+        #             "error_code": ErrorCode.TIMEOUT_ERROR
+        #         }
+        #         return JSONResponse(error_response, status_code=503)
+        #     except Exception as e:
+        #         # In case of exception before returning response, release manually
+        #         if self.model_semaphore._value < self.limit_model_concurrency:
+        #             self.release_model_semaphore(fn=self.send_heart_beat)
+        #         raise e
 
         @self.app.post("/worker_get_status")
         async def get_status(request: Request):
             return self.get_status()
-        
         
         @self.app.post("/model_details")
         async def model_details(request: Request):

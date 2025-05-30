@@ -120,8 +120,8 @@ class SAM2ToolWorker(BaseToolWorker):
                  host = "0.0.0.0",
                  port = None,
                  model_semaphore = None,
-                 sam2_checkpoint = "/mnt/petrelfs/share_data/suzhaochen/models/sam2-hiera-large/sam2_hiera_large.pt",
-                 sam2_model_cfg = "sam2_hiera_l.yaml",
+                 sam2_checkpoint = "/mnt/petrelfs/songmingyang/songmingyang/model/mm/tools/sam2-hiera-large/sam2_hiera_large.pt",
+                 sam2_model_cfg = "/mnt/petrelfs/songmingyang/songmingyang/model/mm/tools/sam2-hiera-large/sam2_hiera_l.yaml",
                  ):
         self.sam2_checkpoint = sam2_checkpoint
         self.sam2_model_cfg = sam2_model_cfg

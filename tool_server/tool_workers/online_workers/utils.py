@@ -91,18 +91,18 @@ def build_logger(logger_name, logger_filename):
     logger = logging.getLogger(logger_name)
     logger.setLevel(logging.INFO)
 
-    os.makedirs(LOGDIR, exist_ok=True)
-    filename = os.path.join(LOGDIR, logger_filename)
-    handler = logging.handlers.TimedRotatingFileHandler(
-        filename, when="D", utc=True, encoding="utf-8"
-    )
-    handler.setFormatter(formatter)
+    # os.makedirs(LOGDIR, exist_ok=True)
+    # filename = os.path.join(LOGDIR, logger_filename)
+    # handler = logging.handlers.TimedRotatingFileHandler(
+    #     filename, when="D", utc=True, encoding="utf-8"
+    # )
+    # handler.setFormatter(formatter)
 
     for logger in [stdout_logger, stderr_logger, logger]:
         if logger in visited_loggers:
             continue
         visited_loggers.add(logger)
-        logger.addHandler(handler)
+        # logger.addHandler(handler)
 
     return logger
 
@@ -320,11 +320,16 @@ def annotate_xyxy(image_source: np.ndarray, boxes: torch.Tensor, logits: torch.T
             anno += f'{logits[i]:.2f}'
         labels.append(anno)
 
-    box_annotator = sv.BoxAnnotator()
+    box_annotator = sv.BoxAnnotator(
+        thickness=2,
+        # text_thickness=2,
+        # text_padding=4,
+        color_lookup=sv.ColorLookup.INDEX 
+    )
     # annotated_frame = cv2.cvtColor(image_source, cv2.COLOR_RGB2BGR)
     annotated_frame = image_source
     annotated_frame = box_annotator.annotate(
-        scene=annotated_frame, detections=detections, labels=labels)
+        scene=annotated_frame, detections=detections, ) #labels=labels
     return annotated_frame
 
 

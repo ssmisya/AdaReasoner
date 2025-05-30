@@ -415,7 +415,8 @@ if __name__ == "__main__":
     if args.worker_address == "auto":
         node_name = os.getenv("SLURMD_NODENAME", "Unknown")
         print(f"SLURM Node Name: {node_name}")
-        assert node_name != "Unknown"
+        if node_name == "Unknown":
+            node_name = "localhost"
         args.worker_address = f"http://{node_name}:{args.port}"
         
         

@@ -190,3 +190,4 @@ r1_v/wandb
 r1_v/scripts
 
 tool_server/tool_workers/scripts/debug_scripts
+weights/

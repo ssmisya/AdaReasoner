@@ -1,6 +1,8 @@
-docker run -it --rm \
-  --name my_tool_container \
+docker run -it \
   --gpus all \
-  -v /home/featurize/work/tool:/app/tool \
-  pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime \
-  bash
+  --name my_container \
+  -v /home/featurize/work/tool:/log \
+  -w /app \
+  --network host \
+  67ea460be595 \
+  /bin/bash

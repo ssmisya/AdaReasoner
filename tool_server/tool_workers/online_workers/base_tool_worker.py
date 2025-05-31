@@ -74,7 +74,9 @@ class BaseToolWorker:
                  model_semaphore = None,
                  wait_timeout = 120.0,
                  task_timeout = 30.0,
+                 args = None,
                  ):
+        self.args = args
         self.controller_addr = controller_addr
         assert port is not None, "Port must be specified"
         if worker_addr == "auto":

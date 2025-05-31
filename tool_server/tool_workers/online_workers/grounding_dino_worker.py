@@ -115,6 +115,8 @@ class GroundingDinoWorker(BaseToolWorker):
         try:
             # Load image and run model
             image_np, image = self.load_image(image_path)
+
+                
             boxes, logits, phrases = predict(
                 model=self.model, 
                 image=image, 

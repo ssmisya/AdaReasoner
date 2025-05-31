@@ -124,7 +124,7 @@ V-ToolRL not only enhances our base model by +29.83 points but also outperforms 
 
 
 
-## ⚙️ Installation
+<!-- ## ⚙️ Installation
 
 We provide a general setup that works across most tools. Individual tools may have specific requirements (to be released separately).
 
@@ -146,28 +146,150 @@ pip install -e .
 ```
 > 💡 Note: The `requirements.txt` is tailored for inference & evaluation. For training, refer to the Training Section for additional dependencies.
 
-If you encounter issues, check out our [📄 Documentation](docs/README.md).
+If you encounter issues, check out our [📄 Documentation](docs/README.md). -->
 
 
 
 ## 🚀 Quick Start
+This framework consists of three main components: the ``tool server``, inference evaluation framework, and training pipelines. Each component has its own environment requirements. The tool server serves as the foundation, and both inference and training must be conducted after the tool server has been successfully launched.
 
-### 🔌 Step 1: Launch Vision Tool Services
+### Step 1: Launch Vision Tool Server
+You can choose to run our tool server docker image or start the tool_server locally.
 
-To enable tool-enhanced inference, start all vision tools before using the inferencer. Each tool runs independently and is launched via a unified config.
+### Option 1: Docker Image
+It's recommended to try our tool server docker image. You can either download our provided `tool_server` image or build it by your self!
+Note: 
+1. It’s recommended to use the `-v /path/to/your/logdir:/log` option to mount a host directory to the container’s `/log` directory, which allows you to view runtime logs and receive the controller_addr output.
+2. The controller addr are saved at `/path/to/your/logdir/controller_addr.json` you've mounted, which is not the default location any more. Do not forget to feed it to `tool_manager` when you are using it.
+3. By default, the **molmoPoint** worker is configured to run in 4-bit mode to minimize VRAM usage. To customize GPU behavior or access advanced settings, you can log into the container and edit ``/app/OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts/config/service_apptainer.yaml``.
+
+#### Option 1.1 Start Tool Server with Our Docker Image
+We have released the official Docker image for the Tool Server, which is now publicly available for direct use.
 
 ```bash
+# Pull the docker image and run
+docker pull crpi-fs6w5qkjtxy37mko.cn-shanghai.personal.cr.aliyuncs.com/hitsmy/tool_server:v0.2
+docker run -it \
+  --gpus all \
+  --name tool_server \
+  -v /path/to/your/logdir:/log \
+  -w /app/OpenThinkIMG \
+  --network host \
+  crpi-fs6w5qkjtxy37mko.cn-shanghai.personal.cr.aliyuncs.com/hitsmy/tool_server:v0.2 \
+  bash -c \
+  "python /app/OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts/start_server_local.py \
+  --config tool_server/tool_workers/scripts/launch_scripts/config/service_apptainer.yaml"
+
+# Test the server 
+pthon OpenThinkIMG/tool_server/tool_workers/online_workers/test_cases/worker_tests/test_all.py
+```
+#### Option 1.2 Build Docker Image by Yourself
+
+**sub-step 1** Prepare the weights
+
+We have provided the dockerfile at `OpenThinkIMG/Dockerfile`, you can build the docker Image according to it.
+Some tools require specific pretrained weights. Please ensure that these model weights are prepared and placed in the appropriate paths before building the image.
+Please move them into the weights directory. The directory structure is organized as follows:
+
+```bash
+project-root/
+├── weights/
+│   ├── Molmo-7B-D-0924/ # allenai/Molmo-72B-0924
+│   ├── sam2-hiera-large/ # facebook/sam2-hiera-large
+│   ├── groundingdino_swint_ogc.pth # https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth
+│   └── GroundingDINO_SwinT_OGC.py # https://github.com/IDEA-Research/GroundingDINO/blob/main/groundingdino/config/GroundingDINO_SwinT_OGC.py
+├── OpenThinkIMG/
+│   └── Dockerfile
+```
+
+**sub-step 2** Start the building procedure!
+
+```bash 
+cd OpenThinkIMG
+docker build -f Dockerfile -t tool_server:v0.2 ..  # This might take a while ...
+```
+
+**sub-step 3** Run the image and test!
+```bash 
+docker run -it \
+  --gpus all \
+  --name tool_server \
+  -v /path/to/your/logdir:/log \
+  -w /app/OpenThinkIMG/ \
+  --network host \
+  tool_server:v0.2 \
+```
+### Option 2. Start Tool Server From Source Code
+You can choose to start tool_server through SLURM or just run it on local machine.
+
+### Installation
+First of all, provide a pytorch-based environment.
+* torch==2.0.1+cu118
+
+```bash
+# [Optional] Create a clean Conda environment
+conda create -n tool-server python=3.10
+conda activate tool-server
+# Install PyTorch and dependencies (make sure CUDA version matches)
+pip install -e git+https://github.com/facebookresearch/sam2.git
+pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+
+# Install this project
+git clone https://github.com/OpenThinkIMG/OpenThinkIMG.git
+pip install -e OpenThinkIMG
+pip install -r OpenThinkIMG/apptainer/requirements.txt # Tool Server Requirements
+```
+We deliberately selected minimal dependencies in this project to reduce the risk of conflicts. As a result, you may need to manually install any missing packages based on your environment.
+
+#### Option 2.1 Start Tool Server through SLURM
+It's recommended to start the tool server through SLURM because it's more flexible.
+```bash
 ## First, modify the config to adapt to your own environment
-## tool_server/tool_workers/scripts/launch_scripts/config/all_service_szc.yaml
+## OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts/config/all_service_example.yaml
 
 ## Start all services
-cd tool_server/tool_workers/scripts/launch_scripts
-python start_server_config.py --config ./config/all_service.yaml
+cd OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts
+python start_server_config.py --config ./config/all_service_example.yaml
 
 ## Press control + C to shutdown all services automatically.
 ```
 
+#### Option 2.2 Start Tool Server through SLURM
+We made a slight modification to ``start_server_config.py`` to create ``start_server_local.py``, primarily by removing the logic related to SLURM job detection and adapting it for local execution instead.
+```bash
+## First, modify the config to adapt to your own environment
+## OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts/config/all_service_example_local.yaml
+
+## Start all services
+cd OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts
+python start_server_local.py --config ./config/all_service_example_local.yaml
+
+## Press control + C to shutdown all services automatically.
+```
+
+You can then inspect the log files to diagnose and resolve any potential issues. Due to the complexity of this project, we cannot guarantee that it will run without errors on every machine.
+
 ### 🔍 Step 2: Run Inference with OpenThinkIMG
+
+### Installation
+First of all, provide a pytorch-vllm-based environment.
+* vllm>=0.7.3
+* torch==2.5.1+cu121
+* transformers>=4.49.0
+* flash_attn>=2.7.3
+
+```bash
+# [Optional] Create a clean Conda environment
+conda create -n vllm python=3.10
+conda activate tool-server
+# Install PyTorch and dependencies (make sure CUDA version matches)
+pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu121
+
+# Install this project
+git clone https://github.com/OpenThinkIMG/OpenThinkIMG.git
+pip install -e OpenThinkIMG
+pip install -r OpenThinkIMG/inference_requirements.txt # Tool Server Requirements
+```
 
 #### ✅ Option 1: Direct Evaluation (e.g., Qwen2VL on ChartGemma)
 
@@ -181,7 +303,6 @@ accelerate launch  --config_file  ${accelerate_config} \
 --output_path ./tool_server/tf_eval/scripts/logs/results/chartgemma/qwen2vl.jsonl \
 --batch_size 2 \
 --max_rounds 3 \
---stop_token <stop> 
 ```
 
 #### 🧩 Option 2: Evaluation via Config File (Recommended)

@@ -1,117 +1,71 @@
-"""
-A model worker executes the model.
-"""
-import sys, os
-
-from groundingdino.util import box_ops
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
-import argparse
-import asyncio
-import dataclasses
-import logging
-import json
-import os
-import sys
-import time
-from typing import List, Tuple, Union
-import threading
-import uuid
-import torchvision
-
-from io import BytesIO
-import base64
-
-from fastapi import FastAPI, Request, BackgroundTasks
-from fastapi.responses import StreamingResponse, JSONResponse
+import torch
 import numpy as np
-import requests
 from PIL import Image
-
-# from demo.inference_on_a_image import get_grounding_output
-
+import base64
+import argparse
+import torchvision
+import uuid
+import os
+from io import BytesIO
 from groundingdino.util.inference import load_model, predict
+from groundingdino.util import box_ops
+from tool_server.tool_workers.online_workers.base_tool_worker import BaseToolWorker
+from tool_server.utils.utils import build_logger
+
 import groundingdino.datasets.transforms as T
 
 
-try:
-    from transformers import (
-        AutoTokenizer,
-        AutoModelForCausalLM,
-        LlamaTokenizer,
-        AutoModel,
-    )
-except ImportError:
-    from transformers import (
-        AutoTokenizer,
-        AutoModelForCausalLM,
-        LLaMATokenizer,
-        AutoModel,
-    )
-import torch
-import torch.nn.functional as F
-import uvicorn
-
-from tool_server.tool_workers.online_workers.constants import WORKER_HEART_BEAT_INTERVAL, ErrorCode, SERVER_ERROR_MSG
-from tool_server.tool_workers.online_workers.utils import build_logger, pretty_print_semaphore
-
-GB = 1 << 30
-
-
-now_file_name = os.__file__
-logdir = "logs/workers/"
-os.makedirs(logdir, exist_ok=True)
-logfile = os.path.join(logdir, f"{now_file_name}.log")
-
 worker_id = str(uuid.uuid4())[:6]
-logger = build_logger(now_file_name, logfile)
-global_counter = 0
+logger = build_logger(__file__, f"grounding_dino_worker_{worker_id}.log")
 
-model_semaphore = None
-
-
-def heart_beat_worker(controller):
-    while True:
-        time.sleep(WORKER_HEART_BEAT_INTERVAL)
-        controller.send_heart_beat()
-
-
-class ModelWorker:
-    def __init__(
-        self,
-        controller_addr,
-        worker_addr,
-        worker_id,
-        no_register,
-        model_path,
-        model_config,
-        model_names,
-        device,
-    ):
-        self.controller_addr = controller_addr
-        self.worker_addr = worker_addr
-        self.worker_id = worker_id
-        if model_path.endswith("/"):
-            model_path = model_path[:-1]
-        self.model_names = model_names or [model_path.split("/")[-1]]
+class GroundingDinoWorker(BaseToolWorker):
+    def __init__(self, 
+                 controller_addr, 
+                 worker_addr="auto",
+                 worker_id=worker_id, 
+                 no_register=False,
+                 model_path="/mnt/petrelfs/songmingyang/songmingyang/model/mm/groundingdino_official/groundingdino_swint_ogc.pth", 
+                 model_config="/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/src/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py", 
+                 model_name="grounding_dino",
+                 load_8bit=False,
+                 load_4bit=False,
+                 device="cuda",
+                 limit_model_concurrency=5,
+                 host="0.0.0.0",
+                 port=None,
+                 model_semaphore=None,
+                 wait_timeout=120.0,
+                 task_timeout=30.0,
+                 ):
         self.model_config = model_config
-        self.device = device
-
-        logger.info(f"Loading the model {self.model_names} on worker {worker_id} ...")
-        self.model = load_model(
-            model_config_path=model_config,
-            model_checkpoint_path=model_path,
-            device=device,
+        super().__init__(
+            controller_addr,
+            worker_addr,
+            worker_id,
+            no_register,
+            model_path,
+            None,
+            model_name,
+            load_8bit,
+            load_4bit,
+            device,
+            limit_model_concurrency,
+            host,
+            port,
+            model_semaphore,
+            wait_timeout,
+            task_timeout,
         )
-        self.model.to(device)
-        self.model.eval()
 
-        if not no_register:
-            self.register_to_controller()
-            self.heart_beat_thread = threading.Thread(
-                target=heart_beat_worker, args=(self,)
-            )
-            self.heart_beat_thread.start()
+    def init_model(self):
+        logger.info(f"Initializing model {self.model_name}...")
+        self.model = load_model(
+            model_config_path=self.model_config,
+            model_checkpoint_path=self.model_path,
+            device=self.device,
+        )
+        self.model.to(self.device)
+        self.model.eval()
 
         self.transform = T.Compose(
             [
@@ -120,204 +74,75 @@ class ModelWorker:
                 T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
             ]
         )
-
-    def register_to_controller(self):
-        logger.info("Register to controller")
-
-        url = self.controller_addr + "/register_worker"
-        data = {
-            "worker_name": self.worker_addr,
-            "check_heart_beat": True,
-            "worker_status": self.get_status(),
-        }
-        r = requests.post(url, json=data)
-        assert r.status_code == 200
-
-    def send_heart_beat(self):
-        logger.info(
-            f"Send heart beat. Models: {self.model_names}. "
-            f"Semaphore: {pretty_print_semaphore(model_semaphore)}. "
-            f"global_counter: {global_counter}. "
-            f"worker_id: {worker_id}. "
-        )
-
-        url = self.controller_addr + "/receive_heart_beat"
-
-        while True:
-            try:
-                ret = requests.post(
-                    url,
-                    json={
-                        "worker_name": self.worker_addr,
-                        "queue_length": self.get_queue_length(),
-                    },
-                    timeout=5,
-                )
-                exist = ret.json()["exist"]
-                break
-            except requests.exceptions.RequestException as e:
-                logger.error(f"heart beat error: {e}")
-            time.sleep(5)
-
-        if not exist:
-            self.register_to_controller()
-
-    def get_queue_length(self):
-        if (
-            model_semaphore is None
-            or model_semaphore._value is None
-            or model_semaphore._waiters is None
-        ):
-            return 0
-        else:
-            return (
-                args.limit_model_concurrency
-                - model_semaphore._value
-                + len(model_semaphore._waiters)
-            )
-
-    def get_status(self):
-        return {
-            "model_names": self.model_names,
-            "speed": 1,
-            "queue_length": self.get_queue_length(),
-        }
-
-    def load_image(self, image_path: str) -> Tuple[np.array, torch.Tensor]:
         
-
+    def load_image(self, image_path: str):
         if os.path.exists(image_path):
             image_source = Image.open(image_path).convert("RGB")
         else:
-            # base64 coding
+            # Handle base64 encoded image
             image_source = Image.open(BytesIO(base64.b64decode(image_path))).convert("RGB")
 
         image = np.asarray(image_source)
         image_transformed, _ = self.transform(image_source, None)
         return image, image_transformed
-
-    def generate_stream_func(self, model, params, device):
-        # get inputs
-        if "param" in params:
-            text_prompt = params["param"]
-        else:
-            text_prompt = params["caption"]
-        image_path = params["image"]
-        box_threshold = params["box_threshold"]
-        text_threshold = params["text_threshold"]
-
-        # load image and run models
-        image_np, image = self.load_image(image_path)
-        boxes, logits, phrases = predict(
-            model=model, 
-            image=image, 
-            caption=text_prompt, 
-            box_threshold=box_threshold, 
-            text_threshold=text_threshold,
-            device=device
-        )
         
-        # add NMS to boxes
-        boxes, logits, phrases = self.nms(boxes, logits, phrases)
-        boxes = box_ops.box_cxcywh_to_xyxy(boxes)
-
-        # import ipdb; ipdb.set_trace()
-
-        # to list format  
-        boxes = boxes.tolist()
-        # round to 2 decimal places
-        boxes = [[round(x, 2) for x in box] for box in boxes]
-        logits = logits.tolist()
-        logits = [round(x, 2) for x in logits]
-
-        h, w, _ = image_np.shape
-        pred_dict = {
-            "boxes": boxes,
-            "logits": logits,
-            "phrases": phrases,
-            "size": [h, w],  # H,W
-        }
-        ret = {"text": pred_dict, "error_code": 0}
-
-        return ret
-
     def nms(self, boxes, logits, phrases):
         iou_threshold = 0.8
         boxes_xyxy = box_ops.box_cxcywh_to_xyxy(boxes)
-        print(f"Before NMS: {boxes_xyxy.shape[0]} boxes")
+        logger.info(f"Before NMS: {boxes_xyxy.shape[0]} boxes")
         nms_idx = torchvision.ops.nms(boxes_xyxy, logits, iou_threshold)
 
         boxes = boxes[nms_idx]
         logits = logits[nms_idx]
         phrases = [phrases[idx] for idx in nms_idx]
-        print(f"After NMS: {boxes.shape[0]} boxes")
+        logger.info(f"After NMS: {boxes.shape[0]} boxes")
 
         return boxes, logits, phrases
+    
+    @torch.inference_mode()
+    def generate(self, params):
+        # Extract inputs
+        text_prompt = params.get("param", params.get("caption", ""))
+        image_path = params.get("image")
+        box_threshold = params.get("box_threshold", 0.25)
+        text_threshold = params.get("text_threshold", 0.25)
+        
+        if not image_path or not text_prompt:
+            logger.error("Missing required parameters: image or text prompt")
+            return {"text": "Missing required parameters: image or text prompt", "error_code": 1}
 
-    def generate_gate(self, params):
         try:
-
-            ret = {"text": "", "error_code": 0}
-            ret = self.generate_stream_func(
-                self.model,
-                params,
-                self.device,
+            # Load image and run model
+            image_np, image = self.load_image(image_path)
+            boxes, logits, phrases = predict(
+                model=self.model, 
+                image=image, 
+                caption=text_prompt, 
+                box_threshold=box_threshold, 
+                text_threshold=text_threshold,
+                device=self.device
             )
-        except torch.cuda.OutOfMemoryError as e:
-            ret = {
-                "text": f"{SERVER_ERROR_MSG}\n\n({e})",
-                "error_code": ErrorCode.CUDA_OUT_OF_MEMORY,
+            
+            # Apply NMS to boxes
+            boxes, logits, phrases = self.nms(boxes, logits, phrases)
+            boxes = box_ops.box_cxcywh_to_xyxy(boxes)
+
+            # Format output
+            boxes = [[round(x, 2) for x in box] for box in boxes.tolist()]
+            logits = [round(x, 2) for x in logits.tolist()]
+
+            h, w, _ = image_np.shape
+            pred_dict = {
+                "boxes": boxes,
+                "logits": logits,
+                "phrases": phrases,
+                "size": [h, w],  # H,W
             }
-        except (ValueError, RuntimeError) as e:
-            ret = {
-                "text": f"{SERVER_ERROR_MSG}\n\n({e})",
-                "error_code": ErrorCode.INTERNAL_ERROR,
-            }
-        return ret
-
-
-app = FastAPI()
-
-
-def release_model_semaphore():
-    model_semaphore.release()
-
-
-def acquire_model_semaphore():
-    global model_semaphore, global_counter
-    global_counter += 1
-    if model_semaphore is None:
-        model_semaphore = asyncio.Semaphore(args.limit_model_concurrency)
-    return model_semaphore.acquire()
-
-
-def create_background_tasks():
-    background_tasks = BackgroundTasks()
-    background_tasks.add_task(release_model_semaphore)
-    return background_tasks
-
-
-
-@app.post("/worker_generate")
-async def api_generate(request: Request):
-    params = await request.json()
-    await acquire_model_semaphore()
-    output = worker.generate_gate(params)
-    release_model_semaphore()
-    return JSONResponse(output)
-
-
-@app.post("/worker_get_status")
-async def api_get_status(request: Request):
-    return worker.get_status()
-
-
-
-
-
-@app.post("/model_details")
-async def model_details(request: Request):
-    return {"context_length": worker.context_len}
+            return {"text": pred_dict, "error_code": 0}
+            
+        except Exception as e:
+            logger.error(f"Error during GroundingDINO inference: {e}")
+            return {"text": f"Error during GroundingDINO inference: {e}", "error_code": 1}
 
 
 if __name__ == "__main__":
@@ -325,43 +150,27 @@ if __name__ == "__main__":
     parser.add_argument("--host", type=str, default="0.0.0.0")
     parser.add_argument("--port", type=int, default=20003)
     parser.add_argument("--worker-address", type=str, default="auto")
-    parser.add_argument(
-        "--controller-address", type=str, default="auto"
-    )
-
-    parser.add_argument(
-        "--model-path", type=str, default="/mnt/petrelfs/songmingyang/songmingyang/model/mm/groundingdino_official/groundingdino_swint_ogc.pth"
-    )
-    parser.add_argument(
-        "--model-config", type=str, default="/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/src/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py"
-    )
-    parser.add_argument(
-        "--model-names",
-        default="grounding_dino,grounding",
-        type=lambda s: s.split(","),
-        help="Optional display comma separated names",
-    )
+    parser.add_argument("--controller-address", type=str, default="http://SH-IDCA1404-10-140-54-119:20001")
+    parser.add_argument("--model-path", type=str, default="/mnt/petrelfs/songmingyang/songmingyang/model/mm/groundingdino_official/groundingdino_swint_ogc.pth")
+    parser.add_argument("--model-config", type=str, default="/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/src/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py")
+    parser.add_argument("--model-name", type=str, default="grounding_dino")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--limit-model-concurrency", type=int, default=5)
-    parser.add_argument("--stream-interval", type=int, default=2)
     parser.add_argument("--no-register", action="store_true")
     args = parser.parse_args()
     logger.info(f"args: {args}")
-    # 获取 SLURM 分配的节点名
-    if args.worker_address == "auto":
-        node_name = os.getenv("SLURMD_NODENAME", "Unknown")
-        print(f"SLURM Node Name: {node_name}")
-        assert node_name != "Unknown"
-        args.worker_address = f"http://{node_name}:{args.port}"
 
-    worker = ModelWorker(
-        args.controller_address,
-        args.worker_address,
-        worker_id,
-        args.no_register,
-        args.model_path,
-        args.model_config,
-        args.model_names,
-        args.device,
+    worker = GroundingDinoWorker(
+        controller_addr=args.controller_address,
+        worker_addr=args.worker_address,
+        worker_id=worker_id,
+        no_register=args.no_register,
+        model_path=args.model_path,
+        model_config=args.model_config,
+        model_name=args.model_name,
+        device=args.device,
+        limit_model_concurrency=args.limit_model_concurrency,
+        host=args.host,
+        port=args.port,
     )
-    uvicorn.run(app, host=args.host, port=args.port, log_level="info")
+    worker.run()

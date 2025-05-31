@@ -1,6 +1,6 @@
 # 基本目录配置 - 修改为您本地的路径
 base_dir: /app/tool-agent/tool_server/tool_workers
-log_folder: /app/tool-agent/tool_server/tool_workers/logs/server_log
+log_folder: /log
 
 # 本地配置中这些参数不会被使用，但保留以保持结构一致
 default_calculate_gpus: 1

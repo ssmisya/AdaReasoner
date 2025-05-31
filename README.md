@@ -153,14 +153,15 @@ If you encounter issues, check out our [📄 Documentation](docs/README.md). -->
 ## 🚀 Quick Start
 This framework consists of three main components: the ``tool server``, inference evaluation framework, and training pipelines. Each component has its own environment requirements. The tool server serves as the foundation, and both inference and training must be conducted after the tool server has been successfully launched.
 
-### Step 1: Launch Vision Tool Server
+### 🖥️ Step 1: Launch Vision Tool Server
 You can choose to run our tool server docker image or start the tool_server locally.
 
-### Option 1: Docker Image
-It's recommended to try our tool server docker image. You can either download our provided `tool_server` image or build it by your self!
-Note: 
+### 🐳 Option 1: Docker Image
+It's recommended to try our ``Tool Server`` docker image. You can either download our provided `tool_server` image or build it by your self!
+
+📌**Note:**
 1. It’s recommended to use the `-v /path/to/your/logdir:/log` option to mount a host directory to the container’s `/log` directory, which allows you to view runtime logs and receive the controller_addr output.
-2. The controller addr are saved at `/path/to/your/logdir/controller_addr.json` you've mounted, which is not the default location any more. Do not forget to feed it to `tool_manager` when you are using it.
+2. The controller address is saved at ``/path/to/your/logdir/controller_addr.json``, which is no longer the default location. Make sure to provide this path to ``tool_manager`` when using it.
 3. By default, the **molmoPoint** worker is configured to run in 4-bit mode to minimize VRAM usage. To customize GPU behavior or access advanced settings, you can log into the container and edit ``/app/OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts/config/service_apptainer.yaml``.
 
 #### Option 1.1 Start Tool Server with Our Docker Image
@@ -185,11 +186,14 @@ pthon OpenThinkIMG/tool_server/tool_workers/online_workers/test_cases/worker_tes
 ```
 #### Option 1.2 Build Docker Image by Yourself
 
+We have provided the dockerfile at `OpenThinkIMG/Dockerfile`, you can build the docker Image according to it.
+
 **sub-step 1** Prepare the weights
 
-We have provided the dockerfile at `OpenThinkIMG/Dockerfile`, you can build the docker Image according to it.
+
 Some tools require specific pretrained weights. Please ensure that these model weights are prepared and placed in the appropriate paths before building the image.
-Please move them into the weights directory. The directory structure is organized as follows:
+
+The directory structure is organized as follows:
 
 ```bash
 project-root/
@@ -205,6 +209,7 @@ project-root/
 **sub-step 2** Start the building procedure!
 
 ```bash 
+git clone https://github.com/OpenThinkIMG/OpenThinkIMG.git
 cd OpenThinkIMG
 docker build -f Dockerfile -t tool_server:v0.2 ..  # This might take a while ...
 ```
@@ -218,6 +223,9 @@ docker run -it \
   -w /app/OpenThinkIMG/ \
   --network host \
   tool_server:v0.2 \
+
+# Test the server 
+pthon tool_server/tool_workers/online_workers/test_cases/worker_tests/test_all.py
 ```
 ### Option 2. Start Tool Server From Source Code
 You can choose to start tool_server through SLURM or just run it on local machine.
@@ -239,7 +247,9 @@ git clone https://github.com/OpenThinkIMG/OpenThinkIMG.git
 pip install -e OpenThinkIMG
 pip install -r OpenThinkIMG/apptainer/requirements.txt # Tool Server Requirements
 ```
-We deliberately selected minimal dependencies in this project to reduce the risk of conflicts. As a result, you may need to manually install any missing packages based on your environment.
+⚠️ **Be aware:**
+
+We **deliberately selected minimal dependencies** in this project to reduce the risk of conflicts. As a result, you may need to manually install any missing packages based on your environment.
 
 #### Option 2.1 Start Tool Server through SLURM
 It's recommended to start the tool server through SLURM because it's more flexible.

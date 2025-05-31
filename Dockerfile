@@ -6,6 +6,8 @@ FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-devel
 COPY ./OpenThinkIMG /app/OpenThinkIMG
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV https_proxy=http://172.16.0.13:5848
+ENV HTTPS_PROXY=http://172.16.0.13:5848
 
 # === 创建日志目录 ===
 RUN mkdir -p /log

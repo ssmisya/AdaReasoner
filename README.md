@@ -264,7 +264,7 @@ python start_server_config.py --config ./config/all_service_example.yaml
 ## Press control + C to shutdown all services automatically.
 ```
 
-#### Option 2.2 Start Tool Server through SLURM
+#### Option 2.2 Start Tool Server Locally
 We made a slight modification to ``start_server_config.py`` to create ``start_server_local.py``, primarily by removing the logic related to SLURM job detection and adapting it for local execution instead.
 ```bash
 ## First, modify the config to adapt to your own environment

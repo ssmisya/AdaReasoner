@@ -159,7 +159,7 @@ You can choose to run our tool server docker image or start the tool_server loca
 ### 🐳 Option 1: Docker Image
 It's recommended to try our ``Tool Server`` docker image. You can either download our provided `tool_server` image or build it by your self!
 
-📌**Note:**
+📌 **Note:**
 1. It’s recommended to use the `-v /path/to/your/logdir:/log` option to mount a host directory to the container’s `/log` directory, which allows you to view runtime logs and receive the controller_addr output.
 2. The controller address is saved at ``/path/to/your/logdir/controller_addr.json``, which is no longer the default location. Make sure to provide this path to ``tool_manager`` when using it.
 3. By default, the **molmoPoint** worker is configured to run in 4-bit mode to minimize VRAM usage. To customize GPU behavior or access advanced settings, you can log into the container and edit ``/app/OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts/config/service_apptainer.yaml``.
@@ -230,7 +230,7 @@ pthon tool_server/tool_workers/online_workers/test_cases/worker_tests/test_all.p
 ### Option 2. Start Tool Server From Source Code
 You can choose to start tool_server through SLURM or just run it on local machine.
 
-### Installation
+### 🛠️ Installation
 First of all, provide a pytorch-based environment.
 * torch==2.0.1+cu118
 
@@ -245,7 +245,7 @@ pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https
 # Install this project
 git clone https://github.com/OpenThinkIMG/OpenThinkIMG.git
 pip install -e OpenThinkIMG
-pip install -r OpenThinkIMG/apptainer/requirements.txt # Tool Server Requirements
+pip install -r OpenThinkIMG/requirements/requirements.txt # Tool Server Requirements
 ```
 ⚠️ **Be aware:**
 
@@ -281,7 +281,7 @@ You can then inspect the log files to diagnose and resolve any potential issues.
 
 ### 🔍 Step 2: Run Inference with OpenThinkIMG
 
-### Installation
+### 🛠️ Installation
 First of all, provide a pytorch-vllm-based environment.
 * vllm>=0.7.3
 * torch==2.5.1+cu121
@@ -298,7 +298,7 @@ pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https
 # Install this project
 git clone https://github.com/OpenThinkIMG/OpenThinkIMG.git
 pip install -e OpenThinkIMG
-pip install -r OpenThinkIMG/inference_requirements.txt # Tool Server Requirements
+pip install -r OpenThinkIMG/requirements/inference_requirements.txt # Tool Server Requirements
 ```
 
 #### ✅ Option 1: Direct Evaluation (e.g., Qwen2VL on ChartGemma)
@@ -359,7 +359,7 @@ Our training pipeline builds on the solid foundation of [OpenR1](https://github.
 To run the training code, make sure to install the additional required packages:
 
 ```
-pip install -r requirements_train.txt
+pip install -r requirements/requirements_train.txt
 ```
 
 ### 🔁 V-ToolRL: Reinforcement Learning with Vision Tools

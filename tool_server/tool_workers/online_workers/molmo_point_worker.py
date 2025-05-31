@@ -16,6 +16,7 @@ from tool_server.utils.server_utils import *
 import matplotlib.pyplot as plt
 
 from tool_server.tool_workers.online_workers.base_tool_worker import BaseToolWorker
+import traceback
 
 from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig, BitsAndBytesConfig
 
@@ -92,6 +93,7 @@ class MolmoToolWorker(BaseToolWorker):
                  port = None,
                  model_semaphore = None,
                  max_length = 2048,
+                 args = None,
                  ):
         self.max_length = max_length
         super().__init__(
@@ -108,12 +110,28 @@ class MolmoToolWorker(BaseToolWorker):
             limit_model_concurrency,
             host,
             port,
-            model_semaphore
+            model_semaphore,
+            args=args
             )
 
         
     def init_model(self):
         logger.info(f"Initializing model {self.model_name}...")
+        quant_config = None
+        print(f"load8bitarg:{self.args.load_8bit}\n load4bitarg:{self.args.load_4bit}")
+        self.load_4bit = self.args.load_4bit 
+        self.load_8bit = self.args.load_8bit 
+        
+        print(f"load8bit:{self.load_8bit}\n load4bit:{self.load_4bit}")
+        if self.load_4bit or self.load_8bit:
+            quant_config = BitsAndBytesConfig(
+                load_in_8bit=self.load_8bit,
+                load_in_4bit=self.load_4bit,
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_compute_dtype=torch.bfloat16,
+                bnb_4bit_quant_type="nf4"
+            )
+            logger.info(f"Using quantization config: {quant_config}")
 
         # load the processor
         self.processor = AutoProcessor.from_pretrained(
@@ -128,7 +146,8 @@ class MolmoToolWorker(BaseToolWorker):
             self.model_path,
             trust_remote_code=True,
             torch_dtype='auto',
-            device_map='auto'
+            device_map='auto',
+            quantization_config=quant_config
         )
 
         
@@ -180,11 +199,21 @@ class MolmoToolWorker(BaseToolWorker):
                 
         except Exception as e:
             logger.error(f"Error when using molmo to point: {e}")
+            logger.error(traceback.format_exc()) 
             ret["text"] = f"Error when using molmo to point: {e}"
             # ret['edited_image'] = None
         
         return ret
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -198,6 +227,9 @@ if __name__ == "__main__":
     parser.add_argument("--stream-interval", type=int, default=1)
     parser.add_argument("--no-register", action="store_true")
     parser.add_argument("--model_path", type=str, default="/mnt/petrelfs/share_data/suzhaochen/models/Molmo-7B-D-0924")
+    parser.add_argument("--gpu_usage_limit",type=float, default=None)
+    parser.add_argument("--load-8bit", type=str2bool, default=False, help="Use 8-bit quantization")
+    parser.add_argument("--load-4bit",  type=str2bool, default=False, help="Use 4-bit quantization (nf4)")
     args = parser.parse_args()
     logger.info(f"args: {args}")
 
@@ -210,5 +242,6 @@ if __name__ == "__main__":
         port = args.port,
         no_register = args.no_register,
         model_path = args.model_path,
+        args = args,
     )
     worker.run()

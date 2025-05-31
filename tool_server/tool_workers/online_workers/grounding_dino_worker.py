@@ -10,7 +10,7 @@ from io import BytesIO
 from groundingdino.util.inference import load_model, predict
 from groundingdino.util import box_ops
 from tool_server.tool_workers.online_workers.base_tool_worker import BaseToolWorker
-from tool_server.utils.utils import build_logger
+from tool_server.utils.server_utils import build_logger
 
 import groundingdino.datasets.transforms as T
 
@@ -59,6 +59,7 @@ class GroundingDinoWorker(BaseToolWorker):
 
     def init_model(self):
         logger.info(f"Initializing model {self.model_name}...")
+        logger.info(f"CUDA available: {torch.cuda.is_available()}, GPU count: {torch.cuda.device_count()}")
         self.model = load_model(
             model_config_path=self.model_config,
             model_checkpoint_path=self.model_path,

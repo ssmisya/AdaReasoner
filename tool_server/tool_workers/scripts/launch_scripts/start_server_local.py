@@ -102,6 +102,23 @@ class ServerManager:
                 self.logger.error(f"Attempt {attempt} failed: {e}")
             
             time.sleep(self.config.retry_interval)
+            
+    def wait_for_controller_ready(self):
+        self.logger.info("Waiting for controller to become ready...")
+        for i in range(10):
+            try:
+                response = requests.post(f"{self.controller_addr}/list_models", timeout=2)
+                if response.status_code == 200:
+                    self.logger.info("Controller is ready.")
+                    return
+                else:
+                    self.logger.info(f"Controller not ready yet... retrying ({i+1})")
+                    time.sleep(2)
+            except:
+                self.logger.info(f"Controller not ready yet... retrying ({i+1})")
+                time.sleep(2)
+        raise RuntimeError("Controller failed to become ready.")
+
 
     def start_controller(self) -> str:
         """Start controller"""
@@ -141,6 +158,8 @@ class ServerManager:
         
         write_json_file(controller_addr_dict, self.controller_addr_location)
         self.logger.info(f"Controller address saved to: {self.controller_addr_location}")
+        
+        self.wait_for_controller_ready()
         
         return self.controller_addr
 

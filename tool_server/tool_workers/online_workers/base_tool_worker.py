@@ -74,13 +74,16 @@ class BaseToolWorker:
                  model_semaphore = None,
                  wait_timeout = 120.0,
                  task_timeout = 30.0,
+                 args = None,
                  ):
+        self.args = args
         self.controller_addr = controller_addr
         assert port is not None, "Port must be specified"
         if worker_addr == "auto":
             node_name = os.getenv("SLURMD_NODENAME", "Unknown")
             print(f"SLURM Node Name: {node_name}")
-            assert node_name != "Unknown"
+            if node_name == "Unknown":
+                node_name = "localhost"
             self.worker_addr = f"http://{node_name}:{port}"
         else:
             self.worker_addr = worker_addr
@@ -322,4 +325,4 @@ class BaseToolWorker:
     
     
     def run(self):
-        uvicorn.run(self.app, host=self.host, port=self.port, log_level="info")
+        uvicorn.run(self.app, host=self.host, port=self.port, log_level="info",log_config=None)

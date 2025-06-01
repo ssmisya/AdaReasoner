@@ -32,7 +32,7 @@ Humans don't just passively observe; we actively engage with visual information,
 
 
 ## News
-- **[2025/06/01]** We have released an official Docker image to help users easily build and run the Tool Server. Please refer to the instructions [here](https://github.com/OpenThinkIMG/OpenThinkIMG?tab=readme-ov-file#-option-1-docker-image).
+- **[2025/06/01]** 🐳 We have released an official Docker image to help users easily build and run the Tool Server. Please refer to the instructions [here](https://github.com/OpenThinkIMG/OpenThinkIMG?tab=readme-ov-file#-option-1-docker-image).
 - **[2025/05/17]** Our work is reported by [Qubit (量子位)](https://mp.weixin.qq.com/s/BU1M6aOidMkr9mBiAKyA3Q)
 - **[2025/05/14]** Our work is reported by both [Deep Learning and NLP (深度学习自然语言处理)](https://mp.weixin.qq.com/s/_GCvkg7bb5-NiId_4s5cMg) and [Machine Learning and NLP (机器学习算法与自然语言处理)](https://mp.weixin.qq.com/s/p2OJzSp4BKSfGVjv2KWEFg).
 - **[2025/05/13]** The models and datasets are released on [HuggingFace](https://huggingface.co/collections/Warrieryes/openthinkimg-68244a63e97a24d9b7ffcde9).

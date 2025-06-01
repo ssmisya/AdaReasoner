@@ -32,15 +32,11 @@ RUN pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url h
 RUN pip install -e ./GroundingDINO/
 RUN pip install -e /app/OpenThinkIMG
 
-RUN pip install -r /app/OpenThinkIMG/apptainer/requirements.txt
-
-RUN python -c "import easyocr; easyocr.Reader(['ch_sim','en'])"
+RUN pip install -r /app/OpenThinkIMG/requirements/tool_server_requirements.txt
 
 
+RUN export https_proxy=http://172.16.0.13:5848 && python -c "import ssl; ssl._create_default_https_context = ssl._create_unverified_context; import easyocr; easyocr.Reader(['ch_sim','en'])"
 
-# 在 Dockerfile 结尾前添加：
-RUN python /app/OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts/start_server_local.py \
-    --config tool_server/tool_workers/scripts/launch_scripts/config/service_apptainer.yaml || exit 1
 
 COPY ./weights/Molmo-7B-D-0924 /weights/Molmo-7B-D-0924
 COPY ./weights/sam2-hiera-large /weights/sam2-hiera-large
@@ -56,7 +52,7 @@ WORKDIR /app/OpenThinkIMG
 # === 设置默认启动命令（等价于 %runscript）===
 CMD ["python", "/app/OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts/start_server_local.py", \
      "--config",  \
-     "tool_server/tool_workers/scripts/launch_scripts/config/service_apptainer.yaml"]
+     "/app/OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts/config/service_apptainer.yaml"]
 
 # === 镜像元信息（可选）===
 LABEL maintainer="Mingyang Song <mysong23@m.fudan.edu.cn>"

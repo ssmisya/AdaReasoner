@@ -179,7 +179,7 @@ docker run -it \
   crpi-fs6w5qkjtxy37mko.cn-shanghai.personal.cr.aliyuncs.com/hitsmy/tool_server:v0.2 \
   bash -c \
   "python /app/OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts/start_server_local.py \
-  --config tool_server/tool_workers/scripts/launch_scripts/config/service_apptainer.yaml"
+  --config /app/OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts/config/service_apptainer.yaml"
 
 # Test the server 
 pthon OpenThinkIMG/tool_server/tool_workers/online_workers/test_cases/worker_tests/test_all.py

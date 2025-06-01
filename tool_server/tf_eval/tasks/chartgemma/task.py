@@ -4,6 +4,7 @@ from ...utils.utils import *
 from ...utils.log_utils import get_logger
 import os
 from datasets import Dataset
+from thefuzz import fuzz
 try:
     from math_verify import parse, verify
 except ImportError:
@@ -101,7 +102,8 @@ def evaluate_function(results,meta_data):
             else:
                 score = 0.0
         else:
-            score = 0.0
+            score = fuzz.ratio(pred, gold) / 100
+            
         res_list.append(score)
         compare_logs.append({"idx":idx,"gold":gold,"pred":pred,"score":score})
 

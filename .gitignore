@@ -191,3 +191,5 @@ r1_v/scripts
 
 tool_server/tool_workers/scripts/debug_scripts
 weights/
+
+src/*

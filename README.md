@@ -5,7 +5,7 @@
   <a href="https://arxiv.org/pdf/2505.08617">
     <img src="https://img.shields.io/badge/paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white" alt="Paper">
   </a>
-  <a href="https://github.com/zhaochen0110/OpenThinkIMG">
+  <a href="https://github.com/OpenThinkIMG/OpenThinkIMG">
     <img src="https://img.shields.io/badge/OpenThinkIMG-000000?style=for-the-badge&logo=github&logoColor=000&logoColor=white" alt="Github">
   </a>
   <a href="https://huggingface.co/collections/Warrieryes/openthinkimg-68244a63e97a24d9b7ffcde9">
@@ -32,6 +32,7 @@ Humans don't just passively observe; we actively engage with visual information,
 
 
 ## News
+- **[2025/06/01]** We have released an official Docker image to help users easily build and run the Tool Server. Please refer to the instructions [here](https://github.com/OpenThinkIMG/OpenThinkIMG?tab=readme-ov-file#-option-1-docker-image).
 - **[2025/05/17]** Our work is reported by [Qubit (量子位)](https://mp.weixin.qq.com/s/BU1M6aOidMkr9mBiAKyA3Q)
 - **[2025/05/14]** Our work is reported by both [Deep Learning and NLP (深度学习自然语言处理)](https://mp.weixin.qq.com/s/_GCvkg7bb5-NiId_4s5cMg) and [Machine Learning and NLP (机器学习算法与自然语言处理)](https://mp.weixin.qq.com/s/p2OJzSp4BKSfGVjv2KWEFg).
 - **[2025/05/13]** The models and datasets are released on [HuggingFace](https://huggingface.co/collections/Warrieryes/openthinkimg-68244a63e97a24d9b7ffcde9).
@@ -39,88 +40,6 @@ Humans don't just passively observe; we actively engage with visual information,
 - **[2025/05/13]** OpenThinkIMG paper available on [arXiv](https://arxiv.org/pdf/2505.08617).
 
 ---
-
-## 🤔 What is OpenThinkIMG?
-
-OpenThinkIMG is an end-to-end open-source framework that empowers Large Vision-Language Models (LVLMs) to think with images. It features:
-*   Flexible vision tool management and easy integration of new tools.
-*   Efficient dynamic inference with distributed tool deployment.
-*   A streamlined SFT (Supervised Fine-Tuning) and Agent-RL (Reinforcement Learning) training pipeline, including our novel **V-ToolRL** method.
-
-Our goal is to enable AI agents to interactively use visual tools to decompose, analyze, and solve complex visual problems, moving beyond passive observation towards active visual cognition.
-
----
-
-## 🐚 Why OpenThinkIMG?
-
-Current LVLMs excel at many tasks but often struggle when:
-*   Deep, iterative visual reasoning is required, not just single-pass description.
-*   Precise interaction with visual content (e.g., reading specific chart values, identifying exact locations) is crucial.
-*   Generalizing learned tool-use to new scenarios dynamically.
-
-OpenThinkIMG addresses these challenges by:
-
-*   **Bridging the Gap to Human-like Visual Cognition**: We enable LVLMs to "think with images" by actively using a suite of visual tools, much like humans use sketches or highlights to understand complex scenes.
-*   **Standardizing a Fragmented Landscape**: The current ecosystem for vision tools lacks unification. OpenThinkIMG provides:
-    *   **Unified Tool Interfaces**: A standardized way to define and interact with diverse visual tools.
-    *   **Modular, Distributed Deployment**: Tools run as independent services, enhancing scalability, fault isolation, and resource management.
-*   **Moving Beyond Static SFT Limitations**: Supervised Fine-Tuning (SFT) on fixed trajectories often leads to poor generalization and lacks adaptability. We introduce:
-    *   **V-ToolRL for Adaptive Policies**: Our novel reinforcement learning framework allows agents to *autonomously discover optimal tool-usage strategies* by directly optimizing for task success through interaction and feedback. This leads to significantly better performance and adaptability compared to SFT-only approaches.
-*   **Driving Reproducible Research**: By open-sourcing the entire framework, we aim to provide a common platform for the community to build upon, experiment with, and advance the field of tool-augmented visual reasoning.
-
----
-
-## 🚧 Project Status
-
-OpenThinkIMG is currently an **alpha release** but is actively being developed. The core end-to-end system, including tool integration, trajectory generation, SFT (Cold-Start), and V-ToolRL training, is functional and can be used to replicate the results in our paper.
-
-The project team is actively working on the following key milestones:
-
-*   **🥇 Release of Pre-trained Models**: Providing readily usable SFT-initialized and V-ToolRL-trained agent models (e.g., based on Qwen2-VL-2B).
-*   **🛠️ Expanding the Vision Toolset**: Integrating more diverse and powerful vision tools (e.g., advanced image editing, 3D analysis tools).
-*   **🤖 Broader LVLM Backbone Support**: Adding easy integration for more open-source LVLMs (e.g., LLaVA series, MiniGPT-4).
-*   **📊 More Benchmarks & Evaluation Suites**: Extending evaluation to a wider range of visual reasoning tasks beyond chart reasoning.
-*   **🌐 Community Building**: Fostering an active community through GitHub discussions, contributions, and collaborations.
-
-We welcome contributions and feedback to help us achieve these goals!
-
----
-
-
-
-## 🔧 Vision Toolset
-
-| **Tool**                    | **Input**                        | **Output**                             | **Description**                                                                                  |
-|-----------------------------|----------------------------------|----------------------------------------|--------------------------------------------------------------------------------------------------|
-| **GroundingDINO**           | image + text query               | bounding boxes                         | Object detection producing boxes for any target                                                  |
-| **SAM**                     | image + bounding box             | segmentation mask                      | Generates precise segmentation masks based on provided regions                    |
-| **OCR**                     | image                            | text strings + bounding boxes          | Optical character recognition for extracting text from images                                    |
-| **Crop**                    | image + region coordinates       | cropped image                          | Extracts a sub-region of the image for focused analysis                                          |
-| **Point**                   | image + target description       | point coordinates                      | Uses a model to predict the location of a specified object                                      |
-| **DrawHorizontalLineByY**   | image + Y-coordinate             | annotated image                        | Draws a horizontal line at the given Y-coordinate                                                |
-| **DrawVerticalLineByX**     | image + X-coordinate             | annotated image                        | Draws a vertical line at the given X-coordinate                                                  |
-| **ZoominSubplot**           | image + description (title/pos)  | subplot images                 | Zoomin subplot(s) based on description                                                         |
-| **SegmentRegionAroundPoint**| image + point coordinate         | localized mask                         | Refines segmentation around a specified point                                                    |
-> 💡 More vision tools are coming soon!
-
-## 📊 Results on Chart Reasoning (ChartGemma)
-Our V-ToolRL approach significantly boosts performance:
-
-
-| Model                          | Method       | Accuracy (%) |
-| :----------------------------- | :----------- | :----------- |
-| GPT-4.1       | Zero-shot    | 50.71        |
-| Gemini-2.0-flash-exp   | Zero-shot    | 68.20        |
-| ---                            | ---          | ---          |
-| CogCom                         |  SFT (CoM)    | 15.07        |
-| TACO                           | SFT (CoTA)   | 30.50        |
-| ---                            | ---          | ---          |
-| Qwen2-vl-2B                    | Zero-shot    | 29.56        |
-| Qwen2-vl-2B-SFT      | SFT          | 45.67        |
-| Text-based RL     | RL (No Vis)  | 51.63        |
-| **V-ToolRL**    | **V-ToolRL** | **59.39**    |
-
-V-ToolRL not only enhances our base model by +29.83 points but also outperforms other open-source tool-augmented agents and even strong closed-source models like GPT-4.1.
 
 
 
@@ -430,6 +349,89 @@ We also support supervised fine-tuning for training models on curated tool usage
     --warmup_ratio 0.1 \
     --save_only_model true
 ```
+
+## 🤔 What is OpenThinkIMG?
+
+OpenThinkIMG is an end-to-end open-source framework that empowers Large Vision-Language Models (LVLMs) to think with images. It features:
+*   Flexible vision tool management and easy integration of new tools.
+*   Efficient dynamic inference with distributed tool deployment.
+*   A streamlined SFT (Supervised Fine-Tuning) and Agent-RL (Reinforcement Learning) training pipeline, including our novel **V-ToolRL** method.
+
+Our goal is to enable AI agents to interactively use visual tools to decompose, analyze, and solve complex visual problems, moving beyond passive observation towards active visual cognition.
+
+---
+
+## 🐚 Why OpenThinkIMG?
+
+Current LVLMs excel at many tasks but often struggle when:
+*   Deep, iterative visual reasoning is required, not just single-pass description.
+*   Precise interaction with visual content (e.g., reading specific chart values, identifying exact locations) is crucial.
+*   Generalizing learned tool-use to new scenarios dynamically.
+
+OpenThinkIMG addresses these challenges by:
+
+*   **Bridging the Gap to Human-like Visual Cognition**: We enable LVLMs to "think with images" by actively using a suite of visual tools, much like humans use sketches or highlights to understand complex scenes.
+*   **Standardizing a Fragmented Landscape**: The current ecosystem for vision tools lacks unification. OpenThinkIMG provides:
+    *   **Unified Tool Interfaces**: A standardized way to define and interact with diverse visual tools.
+    *   **Modular, Distributed Deployment**: Tools run as independent services, enhancing scalability, fault isolation, and resource management.
+*   **Moving Beyond Static SFT Limitations**: Supervised Fine-Tuning (SFT) on fixed trajectories often leads to poor generalization and lacks adaptability. We introduce:
+    *   **V-ToolRL for Adaptive Policies**: Our novel reinforcement learning framework allows agents to *autonomously discover optimal tool-usage strategies* by directly optimizing for task success through interaction and feedback. This leads to significantly better performance and adaptability compared to SFT-only approaches.
+*   **Driving Reproducible Research**: By open-sourcing the entire framework, we aim to provide a common platform for the community to build upon, experiment with, and advance the field of tool-augmented visual reasoning.
+
+---
+
+## 🚧 Project Status
+
+OpenThinkIMG is currently an **alpha release** but is actively being developed. The core end-to-end system, including tool integration, trajectory generation, SFT (Cold-Start), and V-ToolRL training, is functional and can be used to replicate the results in our paper.
+
+The project team is actively working on the following key milestones:
+
+*   **🥇 Release of Pre-trained Models**: Providing readily usable SFT-initialized and V-ToolRL-trained agent models (e.g., based on Qwen2-VL-2B).
+*   **🛠️ Expanding the Vision Toolset**: Integrating more diverse and powerful vision tools (e.g., advanced image editing, 3D analysis tools).
+*   **🤖 Broader LVLM Backbone Support**: Adding easy integration for more open-source LVLMs (e.g., LLaVA series, MiniGPT-4).
+*   **📊 More Benchmarks & Evaluation Suites**: Extending evaluation to a wider range of visual reasoning tasks beyond chart reasoning.
+*   **🌐 Community Building**: Fostering an active community through GitHub discussions, contributions, and collaborations.
+
+We welcome contributions and feedback to help us achieve these goals!
+
+---
+
+
+
+## 🔧 Vision Toolset
+
+| **Tool**                    | **Input**                        | **Output**                             | **Description**                                                                                  |
+|-----------------------------|----------------------------------|----------------------------------------|--------------------------------------------------------------------------------------------------|
+| **GroundingDINO**           | image + text query               | bounding boxes                         | Object detection producing boxes for any target                                                  |
+| **SAM**                     | image + bounding box             | segmentation mask                      | Generates precise segmentation masks based on provided regions                    |
+| **OCR**                     | image                            | text strings + bounding boxes          | Optical character recognition for extracting text from images                                    |
+| **Crop**                    | image + region coordinates       | cropped image                          | Extracts a sub-region of the image for focused analysis                                          |
+| **Point**                   | image + target description       | point coordinates                      | Uses a model to predict the location of a specified object                                      |
+| **DrawHorizontalLineByY**   | image + Y-coordinate             | annotated image                        | Draws a horizontal line at the given Y-coordinate                                                |
+| **DrawVerticalLineByX**     | image + X-coordinate             | annotated image                        | Draws a vertical line at the given X-coordinate                                                  |
+| **ZoominSubplot**           | image + description (title/pos)  | subplot images                 | Zoomin subplot(s) based on description                                                         |
+| **SegmentRegionAroundPoint**| image + point coordinate         | localized mask                         | Refines segmentation around a specified point                                                    |
+> 💡 More vision tools are coming soon!
+
+## 📊 Results on Chart Reasoning (ChartGemma)
+Our V-ToolRL approach significantly boosts performance:
+
+
+| Model                          | Method       | Accuracy (%) |
+| :----------------------------- | :----------- | :----------- |
+| GPT-4.1       | Zero-shot    | 50.71        |
+| Gemini-2.0-flash-exp   | Zero-shot    | 68.20        |
+| ---                            | ---          | ---          |
+| CogCom                         |  SFT (CoM)    | 15.07        |
+| TACO                           | SFT (CoTA)   | 30.50        |
+| ---                            | ---          | ---          |
+| Qwen2-vl-2B                    | Zero-shot    | 29.56        |
+| Qwen2-vl-2B-SFT      | SFT          | 45.67        |
+| Text-based RL     | RL (No Vis)  | 51.63        |
+| **V-ToolRL**    | **V-ToolRL** | **59.39**    |
+
+V-ToolRL not only enhances our base model by +29.83 points but also outperforms other open-source tool-augmented agents and even strong closed-source models like GPT-4.1.
+
 
 ## 📂 Case Studies
 

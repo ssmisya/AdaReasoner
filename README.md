@@ -72,21 +72,25 @@ OpenThinkIMG addresses these challenges by:
 ---
 
 ## 🚀 Quick Start
-This framework consists of three main components: the ``tool server``, inference evaluation framework, and training pipelines. Each component has its own environment requirements. The tool server serves as the foundation, and both inference and training must be conducted after the tool server has been successfully launched.
+This framework comprises three main components: the fundamental tool service supplier ``tool server``, the inference evaluation framework `TF EVAL`, and the RL work ``R1-V-TOOL``. Each component has its own environment requirements. The `tool server` serves as the foundation and must be successfully launched before performing any inference or training.
 
 ### 🖥️ Step 1: Launch Vision Tool Server
-You can choose to run our tool server docker image or start the tool_server locally.
+You can either run our tool server using the provided `Docker image` or launch the `tool_server` locally, depending on your environment preferences.
 
 ### 🐳 Option 1: Docker Image
 It's recommended to try our ``Tool Server`` docker image. You can either download our provided `tool_server` image or build it by your self!
 
 📌 **Note:**
-1. It’s recommended to use the `-v /path/to/your/logdir:/log` option to mount a host directory to the container’s `/log` directory, which allows you to view runtime logs and receive the controller_addr output.
+1. It’s recommended to use the `-v /path/to/your/logdir:/log` option to mount a host directory to the container’s `/log` directory, which allows you to view runtime logs and receive the `controller_addr` output.
 2. The controller address is saved at ``/path/to/your/logdir/controller_addr.json``, which is no longer the default location. Make sure to provide this path to ``tool_manager`` when using it.
 3. By default, the **molmoPoint** worker is configured to run in 4-bit mode to minimize VRAM usage. To customize GPU behavior or access advanced settings, you can log into the container and edit ``/app/OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts/config/service_apptainer.yaml``.
 
 #### Option 1.1 Start Tool Server with Our Docker Image
-We have released the official Docker image for the Tool Server, which is now publicly available for direct use.
+We have released the official Docker image for the `tool server`, which is now publicly available for direct use.
+
+* Aliyun: crpi-fs6w5qkjtxy37mko.cn-shanghai.personal.cr.aliyuncs.com/hitsmy/tool_server:v0.1
+* DockerHub: Coming Soon
+
 
 ```bash
 # Pull the docker image and run
@@ -182,7 +186,7 @@ It's recommended to start the tool server through SLURM because it's more flexib
 cd OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts
 python start_server_config.py --config ./config/all_service_example.yaml
 
-## Press control + C to shutdown all services automatically.
+## Press Ctrl + C to shutdown all services automatically.
 ```
 
 #### Option 2.2 Start Tool Server Locally
@@ -195,7 +199,7 @@ We made a slight modification to ``start_server_config.py`` to create ``start_se
 cd OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts
 python start_server_local.py --config ./config/all_service_example_local.yaml
 
-## Press control + C to shutdown all services automatically.
+## Press Ctrl + C to shutdown all services automatically.
 ```
 
 You can then inspect the log files to diagnose and resolve any potential issues. Due to the complexity of this project, we cannot guarantee that it will run without errors on every machine.

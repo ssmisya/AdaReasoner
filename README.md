@@ -169,14 +169,14 @@ We have released the official Docker image for the Tool Server, which is now pub
 
 ```bash
 # Pull the docker image and run
-docker pull crpi-fs6w5qkjtxy37mko.cn-shanghai.personal.cr.aliyuncs.com/hitsmy/tool_server:v0.2
+docker pull crpi-fs6w5qkjtxy37mko.cn-shanghai.personal.cr.aliyuncs.com/hitsmy/tool_server:v0.1
 docker run -it \
   --gpus all \
   --name tool_server \
   -v /path/to/your/logdir:/log \
   -w /app/OpenThinkIMG \
   --network host \
-  crpi-fs6w5qkjtxy37mko.cn-shanghai.personal.cr.aliyuncs.com/hitsmy/tool_server:v0.2 \
+  crpi-fs6w5qkjtxy37mko.cn-shanghai.personal.cr.aliyuncs.com/hitsmy/tool_server:v0.1 \
   bash -c \
   "python /app/OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts/start_server_local.py \
   --config /app/OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts/config/service_apptainer.yaml"

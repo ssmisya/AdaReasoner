@@ -41,33 +41,35 @@ Humans don't just passively observe; we actively engage with visual information,
 
 ---
 
+## 🤔 What is OpenThinkIMG?
 
+OpenThinkIMG is an end-to-end open-source framework that empowers Large Vision-Language Models (LVLMs) to think with images. It features:
+*   Flexible vision tool management and easy integration of new tools.
+*   Efficient dynamic inference with distributed tool deployment.
+*   A streamlined SFT (Supervised Fine-Tuning) and Agent-RL (Reinforcement Learning) training pipeline, including our novel **V-ToolRL** method.
 
-<!-- ## ⚙️ Installation
+Our goal is to enable AI agents to interactively use visual tools to decompose, analyze, and solve complex visual problems, moving beyond passive observation towards active visual cognition.
 
-We provide a general setup that works across most tools. Individual tools may have specific requirements (to be released separately).
+---
 
-```bash
-# Clone the repository
-git clone git@github.com:zhaochen0110/Tool-Factory.git
-cd Tool-Factory
+## 🐚 Why OpenThinkIMG?
 
-# [Optional] Create a clean Conda environment
-conda create -n tool-server python=3.10
-conda activate tool-server
+Current LVLMs excel at many tasks but often struggle when:
+*   Deep, iterative visual reasoning is required, not just single-pass description.
+*   Precise interaction with visual content (e.g., reading specific chart values, identifying exact locations) is crucial.
+*   Generalizing learned tool-use to new scenarios dynamically.
 
-# Install PyTorch and dependencies (make sure CUDA version matches)
-conda install pytorch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 pytorch-cuda=11.8 -c pytorch -c nvidia
+OpenThinkIMG addresses these challenges by:
 
-# Install remaining dependencies
-pip install -r tool_server_requirements.txt
-pip install -e .
-```
-> 💡 Note: The `requirements.txt` is tailored for inference & evaluation. For training, refer to the Training Section for additional dependencies.
+*   **Bridging the Gap to Human-like Visual Cognition**: We enable LVLMs to "think with images" by actively using a suite of visual tools, much like humans use sketches or highlights to understand complex scenes.
+*   **Standardizing a Fragmented Landscape**: The current ecosystem for vision tools lacks unification. OpenThinkIMG provides:
+    *   **Unified Tool Interfaces**: A standardized way to define and interact with diverse visual tools.
+    *   **Modular, Distributed Deployment**: Tools run as independent services, enhancing scalability, fault isolation, and resource management.
+*   **Moving Beyond Static SFT Limitations**: Supervised Fine-Tuning (SFT) on fixed trajectories often leads to poor generalization and lacks adaptability. We introduce:
+    *   **V-ToolRL for Adaptive Policies**: Our novel reinforcement learning framework allows agents to *autonomously discover optimal tool-usage strategies* by directly optimizing for task success through interaction and feedback. This leads to significantly better performance and adaptability compared to SFT-only approaches.
+*   **Driving Reproducible Research**: By open-sourcing the entire framework, we aim to provide a common platform for the community to build upon, experiment with, and advance the field of tool-augmented visual reasoning.
 
-If you encounter issues, check out our [📄 Documentation](docs/README.md). -->
-
-
+---
 
 ## 🚀 Quick Start
 This framework consists of three main components: the ``tool server``, inference evaluation framework, and training pipelines. Each component has its own environment requirements. The tool server serves as the foundation, and both inference and training must be conducted after the tool server has been successfully launched.
@@ -350,35 +352,7 @@ We also support supervised fine-tuning for training models on curated tool usage
     --save_only_model true
 ```
 
-## 🤔 What is OpenThinkIMG?
 
-OpenThinkIMG is an end-to-end open-source framework that empowers Large Vision-Language Models (LVLMs) to think with images. It features:
-*   Flexible vision tool management and easy integration of new tools.
-*   Efficient dynamic inference with distributed tool deployment.
-*   A streamlined SFT (Supervised Fine-Tuning) and Agent-RL (Reinforcement Learning) training pipeline, including our novel **V-ToolRL** method.
-
-Our goal is to enable AI agents to interactively use visual tools to decompose, analyze, and solve complex visual problems, moving beyond passive observation towards active visual cognition.
-
----
-
-## 🐚 Why OpenThinkIMG?
-
-Current LVLMs excel at many tasks but often struggle when:
-*   Deep, iterative visual reasoning is required, not just single-pass description.
-*   Precise interaction with visual content (e.g., reading specific chart values, identifying exact locations) is crucial.
-*   Generalizing learned tool-use to new scenarios dynamically.
-
-OpenThinkIMG addresses these challenges by:
-
-*   **Bridging the Gap to Human-like Visual Cognition**: We enable LVLMs to "think with images" by actively using a suite of visual tools, much like humans use sketches or highlights to understand complex scenes.
-*   **Standardizing a Fragmented Landscape**: The current ecosystem for vision tools lacks unification. OpenThinkIMG provides:
-    *   **Unified Tool Interfaces**: A standardized way to define and interact with diverse visual tools.
-    *   **Modular, Distributed Deployment**: Tools run as independent services, enhancing scalability, fault isolation, and resource management.
-*   **Moving Beyond Static SFT Limitations**: Supervised Fine-Tuning (SFT) on fixed trajectories often leads to poor generalization and lacks adaptability. We introduce:
-    *   **V-ToolRL for Adaptive Policies**: Our novel reinforcement learning framework allows agents to *autonomously discover optimal tool-usage strategies* by directly optimizing for task success through interaction and feedback. This leads to significantly better performance and adaptability compared to SFT-only approaches.
-*   **Driving Reproducible Research**: By open-sourcing the entire framework, we aim to provide a common platform for the community to build upon, experiment with, and advance the field of tool-augmented visual reasoning.
-
----
 
 ## 🚧 Project Status
 

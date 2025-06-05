@@ -183,19 +183,7 @@ class MolmoToolWorker(BaseToolWorker):
                         
                         if response is not None:
                             ret["text"] = response
-                        #     width, height = image.size
-                        #     all_points = extract_points(response, width, height)
-                            
-                        #     if all_points.size > 0:
-                        #         input_labels = np.ones(len(all_points))
-                        #         image = create_image_with_points(image, all_points, input_labels)
-                        #         ret['edited_image'] = pil_to_base64(image)
-                        #     else:
-                        #         ret["text"] = "No region found in image."
-                        #         ret['edited_image'] = None
-                        # else:
-                        #     ret["text"] = "No region found in image."
-                        #     ret['edited_image'] = None
+ 
                 
         except Exception as e:
             logger.error(f"Error when using molmo to point: {e}")
@@ -204,6 +192,30 @@ class MolmoToolWorker(BaseToolWorker):
             # ret['edited_image'] = None
         
         return ret
+    
+    def get_tool_instruction(self):
+        instruction = {
+            "type": "function",
+            "function": {
+                "name": "point",
+                "description": "Identify a point in the image based on a natural language description.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "image": {
+                            "type": "string",
+                            "description": "The identifier or path of the image in which to locate the point, e.g., 'img_1'."
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "A natural language description of the point of interest, e.g., 'the dog’s nose', 'center of the clock', 'the tallest tree'."
+                        }
+                    },
+                    "required": ["image", "description"]
+                }
+            }
+        }
+        return instruction 
 
 def str2bool(v):
     if isinstance(v, bool):

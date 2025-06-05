@@ -128,12 +128,9 @@ class BaseToolWorker:
         self.init_model()
         
         
-    
-    def init_model(self):
-        pass
-    
-    def heart_beat_worker(self, controller):
 
+    ## HTTP Methods    
+    def heart_beat_worker(self, controller):
         while True:
             time.sleep(WORKER_HEART_BEAT_INTERVAL)
             controller.send_heart_beat()
@@ -178,34 +175,6 @@ class BaseToolWorker:
                 if self.model_semaphore._value < self.limit_model_concurrency:
                     self.release_model_semaphore()
         
-        # @self.app.post("/worker_generate_stream")
-        # async def generate_stream(request: Request):
-        #     params = await request.json()
-        #     # Use atomic counter increment
-        #     with threading.Lock():
-        #         self.global_counter += 1
-            
-        #     try:
-        #         await self.acquire_model_semaphore()
-        #         self.send_heart_beat()
-        #         generator = self.generate_stream_gate(params)
-        #         background_tasks = BackgroundTasks()
-        #         # Ensure proper release in the background task
-        #         background_tasks.add_task(
-        #             partial(self.release_model_semaphore, fn=self.send_heart_beat)
-        #         )
-        #         return StreamingResponse(generator, background=background_tasks)
-        #     except TimeoutError:
-        #         error_response = {
-        #             "text": "Request timed out while waiting in queue",
-        #             "error_code": ErrorCode.TIMEOUT_ERROR
-        #         }
-        #         return JSONResponse(error_response, status_code=503)
-        #     except Exception as e:
-        #         # In case of exception before returning response, release manually
-        #         if self.model_semaphore._value < self.limit_model_concurrency:
-        #             self.release_model_semaphore(fn=self.send_heart_beat)
-        #         raise e
 
         @self.app.post("/worker_get_status")
         async def get_status(request: Request):
@@ -214,8 +183,41 @@ class BaseToolWorker:
         @self.app.post("/model_details")
         async def model_details(request: Request):
             pass
-            # return {"context_length": worker.context_len}
         
+        @self.app.post("/tool_instruction")
+        async def tool_instruction(request: Request):
+            params = await request.json()
+            try:
+                tool_instruction = self.get_tool_instruction()
+                return JSONResponse({
+                    "tool_instruction": tool_instruction,
+                    "error_code": 0
+                })
+            except Exception as e:
+                logger.error(f"Error getting tool instruction: {e}")
+                return JSONResponse({
+                    "text": SERVER_ERROR_MSG,
+                    "error_code": ErrorCode.INTERNAL_ERROR
+                }, status_code=500)
+    
+    def generate_gate(self, params):
+        try:
+            ret = {"text": "", "error_code": 0}
+            ret = self.generate(params)
+            # ret = asyncio.get_event_loop().run_until_complete(self.async_generate(params))
+        except torch.cuda.OutOfMemoryError as e:
+            ret = {
+                "text": f"{SERVER_ERROR_MSG}\n\n({e})",
+                "error_code": ErrorCode.CUDA_OUT_OF_MEMORY,
+            }
+        except (ValueError, RuntimeError) as e:
+            ret = {
+                "text": f"{SERVER_ERROR_MSG}\n\n({e})",
+                "error_code": ErrorCode.INTERNAL_ERROR,
+            }
+        return ret
+    
+    
     def register_to_controller(self):
         logger.info("Register to controller")
 
@@ -262,67 +264,20 @@ class BaseToolWorker:
             "speed": 1,
             "queue_length": self.get_queue_length(),
         }
-
-    @torch.inference_mode()
-    def generate_stream(self, params):
+    
+    # Launch method
+    def run(self):
+        uvicorn.run(self.app, host=self.host, port=self.port, log_level="info",log_config=None)
+    
+    # abstract methods
+    def init_model(self):
         pass
     
     @torch.inference_mode()
     def generate(self, params):
         pass
 
-    # async def async_generate(self, params):
-    #     try:
-    #         return await asyncio.wait_for(self.generate(params), timeout=20.0)
-    #     except asyncio.TimeoutError:
-    #         return {
-    #             "text": "Request timed out after 20 seconds",
-    #             "error_code": ErrorCode.TIMEOUT_ERROR
-    #         }
+    def get_tool_instruction(self):
+        pass
+
     
-    def generate_gate(self, params):
-        try:
-            ret = {"text": "", "error_code": 0}
-            ret = self.generate(params)
-            # ret = asyncio.get_event_loop().run_until_complete(self.async_generate(params))
-        except torch.cuda.OutOfMemoryError as e:
-            ret = {
-                "text": f"{SERVER_ERROR_MSG}\n\n({e})",
-                "error_code": ErrorCode.CUDA_OUT_OF_MEMORY,
-            }
-        except (ValueError, RuntimeError) as e:
-            ret = {
-                "text": f"{SERVER_ERROR_MSG}\n\n({e})",
-                "error_code": ErrorCode.INTERNAL_ERROR,
-            }
-        return ret
-    
-    def generate_stream_gate(self, params):
-        try:
-            for x in self.generate_stream(params):
-                yield x
-        except ValueError as e:
-            print("Caught ValueError:", e)
-            ret = {
-                "text": SERVER_ERROR_MSG,
-                "error_code": 1,
-            }
-            yield json.dumps(ret).encode() + b"\0"
-        except torch.cuda.CudaError as e:
-            print("Caught torch.cuda.CudaError:", e)
-            ret = {
-                "text": SERVER_ERROR_MSG,
-                "error_code": 1,
-            }
-            yield json.dumps(ret).encode() + b"\0"
-        except Exception as e:
-            print("Caught Unknown Error", e)
-            ret = {
-                "text": SERVER_ERROR_MSG,
-                "error_code": 1,
-            }
-            yield json.dumps(ret).encode() + b"\0"
-    
-    
-    def run(self):
-        uvicorn.run(self.app, host=self.host, port=self.port, log_level="info",log_config=None)

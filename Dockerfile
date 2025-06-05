@@ -35,7 +35,7 @@ RUN pip install -e /app/OpenThinkIMG
 RUN pip install -r /app/OpenThinkIMG/requirements/tool_server_requirements.txt
 
 
-RUN export https_proxy=http://172.16.0.13:5848 && python -c "import ssl; ssl._create_default_https_context = ssl._create_unverified_context; import easyocr; easyocr.Reader(['ch_sim','en'])"
+RUN  python -c "import ssl; ssl._create_default_https_context = ssl._create_unverified_context; import easyocr; easyocr.Reader(['ch_sim','en'])"
 
 
 COPY ./weights/Molmo-7B-D-0924 /weights/Molmo-7B-D-0924

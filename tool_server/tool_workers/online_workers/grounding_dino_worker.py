@@ -24,8 +24,8 @@ class GroundingDinoWorker(BaseToolWorker):
                  worker_addr="auto",
                  worker_id=worker_id, 
                  no_register=False,
-                 model_path="/mnt/petrelfs/songmingyang/songmingyang/model/mm/groundingdino_official/groundingdino_swint_ogc.pth", 
-                 model_config="/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/src/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py", 
+                 model_path=None, 
+                 model_config=None, 
                  model_name="grounding_dino",
                  load_8bit=False,
                  load_4bit=False,
@@ -139,11 +139,60 @@ class GroundingDinoWorker(BaseToolWorker):
                 "phrases": phrases,
                 "size": [h, w],  # H,W
             }
+            detect_res_num = len(boxes)
+            detections = []
+            for detect_res_idx in range(detect_res_num):
+                detections.append({
+                    "label": phrases[detect_res_idx],
+                    "confidence": logits[detect_res_idx],
+                    "normalized_bbox": {
+                        "x_min": boxes[detect_res_idx][0],
+                        "y_min": boxes[detect_res_idx][1],
+                        "x_max": boxes[detect_res_idx][2],
+                        "y_max": boxes[detect_res_idx][3],
+                    },
+                })
+            pred_dict = {
+                "tool_response_from": "grounding_dino_detector",
+                "status": "success",
+                "detections": detections
+            }
+            
             return {"text": pred_dict, "error_code": 0}
             
         except Exception as e:
+            pred_dict = {
+                "tool_response_from": "grounding_dino_detector",
+                "status": "failed",
+                "error": str(e)
+            }
             logger.error(f"Error during GroundingDINO inference: {e}")
-            return {"text": f"Error during GroundingDINO inference: {e}", "error_code": 1}
+            return {"text": pred_dict, "error_code": 1}
+        
+    
+    def get_tool_instruction(self):
+        instruction = {
+            "type": "function",
+            "function": {
+                "name": "grounding_dino",
+                "description": "Locate objects in the image based on a natural language description.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "image": {
+                            "type": "string",
+                            "description": "The identifier or path of the image in which to locate the object, e.g., 'img_1'."
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "A natural language description of the object to locate, e.g., 'a red car', 'a man holding a dog'."
+                        }
+                    },
+                    "required": ["image", "description"]
+                }
+            }
+        }
+        return instruction  
 
 
 if __name__ == "__main__":
@@ -151,9 +200,9 @@ if __name__ == "__main__":
     parser.add_argument("--host", type=str, default="0.0.0.0")
     parser.add_argument("--port", type=int, default=20003)
     parser.add_argument("--worker-address", type=str, default="auto")
-    parser.add_argument("--controller-address", type=str, default="http://SH-IDCA1404-10-140-54-119:20001")
-    parser.add_argument("--model-path", type=str, default="/mnt/petrelfs/songmingyang/songmingyang/model/mm/groundingdino_official/groundingdino_swint_ogc.pth")
-    parser.add_argument("--model-config", type=str, default="/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/src/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py")
+    parser.add_argument("--controller-address", type=str, default="http://localhost:20001")
+    parser.add_argument("--model-path", type=str, default=None)
+    parser.add_argument("--model-config", type=str, default=None)
     parser.add_argument("--model-name", type=str, default="grounding_dino")
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--limit-model-concurrency", type=int, default=5)

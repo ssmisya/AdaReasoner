@@ -32,7 +32,7 @@ Humans don't just passively observe; we actively engage with visual information,
 
 
 ## News
-- **[2025/06/01]** 🐳 We have released an official Docker image to help users easily build and run the Tool Server. Please refer to the instructions [here](https://github.com/OpenThinkIMG/OpenThinkIMG?tab=readme-ov-file#-option-1-docker-image).
+- **[2025/06/01]** 🐳 We have released an official [Docker image](https://github.com/OpenThinkIMG/OpenThinkIMG?tab=readme-ov-file#-option-1-docker-image) of `tool server`.
 - **[2025/05/17]** Our work is reported by [Qubit (量子位)](https://mp.weixin.qq.com/s/BU1M6aOidMkr9mBiAKyA3Q)
 - **[2025/05/14]** Our work is reported by both [Deep Learning and NLP (深度学习自然语言处理)](https://mp.weixin.qq.com/s/_GCvkg7bb5-NiId_4s5cMg) and [Machine Learning and NLP (机器学习算法与自然语言处理)](https://mp.weixin.qq.com/s/p2OJzSp4BKSfGVjv2KWEFg).
 - **[2025/05/13]** The models and datasets are released on [HuggingFace](https://huggingface.co/collections/Warrieryes/openthinkimg-68244a63e97a24d9b7ffcde9).
@@ -86,11 +86,15 @@ It's recommended to try our ``Tool Server`` docker image. You can either downloa
 3. By default, the **molmoPoint** worker is configured to run in 4-bit mode to minimize VRAM usage. To customize GPU behavior or access advanced settings, you can log into the container and edit ``/app/OpenThinkIMG/tool_server/tool_workers/scripts/launch_scripts/config/service_apptainer.yaml``.
 
 #### Option 1.1 Start Tool Server with Our Docker Image
-We have released the official Docker image for the `tool server`, which is now publicly available for direct use.
 
-* Aliyun: crpi-fs6w5qkjtxy37mko.cn-shanghai.personal.cr.aliyuncs.com/hitsmy/tool_server:v0.1
-* DockerHub: Coming Soon
+We have released the docker image for `tool_server` and its slim version `tool_server_slim`. 
 
+The `tool_server_slim` image is a lightweight version of the `tool_server` image, which removes the model weights to reduce the image size. To use it, manually prepare the model weights and place them under the `/weights` folder of the container as described in [Build Docker Image by Yourself](#option-12-build-docker-image-by-yourself) section. You can pull the image from either Aliyun or Docker Hub.
+
+| Image         | Aliyun         | Docker Hub                  |
+|------------------|-------------------|------------------------------------------|
+| `tool_server`     | `crpi-fs6w5qkjtxy37mko.cn-shanghai.personal.cr.aliyuncs.com/hitsmy/tool_server:v0.1`             | `hitsmy/tool_server:v0.1`              |
+| `tool_server_slim`| Coming Soon        | `hitsmy/tool_server_slim:v0.1`         |
 
 ```bash
 # Pull the docker image and run
@@ -116,7 +120,7 @@ We have provided the dockerfile at `OpenThinkIMG/Dockerfile`, you can build the 
 **sub-step 1** Prepare the weights
 
 
-Some tools require specific pretrained weights. Please ensure that these model weights are prepared and placed in the appropriate paths before building the image.
+Some tools require specific pretrained weights. Please ensure that these model weights are prepared and placed in the appropriate paths before building the image. The image building process will copy them into the `/weights` folder of the container automatically.
 
 The directory structure is organized as follows:
 
@@ -136,7 +140,7 @@ project-root/
 ```bash 
 git clone https://github.com/OpenThinkIMG/OpenThinkIMG.git
 cd OpenThinkIMG
-docker build -f Dockerfile -t tool_server:v0.2 ..  # This might take a while ...
+docker build -f Dockerfile -t tool_server:v0.1 ..  # This might take a while ...
 ```
 
 **sub-step 3** Run the image and test!
@@ -147,7 +151,7 @@ docker run -it \
   -v /path/to/your/logdir:/log \
   -w /app/OpenThinkIMG/ \
   --network host \
-  tool_server:v0.2 \
+  tool_server:v0.1 \
 
 # Test the server 
 pthon tool_server/tool_workers/online_workers/test_cases/worker_tests/test_all.py

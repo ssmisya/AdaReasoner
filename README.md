@@ -94,7 +94,7 @@ The `tool_server_slim` image is a lightweight version of the `tool_server` image
 | Image         | Aliyun         | Docker Hub                  |
 |------------------|-------------------|------------------------------------------|
 | `tool_server`     | `crpi-fs6w5qkjtxy37mko.cn-shanghai.personal.cr.aliyuncs.com/hitsmy/tool_server:v0.1`             | `hitsmy/tool_server:v0.1`              |
-| `tool_server_slim`| Coming Soon        | `hitsmy/tool_server_slim:v0.1`         |
+| `tool_server_slim`| `crpi-fs6w5qkjtxy37mko.cn-shanghai.personal.cr.aliyuncs.com/hitsmy/tool_server_slim:v0.1`        | `hitsmy/tool_server_slim:v0.1`         |
 
 ```bash
 # Pull the docker image and run

@@ -20,6 +20,7 @@ from enum import IntEnum
 
 from tool_server.utils.utils import *
 from tool_server.utils.server_utils import *
+from tool_server.utils.worker_arguments import WorkerArguments
 
 SERVER_ERROR_MSG = "**NETWORK ERROR DUE TO HIGH TRAFFIC. PLEASE REGENERATE OR REFRESH THIS PAGE.**"
 class ErrorCode(IntEnum):
@@ -57,43 +58,27 @@ logger = build_logger("tool_worker", f"base_tool_worker_{worker_id}.log")
 model_semaphore = None
 
 class BaseToolWorker:
-    def __init__(self, 
-                 controller_addr, 
-                 worker_addr = "auto",
-                 worker_id = worker_id, 
-                 no_register = False,
-                 model_path = None, 
-                 model_base = None, 
-                 model_name = None,
-                 load_8bit = False, 
-                 load_4bit = False, 
-                 device = "auto",
-                 limit_model_concurrency = 1,
-                 host = "0.0.0.0",
-                 port = None,
-                 model_semaphore = None,
-                 wait_timeout = 120.0,
-                 task_timeout = 30.0,
-                 args = None,
-                 ):
-        self.args = args
-        self.controller_addr = controller_addr
-        assert port is not None, "Port must be specified"
-        if worker_addr == "auto":
+    def __init__(self, worker_arguments: WorkerArguments = None,):
+        self.args = worker_arguments
+        self.controller_addr = self.args.controller_addr
+        self.port = self.args.port
+        self.worker_addr = self.args.worker_addr
+        self.no_register = self.args.no_register
+        
+        assert self.port is not None, "Port must be specified"
+        if self.worker_addr == "auto":
             node_name = os.getenv("SLURMD_NODENAME", "Unknown")
             print(f"SLURM Node Name: {node_name}")
             if node_name == "Unknown":
                 node_name = "localhost"
-            self.worker_addr = f"http://{node_name}:{port}"
+            self.worker_addr = f"http://{node_name}:{self.port}"
         else:
-            self.worker_addr = worker_addr
+            self.worker_addr = self.worker_addr
             
-        self.model_path = model_path
-        self.model_base = model_base
-        if model_name is None:
-            self.model_name = model_path.split("/")[-1]
-        else:
-            self.model_name = model_name
+        self.model_path =  self.args.model_path
+        self.model_base =  self.args.model_base
+        self.model_name = self.args.model_name
+
         
         if model_semaphore is not None:
             self.model_semaphore = model_semaphore
@@ -101,22 +86,20 @@ class BaseToolWorker:
             self.model_semaphore = None
         
         self.worker_id = worker_id
-        self.no_register = no_register
         
        
-        self.load_8bit = load_8bit
-        self.load_4bit = load_4bit
-        self.device = device
-        self.limit_model_concurrency = limit_model_concurrency
-        self.host = host
-        self.port = port
+        self.load_8bit = self.args.load_8bit
+        self.load_4bit = self.args.load_4bit
+        self.device = self.args.device
+        self.limit_model_concurrency = self.args.limit_model_concurrency
+        self.host = self.args.host
+        self.port = self.args.port
         
         self.global_counter = 0
-        # self.wait_timeout = wait_timeout
-        self.task_timeout = task_timeout
-        self.semaphore_timeout = wait_timeout
+        self.task_timeout = self.args.task_timeout
+        self.semaphore_timeout = self.args.wait_timeout
         
-        if not no_register:
+        if not self.args.no_register:
             self.register_to_controller()
             self.heart_beat_thread = threading.Thread(
                 target=self.heart_beat_worker, args=(self,))
@@ -127,6 +110,11 @@ class BaseToolWorker:
         self.setup_routes()
         self.init_model()
         
+        self.basic_ret = {
+            "tool_response_from": None,
+            "status": None,
+            "message": None,
+        }
         
 
     ## HTTP Methods    
@@ -166,10 +154,12 @@ class BaseToolWorker:
                 output = self.generate_gate(params)
                 return JSONResponse(output)
             except TimeoutError:
-                return JSONResponse({
-                    "text": "Request timed out while waiting in queue",
-                    "error_code": ErrorCode.TIMEOUT_ERROR
-                }, status_code=503)
+                ret = {
+                    "tool_response_from": self.model_name,
+                    "status": "failed",
+                    "message": "Request timed out while waiting in queue",
+                }
+                return JSONResponse(ret, status_code=503)
             finally:
                 # Only release if we actually acquired it
                 if self.model_semaphore._value < self.limit_model_concurrency:
@@ -186,34 +176,41 @@ class BaseToolWorker:
         
         @self.app.post("/tool_instruction")
         async def tool_instruction(request: Request):
-            params = await request.json()
+            
             try:
                 tool_instruction = self.get_tool_instruction()
                 return JSONResponse({
                     "tool_instruction": tool_instruction,
+                    "status": "success",
                     "error_code": 0
                 })
             except Exception as e:
                 logger.error(f"Error getting tool instruction: {e}")
                 return JSONResponse({
-                    "text": SERVER_ERROR_MSG,
+                    "tool_instruction": None,
+                    "status": "failed",
                     "error_code": ErrorCode.INTERNAL_ERROR
                 }, status_code=500)
     
     def generate_gate(self, params):
         try:
-            ret = {"text": "", "error_code": 0}
+            ret = {
+                "tool_response_from": self.model_name,
+                "status": "failed",
+                "message": "Unknown error occurred. Please try again later.",
+            }
             ret = self.generate(params)
-            # ret = asyncio.get_event_loop().run_until_complete(self.async_generate(params))
         except torch.cuda.OutOfMemoryError as e:
             ret = {
-                "text": f"{SERVER_ERROR_MSG}\n\n({e})",
-                "error_code": ErrorCode.CUDA_OUT_OF_MEMORY,
+                "tool_response_from": self.model_name,
+                "status": "failed",
+                "message":  f"CUDA OUT OF MEMORY: {e}",
             }
         except (ValueError, RuntimeError) as e:
             ret = {
-                "text": f"{SERVER_ERROR_MSG}\n\n({e})",
-                "error_code": ErrorCode.INTERNAL_ERROR,
+                "tool_response_from": self.model_name,
+                "status": "failed",
+                "message":  f"ValueError, RuntimeError: {e}",
             }
         return ret
     

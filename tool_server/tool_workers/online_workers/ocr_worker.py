@@ -6,16 +6,12 @@ import uuid
 import os
 import re
 import io
-import uuid
-import os
-import re
-import io
-import argparse
-import torch
 import numpy as np
 from PIL import Image
+import torch
 from tool_server.utils.utils import *
 from tool_server.utils.server_utils import *
+from tool_server.utils.worker_arguments import WorkerArguments
 import matplotlib.pyplot as plt
 
 import easyocr
@@ -31,90 +27,108 @@ model_semaphore = None
 np.random.seed(3)
 
 class OCRToolWorker(BaseToolWorker):
-    def __init__(self, 
-                 controller_addr, 
-                 worker_addr = "auto",
-                 worker_id = worker_id, 
-                 no_register = False,
-                 model_name = "OCR",
-                 model_path = "", 
-                 model_base = "", 
-                 load_8bit = False, 
-                 load_4bit = False, 
-                 device = "",
-                 limit_model_concurrency = 1,
-                 host = "0.0.0.0",
-                 port = None,
-                 model_semaphore = None,
-                 ):
-        super().__init__(
-            controller_addr,
-            worker_addr,
-            worker_id,
-            no_register,
-            model_path,
-            model_base,
-            model_name,
-            load_8bit,
-            load_4bit,
-            device,
-            limit_model_concurrency,
-            host,
-            port,
-            model_semaphore
-            )
+    def __init__(self, worker_arguments: WorkerArguments = None):
+        super().__init__(worker_arguments)
+        if self.model_name is None:
+            self.model_name = "ocr"
+        self.instruction = {
+            "type": "function",
+            "function": {
+                "name": self.model_name,
+                "description": "Extracts and localizes text from the given image using OCR. Returns bounding boxes, recognized text, and confidence scores.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "image": {
+                            "type": "string",
+                            "description": "The identifier or base64-encoded image content in which to detect text, e.g., 'img_1' or base64 string."
+                        }
+                    },
+                    "required": ["image"]
+                }
+            }
+        }
+        
     def init_model(self):
         logger.info(f"Initializing model {self.model_name}...")
         self.ocr_model = easyocr.Reader(['ch_sim','en'])
-
+        
+    def get_tool_instruction(self):
+        return self.instruction
         
     def generate(self, params):
-        image = params["image"]
+        try:
+            image = params["image"]
+        except:
+            message = f"Invalid parameters: expected keys: image. Please reference the tool instruction: {self.get_tool_instruction()}"
+            pred_dict = {
+                "tool_response_from": self.model_name,
+                "status": "failed",
+                "message": message,
+            }
+            return pred_dict
         
-        if  image is None:
-            logger.error("Missing 'image' for the ocr input parameters.")
-            return {"text": "Missing 'image' for the ocr input parameters."}
-        
-        ret = {"text": "", "error_code": 0}
-        
+        # If params are ok, continue
         try:
             img = base64_to_pil(image).convert("RGB")
+            width, height = img.size
 
             result = self.ocr_model.readtext(np.array(img))
+            detections = []
 
-            texts = [i[1] for i in result]
-            
-            ret["text"] = str(texts)
+            for polygon, label, confidence in result:
+                # Extract polygon coordinates min/max values
+                x_coords = [pt[0] for pt in polygon]
+                y_coords = [pt[1] for pt in polygon]
+                x_min, x_max = min(x_coords), max(x_coords)
+                y_min, y_max = min(y_coords), max(y_coords)
+
+                detections.append({
+                    "label": label,
+                    "confidence": confidence,
+                    "pixel_bbox": {
+                        "x_min": x_min,
+                        "y_min": y_min,
+                        "x_max": x_max,
+                        "y_max": y_max
+                    },
+                    "normalized_bbox": {
+                        "x_min": x_min / width,
+                        "y_min": y_min / height,
+                        "x_max": x_max / width,
+                        "y_max": y_max / height
+                    }
+                })
+
+            pred_dict = {
+                "tool_response_from": self.model_name,
+                "status": "success",
+                "detections": detections,
+                "image_dimensions_pixels": {
+                    "width": img.width,
+                    "height": img.height
+                },
+            }
+            return pred_dict
             
         except Exception as e:
             logger.error(f"Error when ocr: {e}")
-            ret["text"] = f"Error when ocr: {e}"
-
-        return ret
+            pred_dict = {
+                "tool_response_from": self.model_name,
+                "status": "failed",
+                "message": str(e),
+            }
+            return pred_dict
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--host", type=str, default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=20009)
-    parser.add_argument("--worker-address", type=str,
-        default="auto")
-    parser.add_argument("--controller-address", type=str,
-        default="http://SH-IDCA1404-10-140-54-119:20001")
-    parser.add_argument("--limit-model-concurrency", type=int, default=5)
-    parser.add_argument("--stream-interval", type=int, default=1)
-    parser.add_argument("--no-register", action="store_true")
-    args = parser.parse_args()
+    # Use the new argument parser from transformers
+    from transformers import HfArgumentParser
+    
+    parser = HfArgumentParser(WorkerArguments)
+    args = parser.parse_args_into_dataclasses()[0]
+    
     logger.info(f"args: {args}")
 
-
-    worker = OCRToolWorker(
-        controller_addr=args.controller_address,
-        worker_addr=args.worker_address,
-        worker_id=worker_id,
-        limit_model_concurrency=args.limit_model_concurrency,
-        host = args.host,
-        port = args.port,
-        no_register = args.no_register
-    )
+    worker = OCRToolWorker(worker_arguments=args)
     worker.run()

@@ -102,7 +102,8 @@ def evaluate_function(results,meta_data):
             else:
                 score = 0.0
         else:
-            score = fuzz.ratio(pred, gold) / 100
+            # score = fuzz.ratio(pred, gold) / 100
+            score = 0.0
             
         res_list.append(score)
         compare_logs.append({"idx":idx,"gold":gold,"pred":pred,"score":score})

@@ -1,4 +1,4 @@
-# Documentations for Tool Controller
+# OpenThinkIMG Documentations
 
 ## TF-EVAL Module
 
@@ -281,3 +281,70 @@ Moreover, We surpport users to add their own tools to the tool hub. You can choo
 2. If your tool is computational expensive and need to use gpus, you can add your tool to the online tools.
     - Implement your tool as `tool_server/tool_workers/online_workers/your_tool_worker.py`. It's recommended to reference other tool implementation to implement your own `generate` function in your script.
     - Wrap the base class `BaseToolWorker` in `tool_server/tool_workers/online_workers/base_tool_worker.py`. The template provided some basic functions that you can use to implement your own tool worker.
+    - Init tool model in `init_model`, generate tool response in `generate`, and generate the tool calling instructions in `get_tool_instruction`
+
+### 3. Tool Protocols
+Basicly, the tools have a common protocol to communicate with the tool planning model. The tool planning model will call the tool with a dict, which is a similar format of this:
+
+```python
+{
+    "type": "function",
+    "function": {
+        "name": "point",
+        "description": "Identify a point in the image based on a natural language description.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "string",
+                    "description": "The identifier or path of the image in which to locate the point, e.g., 'img_1'."
+                },
+                "description": {
+                    "type": "string",
+                    "description": "A natural language description of the point of interest, e.g., 'the dog’s nose', 'center of the clock', 'the tallest tree'."
+                }
+            },
+            "required": ["image", "description"]
+        }
+    }
+}
+```
+
+Actually the format of the tools' responses are not strictly defined, but you are responsible to design a format that can be easily understood by the tool planning model. We provide some examples here. For succeeded cases, you can refer to:
+
+```python
+detections=[{
+                "label": label,
+                "confidence": confidence,
+                "pixel_bbox": {
+                    "x_min": x_min,
+                    "y_min": y_min,
+                    "x_max": x_max,
+                    "y_max": y_max
+                },
+                "normalized_bbox": {
+                    "x_min": x_min / width,
+                    "y_min": y_min / height,
+                    "x_max": x_max / width,
+                    "y_max": y_max / height
+                }
+            }]
+{
+    "tool_response_from": self.model_name,
+    "status": "success",
+    "detections": detections,
+    "image_dimensions_pixels": {
+        "width": img.width,
+        "height": img.height
+    },
+}
+```
+For failed cases:
+```python
+{
+    "tool_response_from": self.model_name,
+    "status": "failed",
+    "message": message,
+}
+```
+

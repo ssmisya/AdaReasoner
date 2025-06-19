@@ -17,6 +17,15 @@ try:
 except ImportError:
     print("math_verify package not found. Please install it to use math verification features.")
 
+'''
+所有可能的answer_types:
+['single span'] 
+['question span']
+['non-extractive']
+['multi-span']
+'''
+
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 logger = get_logger(__name__)
@@ -24,51 +33,62 @@ task_config = get_task_config_from_current_dir(__file__)
 
 
 def load_data_function():
-
-    dataset_path = task_config["dataset_path"]
-    num_sample = task_config["num_sample"]
     
-    testset = load_dataset(dataset_path,split="test")
-    # 只处理testset的前num_sample个样本
-    testset = testset.select(range(min(num_sample, len(testset))))
+    dataset_path = task_config["dataset_path"]
+    num_samples = task_config["num_sample"]
+
+    dataset = load_dataset(dataset_path, name="InfographicVQA", split="validation")
+    dataset = dataset.select(range(min(num_samples, len(dataset))))
+
     meta_data = []
-
-    for idx, item in enumerate(testset):
-        item_id = f"chartqa_{idx}"
+    for idx,item in enumerate(dataset):
+        item_id = f"infographicvqa_{idx}"
         image = item["image"]
-        text = item["query"]
-        answer = item["label"][0] # 因为答案都是放在一个列表中的
-        category = item["human_or_machine"]
-        # 0为Human，1为Machine
-        category = "human" if category == 0 else "machine"
-        meta_data.append({"idx":item_id, "image":image, "text":text, "answer":answer, "category":category})
+        text = item["question"]
+        answer = item["answers"]
+        answer_type = item["answer_type"][0] # data：['single span']
+        meta_data.append({"idx":item_id, "image":image, "text":text, "answer":answer, "answer_type":answer_type})
 
+    ## Show statistics
+    logger.info(f"Total data number: {len(meta_data)}")
     return meta_data
 
 
+# 有两种qa_type，一种是recognizing，一种是reasoning，需要分别计算准确率
 def evaluate_function(results,meta_data):
     results_dict = {res["idx"]: res for res in results}
     meta_dict = {meta["idx"]: meta for meta in meta_data}
     res_list = []
     compare_logs = []
+    answer_type_dict = {item : [] for item in ["single span", "question span", "non-extractive", "multi-span"]}
+    ########################
     comparator = LLMAnswerComparator(threshold=0.8, method="bert", model_path="/mnt/petrelfs/sunhaoyu/visual-code/weights/paraphrase-MiniLM-L6-v2")
+    
     for idx, meta in meta_dict.items():
         if idx in results_dict:
             meta["prediction"] = results_dict[idx]["results"]["final_answer"]
         else:
             meta["prediction"] = "None"
-        
-        gold = meta["answer"].strip().lower()
-        pred = meta["prediction"].strip().lower()
+        prediction = meta["prediction"]
+        ground_truth = meta["answer"]
+        answer_type = meta["answer_type"]
+        # ground_truth是一个列表，遍历每个答案进行分数计算，取最高值作为score
+        max_score = 0.0
+        for gt in ground_truth:
+            score = rule_based_verify(gt, prediction, comparator)
+            max_score = max(max_score, score)
+        res_list.append(max_score)
+        answer_type_dict[answer_type].append(max_score)
+        compare_logs.append(
+            f"Ground Truth: {ground_truth}, Prediction: {prediction}, Score: {score}"
+        )
+    for k,v in answer_type_dict.items():
+        if len(v) > 0:
+            answer_type_dict[k] = sum(v) / len(v)
+        else:
+            answer_type_dict[k] = 0.0
+    return {"Acc":sum(res_list) / len(res_list), "answer_type_dict":answer_type_dict, "compare_logs":compare_logs, "results":results,"meta_data":meta_data}
 
-        # score = rule_based_verify(gold, pred)
-        score = rule_based_verify(gold, pred, comparator)
-        res_list.append(score)
-        compare_logs.append({"idx":idx,"gold":gold,"pred":pred,"score":score})
-
-    accuracy = sum(res_list) / len(res_list) if len(res_list) > 0 else 0
-    
-    return {"Acc":accuracy, "compare_logs":compare_logs, "results":results,"meta_data":meta_data}
 
 # 使用sentence_transformer
 def is_convertible_to_float(s: str) -> bool:
@@ -134,6 +154,7 @@ class LLMAnswerComparator:
 def rule_based_verify(
     gold: str,
     pred: str,
+    #####################
     comparator: LLMAnswerComparator
 ) -> bool:
     """
@@ -261,9 +282,10 @@ def rule_based_verify(
         except Exception:
             pass
     
+    # 使用LLMAnswerComparator进行比较
     # print("pred: ", pred, "\n", "gold: ", gold)
     similarity, is_correct = comparator.compare(pred, gold)
     
+    return 1.0 if is_correct else 0.0
     # return float(similarity)
 
-    return 1.0 if is_correct else 0.0

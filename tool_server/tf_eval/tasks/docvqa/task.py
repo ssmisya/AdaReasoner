@@ -17,6 +17,33 @@ try:
 except ImportError:
     print("math_verify package not found. Please install it to use math verification features.")
 
+'''
+所有可能的question_types:
+Image/Photo
+Yes/No
+figure/diagram
+form
+free_text
+handwritten
+layout
+others
+table/list
+
+每种question_type的数量:
+layout: 1981
+table/list: 1780
+form: 1021
+free_text: 765
+handwritten: 319
+figure/diagram: 265
+others: 236
+Image/Photo: 98
+Yes/No: 28
+
+所有type数量加起来超过了testset，是因为，question_types中，可能同时包含多个类别，所以不计算类别的准确度
+'''
+
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 logger = get_logger(__name__)
@@ -24,51 +51,54 @@ task_config = get_task_config_from_current_dir(__file__)
 
 
 def load_data_function():
-
-    dataset_path = task_config["dataset_path"]
-    num_sample = task_config["num_sample"]
     
-    testset = load_dataset(dataset_path,split="test")
-    # 只处理testset的前num_sample个样本
-    testset = testset.select(range(min(num_sample, len(testset))))
+    dataset_path = task_config["dataset_path"]
+    num_samples = task_config["num_sample"]
+
+    dataset = load_dataset(dataset_path, name="DocVQA", split="validation")
+    dataset = dataset.select(range(min(num_samples, len(dataset))))
+
     meta_data = []
-
-    for idx, item in enumerate(testset):
-        item_id = f"chartqa_{idx}"
+    for idx,item in enumerate(dataset):
+        item_id = f"docvqa_{idx}"
         image = item["image"]
-        text = item["query"]
-        answer = item["label"][0] # 因为答案都是放在一个列表中的
-        category = item["human_or_machine"]
-        # 0为Human，1为Machine
-        category = "human" if category == 0 else "machine"
-        meta_data.append({"idx":item_id, "image":image, "text":text, "answer":answer, "category":category})
+        text = item["question"]
+        answer = item["answers"]
+        meta_data.append({"idx":item_id, "image":image, "text":text, "answer":answer})
 
+    ## Show statistics
+    logger.info(f"Total data number: {len(meta_data)}")
     return meta_data
 
 
+# 有两种qa_type，一种是recognizing，一种是reasoning，需要分别计算准确率
 def evaluate_function(results,meta_data):
     results_dict = {res["idx"]: res for res in results}
     meta_dict = {meta["idx"]: meta for meta in meta_data}
     res_list = []
     compare_logs = []
+    ########################
     comparator = LLMAnswerComparator(threshold=0.8, method="bert", model_path="/mnt/petrelfs/sunhaoyu/visual-code/weights/paraphrase-MiniLM-L6-v2")
+    
     for idx, meta in meta_dict.items():
         if idx in results_dict:
             meta["prediction"] = results_dict[idx]["results"]["final_answer"]
         else:
             meta["prediction"] = "None"
-        
-        gold = meta["answer"].strip().lower()
-        pred = meta["prediction"].strip().lower()
+        prediction = meta["prediction"]
+        ground_truth = meta["answer"]
+        # ground_truth是一个列表，遍历每个答案进行分数计算，取最高值作为score
+        max_score = 0.0
+        for gt in ground_truth:
+            score = rule_based_verify(gt, prediction, comparator)
+            max_score = max(max_score, score)
+        res_list.append(max_score)
+        compare_logs.append(
+            f"Ground Truth: {ground_truth}, Prediction: {prediction}, Score: {score}"
+        )
 
-        # score = rule_based_verify(gold, pred)
-        score = rule_based_verify(gold, pred, comparator)
-        res_list.append(score)
-        compare_logs.append({"idx":idx,"gold":gold,"pred":pred,"score":score})
+    return {"Acc":sum(res_list) / len(res_list), "compare_logs":compare_logs, "results":results,"meta_data":meta_data}
 
-    accuracy = sum(res_list) / len(res_list) if len(res_list) > 0 else 0
-    
-    return {"Acc":accuracy, "compare_logs":compare_logs, "results":results,"meta_data":meta_data}
 
 # 使用sentence_transformer
 def is_convertible_to_float(s: str) -> bool:
@@ -134,6 +164,7 @@ class LLMAnswerComparator:
 def rule_based_verify(
     gold: str,
     pred: str,
+    #####################
     comparator: LLMAnswerComparator
 ) -> bool:
     """
@@ -261,9 +292,10 @@ def rule_based_verify(
         except Exception:
             pass
     
+    # 使用LLMAnswerComparator进行比较
     # print("pred: ", pred, "\n", "gold: ", gold)
     similarity, is_correct = comparator.compare(pred, gold)
     
+    return 1.0 if is_correct else 0.0
     # return float(similarity)
 
-    return 1.0 if is_correct else 0.0

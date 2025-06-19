@@ -30,6 +30,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 logger = get_logger(__name__)
 task_config = get_task_config_from_current_dir(__file__)
+task_config["task_name"] = "infographicvqa"  # 强制设置为正确的任务名，因为是从docvqa数据集中读取的
 
 
 def load_data_function():
@@ -80,7 +81,7 @@ def evaluate_function(results,meta_data):
         res_list.append(max_score)
         answer_type_dict[answer_type].append(max_score)
         compare_logs.append(
-            f"Ground Truth: {ground_truth}, Prediction: {prediction}, Score: {score}"
+            f"Ground Truth: {ground_truth}, Prediction: {prediction}, Score: {max_score}"
         )
     for k,v in answer_type_dict.items():
         if len(v) > 0:
@@ -288,4 +289,3 @@ def rule_based_verify(
     
     return 1.0 if is_correct else 0.0
     # return float(similarity)
-

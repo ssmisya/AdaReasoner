@@ -150,8 +150,6 @@ class MolmoPointWorker(BaseToolWorker):
 
     @torch.inference_mode()
     def generate(self, params):
-        # 这些打印都会出现在log中
-        # print(f"这是啊啊啊啊2222222222222222222222222222222222222params: {params}")
         # Extract inputs
         try:
             image_data = params["image"]

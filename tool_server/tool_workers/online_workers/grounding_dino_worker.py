@@ -183,11 +183,11 @@ class GroundingDinoWorker(BaseToolWorker):
         # Extract inputs
         try:
             image_path = params["image"]
-            description = params.get("description", params.get("caption", ""))
+            description = params.get("description")
             if not description:
-                raise KeyError("Missing 'description' or 'caption' in params")
+                raise KeyError("缺少必要参数 'description'")
         except Exception as e:
-            message = f"Invalid parameters: expected keys: image, description. Error: {str(e)}"
+            message = f"无效参数: 需要的参数: image, description. 错误: {str(e)}"
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "failed",

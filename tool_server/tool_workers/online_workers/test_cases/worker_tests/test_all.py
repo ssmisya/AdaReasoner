@@ -325,7 +325,7 @@ def test_GroundingDINO(args):
     
     datas = {
         "model": model_name,
-        "caption": "car",  # 使用caption或description都可以
+        "description": "car",  # 使用caption或description都可以
         "image": img_arg,
         "box_threshold": 0.3,
         "text_threshold": 0.25,

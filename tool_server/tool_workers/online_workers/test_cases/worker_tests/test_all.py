@@ -443,70 +443,6 @@ def test_crop(args):
         else:
             print(f"请求失败: {response.text}")
 
-def test_select_subplot(args):
-    """测试ZoomInSubfigure工具"""
-    print("\n====== 测试ZoomInSubfigure工具 ======")
-    model_name = 'ZoomInSubfigure'
-    
-    # 检查环境变量中是否设置了Google API密钥
-    if "GOOGLE_API_KEY" not in os.environ:
-        print("警告: 未设置GOOGLE_API_KEY环境变量，测试可能会失败")
-        print("请使用以下命令设置API密钥: export GOOGLE_API_KEY='your-api-key'")
-    
-    worker_addr = get_worker_address(args.controller_addr, model_name)
-    if not worker_addr:
-        return
-    
-    # 使用多子图图像进行测试
-    subplot_image_path = args.subplot_image_path if hasattr(args, 'subplot_image_path') and args.subplot_image_path else args.image_path
-    img = load_image(subplot_image_path)
-    img_arg = encode(img)
-    
-    # 测试用例：选择特定子图
-    datas = {
-        "model": model_name,
-        "param": "柱状图部分",  # 描述要选择的子图
-        "image": img_arg,
-    }
-    
-    print(f"正在选择子图: '{datas['param']}'")
-    
-    tic = time.time()
-    response = requests.post(
-        worker_addr + "/worker_generate",
-        headers={"User-Agent": "FastChat Client"},
-        json=datas,
-    )
-    toc = time.time()
-    
-    print(f"耗时: {toc - tic:.3f}s")
-    print(f"返回状态: {response.status_code}")
-    
-    if response.status_code == 200:
-        res = response.json()
-        print(f"选择子图工具状态: {res.get('status', '未知')}")
-        
-        if "message" in res:
-            print(f"消息: {res['message']}")
-            
-        if "subplot_images" in res and res["subplot_images"]:
-            print(f"找到 {len(res['subplot_images'])} 个匹配的子图")
-            
-            # 保存找到的子图
-            for i, subplot_base64 in enumerate(res["subplot_images"]):
-                try:
-                    image = base64_to_pil(subplot_base64)
-                    output_path = os.path.join(args.output_dir, f"subplot_result_{i+1}.png")
-                    image.save(output_path)
-                    print(f"子图 {i+1} 已保存至: {output_path}")
-                except Exception as e:
-                    print(f"保存子图 {i+1} 时出错: {e}")
-        else:
-            if "error" in res:
-                print(f"处理错误: {res['error']}")
-    else:
-        print(f"请求失败: {response.text}")
-
 def main():
     parser = argparse.ArgumentParser(description="一键测试多种视觉工具")
     
@@ -531,20 +467,13 @@ def main():
         "--tools", type=str, nargs="+", choices=AVAILABLE_TOOLS + ["all"],
         default=["all"], help="要测试的工具列表，可选: " + ", ".join(AVAILABLE_TOOLS)
     )
-    parser.add_argument(
-        "--api-key", type=str, default="AIzaSyAffVgu6q5RxZWEv7GLPYsTwZrIhbKfZng",
-        help="Google API密钥，用于ZoomInSubfigure工具测试"
-    )
     
     args = parser.parse_args()
     
     # 检查并创建输出目录
     os.makedirs(args.output_dir, exist_ok=True)
     
-    # 如果提供了API密钥，设置环境变量
-    if args.api_key:
-        os.environ["GOOGLE_API_KEY"] = args.api_key
-        print(f"已设置GOOGLE_API_KEY环境变量")
+
     
     # 确定要测试的工具
     tools_to_test = AVAILABLE_TOOLS if "all" in args.tools else args.tools
@@ -576,8 +505,6 @@ def main():
             test_GroundingDINO(args)
         elif tool == "Crop":
             test_crop(args)
-        elif tool == "ZoomInSubfigure":
-            test_select_subplot(args)
     
     print("\n====== 所有测试完成 ======")
 

@@ -282,6 +282,9 @@ Moreover, We surpport users to add their own tools to the tool hub. You can choo
     - Implement your tool as `tool_server/tool_workers/online_workers/your_tool_worker.py`. It's recommended to reference other tool implementation to implement your own `generate` function in your script.
     - Wrap the base class `BaseToolWorker` in `tool_server/tool_workers/online_workers/base_tool_worker.py`. The template provided some basic functions that you can use to implement your own tool worker.
     - Init tool model in `init_model`, generate tool response in `generate`, and generate the tool calling instructions in `get_tool_instruction`
+    - Implement your tool test scripts under `OpenThinkIMG/tool_server/tool_workers/online_workers/test_cases/worker_tests`. You can refer to `OpenThinkIMG/tool_server/tool_workers/online_workers/test_cases/worker_tests/test_all.py` for more information on how to implement a test case.
+
+
 
 ### 3. Tool Protocols
 Basicly, the tools have a common protocol to communicate with the tool planning model. The tool planning model will call the tool with a dict, which is a similar format of this:

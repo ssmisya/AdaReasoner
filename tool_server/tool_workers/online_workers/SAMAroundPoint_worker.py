@@ -16,18 +16,35 @@ import matplotlib.pyplot as plt
 from tool_server.tool_workers.online_workers.base_tool_worker import BaseToolWorker
 from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
+from io import BytesIO
+import base64
+import traceback
+from typing import Optional
+from dataclasses import dataclass, field
+from transformers import HfArgumentParser
+from tool_server.utils.worker_arguments import WorkerArguments
 
 
 GB = 1 << 30
 
 worker_id = str(uuid.uuid4())[:6]
-logger = build_logger(__file__, f"{__file__}_{worker_id}.log")
+logger = build_logger(__file__, f"sam_around_point_worker_{worker_id}.log")
 model_semaphore = None
 
 import numpy as np
 
 np.random.seed(3)
 
+@dataclass
+class SAMAroundPointArguments(WorkerArguments):
+    sam2_checkpoint: str = field(
+        default="/mnt/petrelfs/haoyunzhuo/mmtool/checkpoints/sam2_hiera_large.pt",
+        metadata={"help": "Path to the SAM2 checkpoint file"}
+    )
+    sam2_model_cfg: str = field(
+        default="sam2_hiera_l.yaml",
+        metadata={"help": "Path to the SAM2 model configuration file"}
+    )
 
 def extract_points(generate_param, image_w, image_h):
     all_points = []
@@ -104,47 +121,43 @@ def show_masks(image, masks, scores, point_coords=None, box_coords=None, input_l
     
     return edited_image
 
-class SAM2ToolWorker(BaseToolWorker):
-    def __init__(self, 
-                 controller_addr, 
-                 worker_addr = "auto",
-                 worker_id = worker_id, 
-                 no_register = False,
-                 model_name = "SegmentRegionAroundPoint",
-                 model_path = "", 
-                 model_base = "", 
-                 load_8bit = False, 
-                 load_4bit = False, 
-                 device = "",
-                 limit_model_concurrency = 1,
-                 host = "0.0.0.0",
-                 port = None,
-                 model_semaphore = None,
-                 sam2_checkpoint = "/mnt/petrelfs/songmingyang/songmingyang/model/mm/tools/sam2-hiera-large/sam2_hiera_large.pt",
-                 sam2_model_cfg = "/mnt/petrelfs/songmingyang/songmingyang/model/mm/tools/sam2-hiera-large/sam2_hiera_l.yaml",
-                 ):
-        self.sam2_checkpoint = sam2_checkpoint
-        self.sam2_model_cfg = sam2_model_cfg
-        super().__init__(
-            controller_addr,
-            worker_addr,
-            worker_id,
-            no_register,
-            model_path,
-            model_base,
-            model_name,
-            load_8bit,
-            load_4bit,
-            device,
-            limit_model_concurrency,
-            host,
-            port,
-            model_semaphore
-            )
-
+class SAMAroundPointWorker(BaseToolWorker):
+    def __init__(self, worker_arguments: SAMAroundPointArguments = None):
+        # 在调用父类初始化前先设置模型名称和必要的属性
+        if worker_arguments and worker_arguments.model_name is None:
+            worker_arguments.model_name = "SegmentRegionAroundPoint"
         
+        # 将这两行移到super().__init__之前
+        self.sam2_checkpoint = worker_arguments.sam2_checkpoint
+        self.sam2_model_cfg = worker_arguments.sam2_model_cfg
+        
+        super().__init__(worker_arguments)
+        
+        self.instruction = {
+            "type": "function",
+            "function": {
+                "name": self.model_name,
+                "description": "Segment the region around a given point in the image.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "image": {
+                            "type": "string",
+                            "description": "The base64 encoded image or path to the image file."
+                        },
+                        "param": {
+                            "type": "string",
+                            "description": "The point coordinates in format 'x=50 y=50' (as percentage of image dimensions)."
+                        }
+                    },
+                    "required": ["image", "param"]
+                }
+            }
+        }
+
     def init_model(self):
         logger.info(f"Initializing model {self.model_name}...")
+        logger.info(f"CUDA available: {torch.cuda.is_available()}, GPU count: {torch.cuda.device_count()}")
         
         if torch.cuda.is_available():
             device = torch.device("cuda")
@@ -152,101 +165,115 @@ class SAM2ToolWorker(BaseToolWorker):
             device = torch.device("mps")
         else:
             device = torch.device("cpu")
-        print(f"using device: {device}")
+        logger.info(f"Using device: {device}")
 
         if device.type == "cuda":
             # use bfloat16 for the entire notebook
             torch.autocast("cuda", dtype=torch.bfloat16).__enter__()
-            # turn on tfloat32 for Ampere GPUs (https://pytorch.org/docs/stable/notes/cuda.html#tensorfloat-32-tf32-on-ampere-devices)
+            # turn on tfloat32 for Ampere GPUs
             if torch.cuda.get_device_properties(0).major >= 8:
                 torch.backends.cuda.matmul.allow_tf32 = True
                 torch.backends.cudnn.allow_tf32 = True
         elif device.type == "mps":
-            print(
+            logger.info(
                 "\nSupport for MPS devices is preliminary. SAM 2 is trained with CUDA and might "
-                "give numerically different outputs and sometimes degraded performance on MPS. "
-                "See e.g. https://github.com/pytorch/pytorch/issues/84936 for a discussion."
+                "give numerically different outputs and sometimes degraded performance on MPS."
             )
 
-        sam2_checkpoint = self.sam2_checkpoint
-        model_cfg = self.sam2_model_cfg
-
-        self.sam2_model = build_sam2(model_cfg, sam2_checkpoint, device=device)
-
+        self.sam2_model = build_sam2(self.sam2_model_cfg, self.sam2_checkpoint, device=device)
         self.predictor = SAM2ImagePredictor(self.sam2_model)
 
-        
+    @torch.inference_mode()
     def generate(self, params):
-        generate_param = params["param"]
-        image = params["image"]
-        
-        if generate_param is None or image is None:
-            logger.error("Missing 'param' or 'image' in the input parameters.")
-            return {"text": "Missing 'param' or 'image' in the input parameters.", "edited_image": None}
-        
-        ret = {"text": "", "error_code": 0}
-        
         try:
-            image = base64_to_pil(image)  
-
-            img = image.convert("RGB")
-            width, height = img.size
-            self.predictor.set_image(img)
-
-            points = extract_points(generate_param, width, height)
-
-            if not points:
-                logger.error("No valid points extracted.")
-                ret["text"] = "No valid points extracted."
-                ret['edited_image'] = None
-                return ret
-
-            input_labels = np.ones(len(points))
-            masks, scores, _ = self.predictor.predict(
-                point_coords=points,
-                point_labels=input_labels,
-                box=None,
-                multimask_output=False,
-            )
-
-            edited_img = show_masks(img, masks, scores, point_coords=np.array(points), input_labels=input_labels)
-            ret['text'] = "Segmentation completed."
-            ret['edited_image'] = pil_to_base64(edited_img)
+            # Extract inputs
+            try:
+                image_data = params["image"]
+                point_param = params.get("param", "")
+                if not point_param:
+                    raise KeyError("Required parameter 'param' not found in params")
+            except Exception as e:
+                message = f"Invalid parameters: expected keys: image, param. Error: {str(e)}"
+                return {
+                    "tool_response_from": self.model_name,
+                    "status": "failed",
+                    "message": message,
+                }
             
+            # Load and process the image
+            try:
+                if os.path.exists(image_data):
+                    img = Image.open(image_data).convert("RGB")
+                else:
+                    img = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
+                
+                width, height = img.size
+                self.predictor.set_image(img)
+
+                # Extract points from input parameters
+                points = extract_points(point_param, width, height)
+
+                if not points:
+                    return {
+                        "tool_response_from": self.model_name,
+                        "status": "failed",
+                        "message": "No valid points extracted from the parameters."
+                    }
+
+                # Run segmentation
+                input_labels = np.ones(len(points))
+                masks, scores, _ = self.predictor.predict(
+                    point_coords=points,
+                    point_labels=input_labels,
+                    box=None,
+                    multimask_output=False,
+                )
+
+                # Generate the visualization
+                edited_img = show_masks(img, masks, scores, point_coords=np.array(points), input_labels=input_labels)
+                
+                # Prepare the response
+                buffered = BytesIO()
+                image_format = img.format if img.format else 'PNG'
+                edited_img.save(buffered, format=image_format)
+                img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+                
+                return {
+                    "tool_response_from": self.model_name,
+                    "status": "success",
+                    "edited_image": img_str,
+                    "image_dimensions_pixels": {
+                        "width": width,
+                        "height": height
+                    },
+                }
+                
+            except Exception as e:
+                return {
+                    "tool_response_from": self.model_name,
+                    "status": "failed",
+                    "error": str(e),
+                    "traceback": traceback.format_exc()
+                }
+                
         except Exception as e:
-            logger.error(f"Error when using sam to SAMAroundPoint: {e}")
-            ret["text"] = f"Error when using sam to SAMAroundPoint: {e}"
-            ret['edited_image'] = None
-
-        return ret
-
+            logger.error(f"Error during SAM Around Point inference: {e}")
+            logger.error(traceback.format_exc())
+            return {
+                "tool_response_from": self.model_name,
+                "status": "failed",
+                "error": str(e),
+                "traceback": traceback.format_exc()
+            }
+    
+    def get_tool_instruction(self):
+        return self.instruction
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--host", type=str, default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=20036)
-    parser.add_argument("--worker-address", type=str,
-        default="auto")
-    parser.add_argument("--controller-address", type=str,
-        default="http://SH-IDCA1404-10-140-54-119:20001")
-    parser.add_argument("--limit-model-concurrency", type=int, default=5)
-    parser.add_argument("--stream-interval", type=int, default=1)
-    parser.add_argument("--no-register", action="store_true")
-    parser.add_argument("--sam2_checkpoint", type=str, default="/mnt/petrelfs/haoyunzhuo/mmtool/checkpoints/sam2_hiera_large.pt")
-    parser.add_argument("--sam2_model_cfg", type=str, default="sam2_hiera_l.yaml")
-    args = parser.parse_args()
+    parser = HfArgumentParser((SAMAroundPointArguments,))
+    args, = parser.parse_args_into_dataclasses()
+    
     logger.info(f"args: {args}")
-
-
-    worker = SAM2ToolWorker(
-        controller_addr=args.controller_address,
-        worker_addr=args.worker_address,
-        worker_id=worker_id,
-        limit_model_concurrency=args.limit_model_concurrency,
-        host = args.host,
-        port = args.port,
-        no_register = args.no_register,
-        sam2_checkpoint=args.sam2_checkpoint,
-        sam2_model_cfg=args.sam2_model_cfg
-    )
+    
+    worker = SAMAroundPointWorker(worker_arguments=args)
     worker.run()

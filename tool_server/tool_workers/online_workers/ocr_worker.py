@@ -28,9 +28,10 @@ np.random.seed(3)
 
 class OCRToolWorker(BaseToolWorker):
     def __init__(self, worker_arguments: WorkerArguments = None):
+        # 在调用父类初始化前先设置模型名称
+        if worker_arguments and worker_arguments.model_name is None:
+            worker_arguments.model_name = "ocr"
         super().__init__(worker_arguments)
-        if self.model_name is None:
-            self.model_name = "ocr"
         self.instruction = {
             "type": "function",
             "function": {
@@ -78,25 +79,25 @@ class OCRToolWorker(BaseToolWorker):
 
             for polygon, label, confidence in result:
                 # Extract polygon coordinates min/max values
-                x_coords = [pt[0] for pt in polygon]
-                y_coords = [pt[1] for pt in polygon]
+                x_coords = [float(pt[0]) for pt in polygon]  # 确保转换为Python float
+                y_coords = [float(pt[1]) for pt in polygon]  # 确保转换为Python float
                 x_min, x_max = min(x_coords), max(x_coords)
                 y_min, y_max = min(y_coords), max(y_coords)
 
                 detections.append({
                     "label": label,
-                    "confidence": confidence,
+                    "confidence": float(confidence),  # 确保转换为Python float
                     "pixel_bbox": {
-                        "x_min": x_min,
-                        "y_min": y_min,
-                        "x_max": x_max,
-                        "y_max": y_max
+                        "x_min": float(x_min),  # 确保转换为Python float
+                        "y_min": float(y_min),  # 确保转换为Python float
+                        "x_max": float(x_max),  # 确保转换为Python float
+                        "y_max": float(y_max)  # 确保转换为Python float
                     },
                     "normalized_bbox": {
-                        "x_min": x_min / width,
-                        "y_min": y_min / height,
-                        "x_max": x_max / width,
-                        "y_max": y_max / height
+                        "x_min": float(x_min / width),  # 确保转换为Python float
+                        "y_min": float(y_min / height),  # 确保转换为Python float
+                        "x_max": float(x_max / width),  # 确保转换为Python float
+                        "y_max": float(y_max / height)  # 确保转换为Python float
                     }
                 })
 
@@ -105,8 +106,8 @@ class OCRToolWorker(BaseToolWorker):
                 "status": "success",
                 "detections": detections,
                 "image_dimensions_pixels": {
-                    "width": img.width,
-                    "height": img.height
+                    "width": int(img.width),  # 确保转换为Python int
+                    "height": int(img.height)  # 确保转换为Python int
                 },
             }
             return pred_dict

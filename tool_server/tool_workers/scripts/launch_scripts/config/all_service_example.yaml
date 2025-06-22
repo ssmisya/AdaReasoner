@@ -2,7 +2,7 @@
 # log_folder: ../../logs/server_log
 base_dir: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers
 log_folder: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/logs/server_log
-partition: "MoE"
+partition: "ai_moe"
 default_calculate_gpus: 1
 default_calculate_cpus: 16
 default_control_cpus: 2

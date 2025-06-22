@@ -58,25 +58,6 @@ tool_worker_config:
         model-path: /mnt/petrelfs/sunhaoyu/visual-code/weights/groundingdino_swint_ogc.pth
         model-config: /mnt/petrelfs/sunhaoyu/visual-code/weights/GroundingDINO_SwinT_OGC.py
 
-  # 注释掉原来的DrawHorizontalLineByY和DrawVerticalLineByX工具配置
-  # - DrawHorizontalLineByY:
-  #     worker_name: DrawHorizontalLineByY
-  #     job_name: drawliney
-  #     calculate_type: control
-  #     cmd:
-  #       script-addr: tool_server.tool_workers.online_workers.DrawHorizontalLineByY_worker
-  #       port: 20032
-  #       host: "0.0.0.0"
-
-  # - DrawVerticalLineByX:
-  #     worker_name: DrawVerticalLineByX
-  #     job_name: drawlinex
-  #     calculate_type: control
-  #     cmd:
-  #       script-addr: tool_server.tool_workers.online_workers.DrawVerticalLineByX_worker
-  #       port: 20089
-  #       host: "0.0.0.0"
-
   # 新的DrawLine工具配置
   - DrawLine:
       worker_name: DrawLine

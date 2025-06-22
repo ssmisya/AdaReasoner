@@ -1,6 +1,6 @@
 tool_planning_model_prompt = """
 You are a visual assistant capable of solving visual reasoning problems. You can rely on your own capabilities or use external tools to assist in solving. 
-
+ 
 Available Tools  
 In your response, you can use the following tools:  
 {tool_list}

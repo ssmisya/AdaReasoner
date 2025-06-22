@@ -22,11 +22,15 @@ except ImportError:
     print("警告: 部分工具模块导入失败，某些功能可能受限")
 
 AVAILABLE_TOOLS = [
-    "point", 
-    "draw_vertical_line",
-    "ocr",
-    "segment_region",
-    "grounding_dino"
+    "Point", 
+    # "draw_vertical_line",
+    # "draw_horizontal_line",
+    "draw_line",  # 新增的组合工具
+    "OCR",
+    "SegmentRegionAroundPoint",
+    "GroundingDINO",
+    "Crop",
+    # "ZoomInSubfigure"
 ]
 
 def load_image(image_path):
@@ -90,17 +94,17 @@ def test_point(args):
     print("\n====== 测试Point工具 ======")
     model_name = 'Point'
     
-    worker_addr =  get_worker_address(args.controller_address, model_name)
+    worker_addr =  get_worker_address(args.controller_addr, model_name)
     if not worker_addr:
         return
         
     img = load_image(args.image_path)
     img_arg = encode(img)
     
+    # 修改参数名称，使用description而非param
     datas = {
-        "model": model_name,
-        "param": "Point E",
         "image": img_arg,
+        "description": "Point E"
     }
     
     tic = time.time()
@@ -116,71 +120,112 @@ def test_point(args):
     
     if response.status_code == 200:
         res = response.json()
-        print(f"Point工具响应: {res['text']}")
-        
-        if "edited_image" in res:
-            image = base64_to_pil(res["edited_image"])
-            output_path = os.path.join(args.output_dir, "point_result.jpg")
-            image.save(output_path)
+        # 检查正确的响应字段
+        if "status" in res:
+            print(f"Point工具状态: {res['status']}")
+            
+        if "points" in res:
+            print(f"检测到的点: {res['points']}")
+            
+        if "raw_response" in res:
+            print(f"原始响应: {res['raw_response']}")
+            
+        if "image_with_points" in res:
+            image = base64_to_pil(res["image_with_points"])
+            # 修改为PNG格式保存，以支持RGBA模式
+            output_path = os.path.join(args.output_dir, "point_result.png")
+            image.save(output_path, format="PNG")
             print(f"结果图像已保存至: {output_path}")
     else:
         print(f"请求失败: {response.text}")
 
+# 注释掉旧的垂直线和水平线测试函数
+"""
 def test_draw_vertical_line(args):
-    """测试DrawVerticalLineByX工具"""
-    print("\n====== 测试DrawVerticalLineByX工具 ======")
-    model_name = 'DrawVerticalLineByX'
+    # ...
+
+def test_draw_horizontal_line(args):
+    # ...
+"""
+
+def test_draw_line(args):
+    """测试DrawLine工具（支持水平线和垂直线）"""
+    print("\n====== 测试DrawLine工具 ======")
+    model_name = 'DrawLine'
     
-    worker_addr =  get_worker_address(args.controller_address, model_name)
+    worker_addr = get_worker_address(args.controller_addr, model_name)
     if not worker_addr:
         return
     
     img = load_image(args.image_path)
     img_arg = encode(img)
     
-    datas = {
-        "model": model_name,
-        "param": "<point x=\"51.5\" y=\"82.0\" alt=\"x = 2017\">x = 2017</point>",
-        "image": img_arg,
-    }
+    # 测试两种线型
+    test_cases = [
+        {
+            "name": "水平线",
+            "line_type": "horizontal",
+            "param": "<point x=\"50.0\" y=\"45.2\" alt=\"y = 2017\">y = 2017</point>",
+            "output_file": "horizontal_line_result.jpg"
+        },
+        {
+            "name": "垂直线",
+            "line_type": "vertical",
+            "param": "<point x=\"51.5\" y=\"82.0\" alt=\"x = 2017\">x = 2017</point>",
+            "output_file": "vertical_line_result.jpg"
+        }
+    ]
     
-    tic = time.time()
-    response = requests.post(
-        worker_addr + "/worker_generate",
-        headers={"User-Agent": "FastChat Client"},
-        json=datas,
-    )
-    toc = time.time()
-    
-    print(f"耗时: {toc - tic:.3f}s")
-    print(f"返回状态: {response.status_code}")
-    
-    if response.status_code == 200:
-        res = response.json()
-        print(f"绘制垂直线工具响应: {res['text']}")
+    for test_case in test_cases:
+        print(f"\n------ 测试{test_case['name']} ------")
         
-        if "edited_image" in res:
-            image = base64_to_pil(res["edited_image"])
-            output_path = os.path.join(args.output_dir, "vertical_line_result.jpg")
-            image.save(output_path)
-            print(f"结果图像已保存至: {output_path}")
-    else:
-        print(f"请求失败: {response.text}")
+        datas = {
+            "model": model_name,
+            "line_type": test_case["line_type"],
+            "param": test_case["param"],
+            "image": img_arg,
+        }
+        
+        tic = time.time()
+        response = requests.post(
+            worker_addr + "/worker_generate",
+            headers={"User-Agent": "FastChat Client"},
+            json=datas,
+        )
+        toc = time.time()
+        
+        print(f"耗时: {toc - tic:.3f}s")
+        print(f"返回状态: {response.status_code}")
+        
+        if response.status_code == 200:
+            res = response.json()
+            print(f"绘制{test_case['name']}工具响应: {res.get('message', res.get('text', '无消息'))}")
+            
+            if "edited_image" in res:
+                image = base64_to_pil(res["edited_image"])
+                output_path = os.path.join(args.output_dir, test_case["output_file"])
+                image.save(output_path)
+                print(f"结果图像已保存至: {output_path}")
+        else:
+            print(f"请求失败: {response.text}")
 
 def test_ocr(args):
     """测试OCR工具"""
     print("\n====== 测试OCR工具 ======")
     model_name = 'OCR'
     
-    worker_addr =  get_worker_address(args.controller_address, model_name)
+    print(f"控制器地址: {args.controller_addr}")
+
+    worker_addr = get_worker_address(args.controller_addr, model_name)
+    print(f"OCR工作节点地址: {worker_addr}")
     if not worker_addr:
         return
         
     img = load_image(args.image_path)
     img_arg = encode(img)
     
+    # OCR只需要image参数
     datas = {
-        "model": model_name,
         "image": img_arg,
     }
     
@@ -197,7 +242,21 @@ def test_ocr(args):
     
     if response.status_code == 200:
         res = response.json()
-        print(f"OCR工具响应: {res['text']}")
+        
+        print(f"OCR工具响应状态: {res.get('status', 'unknown')}")
+        
+        if "detections" in res:
+            detection_count = len(res["detections"])
+            print(f"检测到{detection_count}个文本区域:")
+            
+            # 最多显示前10个文本
+            for i, det in enumerate(res["detections"][:10]):
+                print(f"  {i+1}. '{det['label']}' (置信度: {det['confidence']:.2f})")
+                
+            if detection_count > 10:
+                print(f"  ... 还有{detection_count-10}个文本未显示")
+        else:
+            print(f"OCR工具完整响应: {json.dumps(res, indent=2)}")
     else:
         print(f"请求失败: {response.text}")
 
@@ -206,7 +265,7 @@ def test_segment_region(args):
     print("\n====== 测试SegmentRegionAroundPoint工具 ======")
     model_name = 'SegmentRegionAroundPoint'
     
-    worker_addr =  get_worker_address(args.controller_address, model_name)
+    worker_addr =  get_worker_address(args.controller_addr, model_name)
     if not worker_addr:
         return
     
@@ -232,24 +291,32 @@ def test_segment_region(args):
     
     if response.status_code == 200:
         res = response.json()
-        print(f"分割区域工具响应: {res['text']}")
+        print(f"分割区域工具状态: {res['status']}")
         
-        if "edited_image" in res:
+        if "edited_image" in res and res["status"] == "success":
             image = base64_to_pil(res["edited_image"])
             output_path = os.path.join(args.output_dir, "segment_result.jpg")
             image.save(output_path)
             print(f"结果图像已保存至: {output_path}")
+            
+            if "image_dimensions_pixels" in res:
+                width = res["image_dimensions_pixels"]["width"]
+                height = res["image_dimensions_pixels"]["height"]
+                print(f"图像尺寸: {width}x{height}")
+        else:
+            if "message" in res:
+                print(f"处理失败: {res['message']}")
+            elif "error" in res:
+                print(f"处理错误: {res['error']}")
     else:
         print(f"请求失败: {response.text}")
 
-def test_grounding_dino(args):
+def test_GroundingDINO(args):
     """测试Grounding DINO工具"""
     print("\n====== 测试Grounding DINO工具 ======")
-    model_name = 'grounding_dino'
+    model_name = 'GroundingDINO'
     
-    
-    
-    worker_addr =  get_worker_address(args.controller_address, model_name)
+    worker_addr = get_worker_address(args.controller_addr, model_name)
     if not worker_addr:
         return
     
@@ -258,7 +325,7 @@ def test_grounding_dino(args):
     
     datas = {
         "model": model_name,
-        "caption": "car",
+        "description": "car",  # 使用caption或description都可以
         "image": img_arg,
         "box_threshold": 0.3,
         "text_threshold": 0.25,
@@ -274,46 +341,126 @@ def test_grounding_dino(args):
     
     print(f"耗时: {toc - tic:.3f}s")
     print(f"返回状态: {response.status_code}")
-    
+
     if response.status_code == 200:
         res = response.json()
-        print("Grounding DINO 探测结果:")
-        print(json.dumps(res["text"], indent=2))
+        print(f"Grounding DINO工具状态: {res.get('status', '未知')}")
         
-        try:
-            # 尝试可视化结果
-            boxes = torch.Tensor(res["text"]["boxes"])
-            logits = torch.Tensor(res["text"]["logits"])
-            phrases = res["text"]["phrases"]
+        if "message" in res:
+            print(f"消息: {res['message']}")
+        
+        if "detections" in res:
+            detection_count = len(res["detections"])
+            print(f"检测到{detection_count}个目标:")
             
-            image_source = np.array(Image.open(args.image_path).convert("RGB"))
-            
+            # 最多显示前5个检测结果
+            for i, det in enumerate(res["detections"][:5]):
+                print(f"  {i+1}. '{det['label']}' (置信度: {det['confidence']:.2f})")
+                
+            if detection_count > 5:
+                print(f"  ... 还有{detection_count-5}个检测结果未显示")
+        
+        # 保存带有边界框的图像
+        if "edited_image" in res:
             try:
-                annotated_frame = annotate_xyxy(image_source=image_source, boxes=boxes, logits=logits, phrases=phrases)
-                output_path = os.path.join(args.output_dir, "grounding_dino_result.jpg")
-                cv2.imwrite(output_path, annotated_frame)
-                print(f"已保存标注图像至: {output_path}")
-            except NameError:
-                print("无法标注框，annotate_xyxy函数不可用")
-        except Exception as e:
-            print(f"可视化结果时出错: {str(e)}")
+                image = base64_to_pil(res["edited_image"])
+                output_path = os.path.join(args.output_dir, "GroundingDINO_result.png")
+                image.save(output_path)
+                print(f"✅ 已成功保存标注图像至: {output_path}")
+            except Exception as e:
+                print(f"❌ 保存标注图像时出错: {e}")
+        else:
+            print("❌ 响应中没有包含标注图像")
     else:
         print(f"请求失败: {response.text}")
+
+def test_crop(args):
+    """测试Crop工具"""
+    print("\n====== 测试Crop工具 ======")
+    model_name = 'Crop'
+    
+    worker_addr = get_worker_address(args.controller_addr, model_name)
+    if not worker_addr:
+        return
+    
+    img = load_image(args.image_path)
+    img_arg = encode(img)
+    
+    # 测试用例：先测试绝对坐标，再测试归一化坐标
+    test_cases = [
+        {
+            "name": "绝对坐标",
+            "coords": "[100, 100, 400, 300]",
+            "output_file": "crop_result_absolute.jpg"
+        },
+        {
+            "name": "归一化坐标",
+            "coords": "[0.2, 0.2, 0.8, 0.8]",
+            "output_file": "crop_result_normalized.jpg"
+        }
+    ]
+    
+    for test_case in test_cases:
+        print(f"\n------ 测试{test_case['name']} ------")
+        crop_coordinates = test_case["coords"]
+        
+        datas = {
+            "image": img_arg,
+            "param": crop_coordinates
+        }
+        
+        tic = time.time()
+        response = requests.post(
+            worker_addr + "/worker_generate",
+            headers={"User-Agent": "FastChat Client"},
+            json=datas,
+        )
+        toc = time.time()
+        
+        print(f"耗时: {toc - tic:.3f}s")
+        print(f"返回状态: {response.status_code}")
+        
+        if response.status_code == 200:
+            res = response.json()
+            print(f"裁剪工具状态: {res.get('status', 'unknown')}")
+            
+            if "message" in res:
+                print(f"消息: {res['message']}")
+                
+            if "edited_image" in res:
+                image = base64_to_pil(res["edited_image"])
+                output_path = os.path.join(args.output_dir, test_case["output_file"])
+                image.save(output_path)
+                print(f"裁剪后的图像已保存至: {output_path}")
+                
+                if "image_dimensions_pixels" in res:
+                    width = res["image_dimensions_pixels"]["width"]
+                    height = res["image_dimensions_pixels"]["height"]
+                    print(f"裁剪后图像尺寸: {width}x{height}")
+            else:
+                if "error" in res:
+                    print(f"处理错误: {res['error']}")
+        else:
+            print(f"请求失败: {response.text}")
 
 def main():
     parser = argparse.ArgumentParser(description="一键测试多种视觉工具")
     
     # 通用参数
     parser.add_argument(
-        "--controller-address", type=str, default="http://localhost:20001",
+        "--controller_addr", type=str, default="http://SH-IDC1-10-140-37-6:21112",
         help="控制器地址"
     )
     parser.add_argument(
-        "--image-path", type=str, default="./input_cases/subplot_0.png",
+        "--image-path", type=str, default="/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
         help="测试图像路径"
     )
     parser.add_argument(
-        "--output-dir", type=str, default="./test_results",
+        "--subplot-image-path", type=str, default="/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
+        help="用于测试ZoomInSubfigure的多子图图像路径"
+    )
+    parser.add_argument(
+        "--output-dir", type=str, default="/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/test_results",
         help="输出目录"
     )
     parser.add_argument(
@@ -326,27 +473,38 @@ def main():
     # 检查并创建输出目录
     os.makedirs(args.output_dir, exist_ok=True)
     
+
+    
     # 确定要测试的工具
     tools_to_test = AVAILABLE_TOOLS if "all" in args.tools else args.tools
+
+    # tools_to_test = ["OCR","GroundingDINO"]  # 默认测试ZoomInSubfigure工具
     
     image_dict = {
-        "default":"./input_cases/subplot_0.png",
-        "grounding_dino": "./input_cases/truck.jpg"
+        "default":"/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
+        "GroundingDINO": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/truck.jpg"
     }
     
     # 运行测试
     for tool in tools_to_test:
-        if tool == "point":
+        if tool == "Point":
             test_point(args)
-        elif tool == "draw_vertical_line":
-            test_draw_vertical_line(args)
-        elif tool == "ocr":
+        # 注释掉旧的垂直线和水平线测试工具
+        # elif tool == "draw_vertical_line":
+        #     test_draw_vertical_line(args)
+        # elif tool == "draw_horizontal_line":
+        #     test_draw_horizontal_line(args)
+        elif tool == "draw_line":  # 添加新的测试函数
+            test_draw_line(args)
+        elif tool == "OCR":
             test_ocr(args)
-        elif tool == "segment_region":
+        elif tool == "SegmentRegionAroundPoint":
             test_segment_region(args)
-        elif tool == "grounding_dino":
+        elif tool == "GroundingDINO":
             args.image_path = image_dict.get(tool,image_dict["default"])
-            test_grounding_dino(args)
+            test_GroundingDINO(args)
+        elif tool == "Crop":
+            test_crop(args)
     
     print("\n====== 所有测试完成 ======")
 

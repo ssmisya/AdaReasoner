@@ -6,6 +6,10 @@ import uuid
 import os
 import torchvision
 from io import BytesIO
+import cv2
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import matplotlib
 
 from transformers import HfArgumentParser
 from dataclasses import dataclass, field
@@ -31,11 +35,15 @@ class GroundingDinoArguments(WorkerArguments):
 
 class GroundingDinoWorker(BaseToolWorker):
     def __init__(self, worker_arguments: GroundingDinoArguments = None):
+        # 在调用父类初始化前先设置模型名称
+        if worker_arguments and worker_arguments.model_name is None:
+            worker_arguments.model_name = "GroundingDINO"
+        
+        # 保存model_config到实例变量
+        self.model_config = worker_arguments.model_config if worker_arguments else None
+        
         super().__init__(worker_arguments)
-        if self.model_name is None:
-            self.model_name = "grounding_dino"
             
-        self.model_config = worker_arguments.model_config
         self.instruction = {
             "type": "function",
             "function": {
@@ -54,10 +62,7 @@ class GroundingDinoWorker(BaseToolWorker):
                         }
                     },
                     "required": ["image", "description"]
-                },
-                # "returns": {
-                #     "edited_image": "An image with bounding boxes drawn around the located objects.",
-                # }
+                }
             }
         }
 
@@ -103,15 +108,86 @@ class GroundingDinoWorker(BaseToolWorker):
         logger.info(f"After NMS: {boxes.shape[0]} boxes")
 
         return boxes, logits, phrases
+        
+    def annotate_image(self, image_np, boxes, logits, phrases):
+        """在图像上绘制边界框和标签"""
+        # 设置matplotlib使用非交互模式
+        matplotlib.use('Agg')
+        
+        # 创建一个新的图形和轴
+        fig, ax = plt.subplots(1)
+        ax.imshow(image_np)
+        
+        # 获取图像尺寸
+        h, w, _ = image_np.shape
+        
+        # 为不同类别设置不同颜色
+        unique_phrases = list(set(phrases))
+        colors = plt.cm.hsv(np.linspace(0, 1, len(unique_phrases) if len(unique_phrases) > 0 else 1))
+        color_map = {phrase: colors[i % len(colors)] for i, phrase in enumerate(unique_phrases)}
+        
+        # 绘制每个检测框
+        for i, (box, logit, phrase) in enumerate(zip(boxes, logits, phrases)):
+            # 获取边界框坐标
+            x_min, y_min, x_max, y_max = box
+            # 将归一化坐标转换为像素坐标
+            x_min_px, y_min_px = int(x_min * w), int(y_min * h)
+            x_max_px, y_max_px = int(x_max * w), int(y_max * h)
+            
+            # 计算宽度和高度
+            width = x_max_px - x_min_px
+            height = y_max_px - y_min_px
+            
+            # 获取当前类别的颜色
+            color = color_map.get(phrase, 'red')
+            
+            # 创建一个矩形
+            rect = patches.Rectangle(
+                (x_min_px, y_min_px), width, height, 
+                linewidth=2, edgecolor=color, facecolor='none'
+            )
+            
+            # 添加矩形到轴
+            ax.add_patch(rect)
+            
+            # 添加标签文本
+            confidence = f"{logit:.2f}"
+            label = f"{phrase}: {confidence}"
+            plt.text(
+                x_min_px, y_min_px - 5, label, 
+                bbox=dict(facecolor=color, alpha=0.5),
+                fontsize=8, color='white'
+            )
+        
+        # 移除轴标签
+        plt.axis('off')
+        
+        # 将图形保存到内存缓冲区
+        buf = BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0, dpi=100)
+        plt.close(fig)
+        buf.seek(0)
+        
+        # 从缓冲区加载图像
+        annotated_image = Image.open(buf).convert('RGB')
+        return annotated_image
+    
+    def image_to_base64(self, image):
+        """将PIL图像转换为base64编码的字符串"""
+        buffered = BytesIO()
+        image.save(buffered, format="PNG")
+        return base64.b64encode(buffered.getvalue()).decode()
     
     @torch.inference_mode()
     def generate(self, params):
         # Extract inputs
         try:
             image_path = params["image"]
-            description = params["description"]
-        except:
-            message = f"Invalid parameters: expected keys: image, description. Please reference the tool instruction: {self.get_tool_instruction()}"
+            description = params.get("description")
+            if not description:
+                raise KeyError("缺少必要参数 'description'")
+        except Exception as e:
+            message = f"无效参数: 需要的参数: image, description. 错误: {str(e)}"
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "failed",
@@ -139,26 +215,26 @@ class GroundingDinoWorker(BaseToolWorker):
             boxes = box_ops.box_cxcywh_to_xyxy(boxes)
 
             # Format output
-            boxes = [[round(x, 2) for x in box] for box in boxes.tolist()]
-            logits = [round(x, 2) for x in logits.tolist()]
+            boxes_list = [[round(x, 2) for x in box] for box in boxes.tolist()]
+            logits_list = [round(x, 2) for x in logits.tolist()]
 
             h, w, _ = image_np.shape
     
-            detect_res_num = len(boxes)
+            detect_res_num = len(boxes_list)
             detections = []
             for detect_res_idx in range(detect_res_num):
-                x_min = int(boxes[detect_res_idx][0] * w)
-                y_min = int(boxes[detect_res_idx][1] * h)
-                x_max = int(boxes[detect_res_idx][2] * w)
-                y_max = int(boxes[detect_res_idx][3] * h)
+                x_min = int(boxes_list[detect_res_idx][0] * w)
+                y_min = int(boxes_list[detect_res_idx][1] * h)
+                x_max = int(boxes_list[detect_res_idx][2] * w)
+                y_max = int(boxes_list[detect_res_idx][3] * h)
                 detections.append({
                     "label": phrases[detect_res_idx],
-                    "confidence": logits[detect_res_idx],
+                    "confidence": logits_list[detect_res_idx],
                     "normalized_bbox": {
-                        "x_min": boxes[detect_res_idx][0],
-                        "y_min": boxes[detect_res_idx][1],
-                        "x_max": boxes[detect_res_idx][2],
-                        "y_max": boxes[detect_res_idx][3],
+                        "x_min": boxes_list[detect_res_idx][0],
+                        "y_min": boxes_list[detect_res_idx][1],
+                        "x_max": boxes_list[detect_res_idx][2],
+                        "y_max": boxes_list[detect_res_idx][3],
                     },
                     "pixel_bbox": {
                         "x_min": x_min,
@@ -167,6 +243,11 @@ class GroundingDinoWorker(BaseToolWorker):
                         "y_max": y_max
                     }
                 })
+            
+            # 生成带有边界框的图像
+            annotated_image = self.annotate_image(image_np, boxes.tolist(), logits.tolist(), phrases)
+            annotated_image_base64 = self.image_to_base64(annotated_image)
+            
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "success",
@@ -175,6 +256,8 @@ class GroundingDinoWorker(BaseToolWorker):
                     "width": w,
                     "height": h
                 },
+                "edited_image": annotated_image_base64,
+                "message": f"成功检测到 {len(detections)} 个对象。"
             }
             
             return pred_dict

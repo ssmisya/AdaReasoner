@@ -22,7 +22,8 @@ class ToolManager(object):
         self.init_online_tools(self.controller_url_location)
         self.init_online_tool_addr_dict()
         logger.info(f"ToolManager is initialized.")
-        self.available_tools = self.available_offline_tools + self.available_online_tools
+        # self.available_tools = self.available_offline_tools + self.available_online_tools
+        self.available_tools = self.available_online_tools
         self.headers = {"User-Agent": "LLaVA-Plus Client"}
         
     def init_online_tools(self, controller_url_location=None):
@@ -52,7 +53,7 @@ class ToolManager(object):
             
 
         miss_tool = []
-        for tool in ["ZoomInSubfigure","DrawHorizontalLineByY","OCR","DrawVerticalLineByX","SegmentRegionAroundPoint","Point"]:
+        for tool in ["GroundingDINO","OCR","SegmentRegionAroundPoint","Point","Crop","DrawLine"]:
             if tool not in self.available_online_tools:
                 miss_tool.append(tool)
         if len(miss_tool) == 0:

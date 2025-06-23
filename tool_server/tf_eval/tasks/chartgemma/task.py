@@ -2,9 +2,16 @@ from ...utils.task_utils import *
 from ...utils.utils import *
 from ...utils.log_utils import get_logger
 import os, sys
-from datasets import Dataset, load_dataset
-from thefuzz import fuzz
+from datasets import load_dataset
 import math
+import nltk
+from thefuzz import fuzz
+import numpy as np
+from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+nltk.download("punkt", quiet=True)
+
 try:
     from math_verify import parse, verify
 except ImportError:

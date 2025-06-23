@@ -17,7 +17,7 @@ import torch.distributed as dist
 from ...utils.utils import gather_dict_lists, append_jsonl, process_jsonl, is_vllm_environment
 from ...utils.log_utils import get_logger
 
-logger = get_logger(__name__)
+# logger = get_logger(__name__)
 class BaseEvalDataset(Dataset):
     '''
     The API dataset class
@@ -30,8 +30,8 @@ class BaseEvalDataset(Dataset):
     def __init__(
         self,
         load_data_function,
-        getitem_function,
-        evaluate_function, 
+        getitem_function=None,
+        evaluate_function=None, 
         task_config=None,
         task_args=None,
         model_args=None,
@@ -62,11 +62,11 @@ class BaseEvalDataset(Dataset):
             self.resume_from_ckpt(self.load_ckpt_path)
         
         if task_args.save_to_ckpt and self.task_name in self.task_args.save_to_ckpt:
-            logger.info(f"save to ckpt path: {self.task_args.save_to_ckpt}")
+            # logger.info(f"save to ckpt path: {self.task_args.save_to_ckpt}")
             self.save_ckpt_path = self.task_args.save_to_ckpt[self.task_name]
         
         if self.model_name in ["qwen_qwq"]:
-            logger.info("Generation model detected, setting padding side to left")
+            # logger.info("Generation model detected, setting padding side to left")
             self.padding_side = "left"
         else:
             self.padding_side = "right"
@@ -101,7 +101,7 @@ class BaseEvalDataset(Dataset):
         
     def resume_from_ckpt(self,ckpt_path):
         if os.path.exists(ckpt_path):
-            logger.info(f"loading results from {ckpt_path}")
+            # logger.info(f"loading results from {ckpt_path}")
             ckpt_data = process_jsonl(ckpt_path)
             self.processed_id = {}
             
@@ -114,9 +114,10 @@ class BaseEvalDataset(Dataset):
                     self.processed_id[ckpt_item["results"]["idx"]] = 1
                     
             self.meta_data = [item for item in self.meta_data if item["idx"] not in self.processed_id]
-            logger.info(f"Total items: {len(self.full_data)}, processed items: {len(self.results)}, remaining items: {len(self.meta_data)}")
+            # logger.info(f"Total items: {len(self.full_data)}, processed items: {len(self.results)}, remaining items: {len(self.meta_data)}")
         else:
-            logger.info(f"ckpt path {ckpt_path} not found")
+            # logger.info(f"ckpt path {ckpt_path} not found")
+            pass
 
     
     def save_item_into_ckpt_file(self,result_item):

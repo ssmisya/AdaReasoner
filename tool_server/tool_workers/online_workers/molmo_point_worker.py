@@ -153,11 +153,11 @@ class MolmoPointWorker(BaseToolWorker):
         # Extract inputs
         try:
             image_data = params["image"]
-            description = params.get("description", params.get("param", ""))  # 兼容两种参数名
+            description = params.get("description")
             if not description:
-                raise KeyError("Neither 'description' nor 'param' found in params")
+                raise KeyError("Parameter 'description' not found in params")
         except Exception as e:
-            message = f"Invalid parameters: expected keys: image, description or param. Error: {str(e)}"
+            message = f"Invalid parameters: expected keys: image, description. Error: {str(e)}"
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "failed",
@@ -225,7 +225,7 @@ class MolmoPointWorker(BaseToolWorker):
                         "status": "success",
                         "points": point_data,
                         "raw_response": response,
-                        "image_with_points": img_str,
+                        "edited_image": img_str,
                         "image_dimensions_pixels": {
                             "width": image.width,
                             "height": image.height

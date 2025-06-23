@@ -192,6 +192,7 @@ class GroundingDinoWorker(BaseToolWorker):
                 "tool_response_from": self.model_name,
                 "status": "failed",
                 "message": message,
+                "error_code": 1
             }
             return pred_dict
         
@@ -257,7 +258,7 @@ class GroundingDinoWorker(BaseToolWorker):
                     "height": h
                 },
                 "edited_image": annotated_image_base64,
-                "message": f"成功检测到 {len(detections)} 个对象。"
+                "message": f"Successfully detected {len(detections)} objects."
             }
             
             return pred_dict
@@ -266,6 +267,7 @@ class GroundingDinoWorker(BaseToolWorker):
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "failed",
+                "error_code": 1,
                 "error": str(e)
             }
             logger.error(f"Error during GroundingDINO inference: {e}")

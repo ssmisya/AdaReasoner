@@ -142,6 +142,7 @@ def parse_tool_config(
         model_response (str): The model's generated response.
         model_mode (str): The mode for parsing.
         image_tool_manager (Optional[ImageToolManager]): Manager for image conversion and storage.
+        newest_image (Optional[Image.Image]): The most recent image in the conversation.
         
     Returns:
         Optional[List[Dict]]: A list of parsed tool configurations, or None if parsing fails.
@@ -192,15 +193,23 @@ def parse_tool_config(
 
             parsed_actions = []
             for action in actions:
-                # If an image (as base64) is provided in the action's arguments, process it.
-                if image_tool_manager and 'image' in action.get('arguments', {}):
-                    base64_img = action['arguments']['image']
-                    img_key = image_tool_manager.process_base64_image(base64_img)
-                    if img_key:
-                        action['arguments']['image'] = img_key
-                elif newest_image and 'image' in action.get('arguments', {}):
-                    newest_image_base64 = pil_to_base64(newest_image, url_format=False)
-                    action['arguments']['image'] = newest_image_base64
+                # 保留img_n格式的图像引用，不进行处理
+                if 'image' in action.get('arguments', {}):
+                    image_param = action['arguments']['image']
+                    # 如果是img_n格式，直接保留
+                    if isinstance(image_param, str) and image_param.startswith("img_"):
+                        # 保留原始格式
+                        pass
+                    # 如果不是img_n格式但有image_tool_manager，则处理它
+                    elif image_tool_manager:
+                        base64_img = image_param
+                        img_key = image_tool_manager.process_base64_image(base64_img)
+                        if img_key:
+                            action['arguments']['image'] = img_key
+                    # 如果没有image_tool_manager但有newest_image，使用newest_image
+                    elif newest_image and not (isinstance(image_param, str) and image_param.startswith("img_")):
+                        newest_image_base64 = pil_to_base64(newest_image, url_format=False)
+                        action['arguments']['image'] = newest_image_base64
 
                 parsed_actions.append({
                     "API_name": action["name"],
@@ -239,13 +248,14 @@ def handle_tool_result(
         conversations: The current conversation history.
         model_mode (str): The mode for generating the updated prompt.
         original_prompt (Optional[str]): The original user prompt.
-        image_tool_manager (Optional[ImageToolManager]): Manager for handling image conversions.
+        input_data_item (Dict): The input data item containing images and other information.
         
     Returns:
         The updated conversation history.
     """
     edited_image = None
     new_round_prompt = original_prompt
+    image_key_info = ""
 
     if tool_result is not None:
         try:
@@ -253,11 +263,7 @@ def handle_tool_result(
             if "edited_image" in tool_result:
                 # Remove the edited image from the result and add it via the image manager.
                 edited_image = tool_result.pop("edited_image")
-                # # Note: Assumes that image_tool_manager has an 'add_image' method.
-                # image_tool_manager.add_image(edited_image)
                 # Convert the base64 string to a PIL image.
-                # if edited_image == None:
-                #     breakpoint()
                 edited_image = base64_to_pil(edited_image)
                 if input_data_item:
                     input_data_item["images"].append(edited_image)
@@ -265,6 +271,11 @@ def handle_tool_result(
             else:
                 edited_image = None
 
+            # 检查是否有图像索引信息
+            if "image_key" in tool_result:
+                image_key = tool_result.pop("image_key")
+                image_key_info = f"\nNew image available as: {image_key}"
+                
             # Extract text output from the tool result.
             tool_response_text = tool_result.get("text", None)
             # Retrieve the API name from the result (supporting multiple key names)
@@ -274,13 +285,13 @@ def handle_tool_result(
             if model_mode == "llava_plus": 
                 new_response = f"{api_name} model outputs: {tool_response_text}\n\n"
                 new_round_prompt = (
-                    f"{new_response} Please summarize the model outputs "
+                    f"{new_response}{image_key_info} Please summarize the model outputs "
                     f"and answer my first question."
                 )
             elif model_mode == "general":
                 new_response = f"OBSERVATION:\n{api_name} model outputs: {tool_response_text}\n"
                 new_round_prompt = (
-                    f"{new_response}Please summarize the model outputs "
+                    f"{new_response}{image_key_info}\nPlease summarize the model outputs "
                     f"and answer my first question."
                 )
 
@@ -290,12 +301,6 @@ def handle_tool_result(
             edited_image = None
             new_round_prompt = original_prompt
 
-    # Pop previous images since vllm only supports one image
-    # if input_data_item:
-    #     for conv in input_data_item["conversations"]:
-    #         for idx,c in enumerate(conv["content"]):
-    #             if c["type"] == "image" or c["type"] == "image_url":
-    #                 del conv["content"][idx]
     # Append the new message (with text and optional image) to the conversation history.
     updated_conversations = append_conversation_fn(
         conversation=conversations, 

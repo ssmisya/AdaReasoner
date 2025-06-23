@@ -23,6 +23,7 @@ from .utils.arguments import *
 from .utils.log_utils import get_logger, set_verbosity
 # from .utils.evaluate import evaluate_metric
 from .tool_inferencer import BaseToolInferencer
+from .tool_inferencer.api import VllmToolInferencer
 import pdb
 import re
 try:
@@ -53,6 +54,7 @@ class TFEvaluator():
             stop_token = stop_token,
             controller_addr = self.script_args.controller_addr,
         )
+
     
     def evaluate(self):
 
@@ -79,65 +81,4 @@ class TFEvaluator():
                 logger.info(f"evaluation of {task_name} completed")
                 append_jsonl(res_log, self.script_args.output_path)
             
-            # pdb.set_trace()
-            # result_data = []
-            # with open(self.task_args.resume_from_ckpt["chartgemma"], 'r', encoding='utf-8') as f:
-            #     for line in f:
-            #         result_data.append(json.loads(line))
-                
-            # if 'reachqa' in self.script_args.output_path:
-            #     ground_truth_path = '/mnt/petrelfs/share_data/suzhaochen/new_tool/Tool-Factory/test_dataset/reachqa200.json'
-            # elif 'chartgemma' in self.script_args.output_path:
-            #     ground_truth_path = '/mnt/petrelfs/share_data/suzhaochen/new_tool/Tool-Factory/test_dataset/chartgemma200.json'
-            
-            # ground_truth = dict()
-            # with open(ground_truth_path, 'r', encoding='utf-8') as f:
-            #     all_data = json.load(f)
-            # for data in all_data:
-            #     ground_truth[data['question']] = data['label'].replace('<answer> ', '').replace(' </answer>', '')
 
-            # processed_data = dict()
-            # error_cnt = 0
-            # pattern_list = [r'"actions": \[\{"name": "Terminate", "arguments": \{"ans": (.*?)\}', r'"actions": \[\{"name": "Terminate", "arguments": \{"answer": (.*?)\}']
-            # for data in result_data:
-            #     # pdb.set_trace()
-            #     try:
-            #         model_response = (data['results']['results']['conversation'][-1]['content'][0]['text'])
-            #         final_action = "{\"actions\": " + model_response.split("\"actions\": ")[1]
-            #         # print(final_action)
-            #         for pattern in pattern_list:
-            #             matches = re.findall(pattern, final_action)
-            #             if len(matches) == 1:
-            #                 pred = matches[0]
-            #                 pred = pred.replace(r'"', r'')
-            #                 processed_data[data['results']['results']['meta_data']['text']] = pred
-            #         else:
-            #             raise Exception
-
-            #     except Exception as e:
-            #         error_cnt += 1
-                    
-            # acc = 0
-            # for item in processed_data.items():
-            #     if item[0] not in ground_truth:
-            #         print('error')
-            #         continue
-            #     gold = parse('${0}$'.format(ground_truth[item[0]]))
-            #     pred = parse('${0}$'.format(item[1]))
-            #     if verify(gold, pred):
-            #         acc+=1
-            #     elif '%' in item[1][-1]:
-            #         pred = item[1][:-1:]
-            #         if '.' in pred:
-            #             pred = pred.split('.')[0]
-            #         if pred == ground_truth[item[0]]:
-            #             acc+=1
-
-            #     elif '.' in item[1]:
-            #         pred = item[1].split('.')[0]
-            #         if pred == ground_truth[item[0]]:
-            #             acc+=1
-            #     else:
-            #         pass
-            # print(acc/len(result_data))
-            

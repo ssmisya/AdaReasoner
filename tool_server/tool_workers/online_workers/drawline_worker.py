@@ -138,12 +138,12 @@ class DrawLineToolWorker(BaseToolWorker):
                             "description": "Type of line to draw: 'horizontal' or 'vertical'.",
                             "enum": ["horizontal", "vertical"]
                         },
-                        "param": {
+                        "description": {
                             "type": "string",
                             "description": "Coordinates in format 'x=\"value\"' or 'y=\"value\"'. Values can be absolute pixel values or normalized between 0-1 (automatically detected)."
                         }
                     },
-                    "required": ["image", "line_type", "param"]
+                    "required": ["image", "line_type", "description"]
                 }
             }
         }
@@ -158,16 +158,16 @@ class DrawLineToolWorker(BaseToolWorker):
             try:
                 image_data = params["image"]
                 line_type = params.get("line_type", "horizontal").lower()
-                generate_param = params.get("param", "")
+                generate_param = params.get("description", "")
                 
                 if not generate_param:
-                    raise KeyError("'param' not found in params")
+                    raise KeyError("'description' not found in params")
                     
                 if line_type not in ["horizontal", "vertical"]:
                     line_type = "horizontal"  # 默认水平线
                     
             except Exception as e:
-                message = f"Invalid parameters: expected keys: image, line_type, param. Error: {str(e)}"
+                message = f"Invalid parameters: expected keys: image, line_type, description. Error: {str(e)}"
                 pred_dict = {
                     "tool_response_from": self.model_name,
                     "status": "failed",

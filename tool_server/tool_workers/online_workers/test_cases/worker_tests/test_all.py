@@ -23,14 +23,11 @@ except ImportError:
 
 AVAILABLE_TOOLS = [
     "Point", 
-    # "draw_vertical_line",
-    # "draw_horizontal_line",
     "draw_line",  # 新增的组合工具
     "OCR",
     "SegmentRegionAroundPoint",
     "GroundingDINO",
     "Crop",
-    # "ZoomInSubfigure"
 ]
 
 def load_image(image_path):
@@ -165,13 +162,13 @@ def test_draw_line(args):
         {
             "name": "水平线",
             "line_type": "horizontal",
-            "param": "<point x=\"50.0\" y=\"45.2\" alt=\"y = 2017\">y = 2017</point>",
+            "description": "<point x=\"50.0\" y=\"45.2\" alt=\"y = 2017\">y = 2017</point>",
             "output_file": "horizontal_line_result.jpg"
         },
         {
             "name": "垂直线",
             "line_type": "vertical",
-            "param": "<point x=\"51.5\" y=\"82.0\" alt=\"x = 2017\">x = 2017</point>",
+            "description": "<point x=\"51.5\" y=\"82.0\" alt=\"x = 2017\">x = 2017</point>",
             "output_file": "vertical_line_result.jpg"
         }
     ]
@@ -182,7 +179,7 @@ def test_draw_line(args):
         datas = {
             "model": model_name,
             "line_type": test_case["line_type"],
-            "param": test_case["param"],
+            "description": test_case["description"],
             "image": img_arg,
         }
         
@@ -274,7 +271,7 @@ def test_segment_region(args):
     
     datas = {
         "model": model_name,
-        "param": "<point x=\"63.0\" y=\"46.5\" alt=\"truck in the scene\">truck in the scene</point>",
+        "description": "<point x=\"63.0\" y=\"46.5\" alt=\"truck in the scene\">truck in the scene</point>",
         "image": img_arg,
     }
     
@@ -325,7 +322,7 @@ def test_GroundingDINO(args):
     
     datas = {
         "model": model_name,
-        "description": "car",  # 使用caption或description都可以
+        "description": "car", 
         "image": img_arg,
         "box_threshold": 0.3,
         "text_threshold": 0.25,
@@ -406,7 +403,7 @@ def test_crop(args):
         
         datas = {
             "image": img_arg,
-            "param": crop_coordinates
+            "description": crop_coordinates
         }
         
         tic = time.time()

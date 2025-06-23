@@ -13,8 +13,8 @@ Steps for Each Turn
 Output Format  
 <think> Your thoughts and reasoning </think>  
 <tool_call>  
-{"name": "Tool name", "parameters": {"Parameter name": "Parameter content", "…": "…"}}  
-{"name": "…", "parameters": {"… …": "… …", "… …": "… …"}}  
+{{"name": "Tool name", "parameters": {{"Parameter name": "Parameter content", "…": "…"}}}}  
+{{"name": "…", "parameters": {{"… …": "… …", "… …": "… …"}}}}  
 …  
 </tool_call>  
 <response> Your final response </response>
@@ -28,7 +28,7 @@ Important Notes
 The index "n" in "img_n" refers to the image's position in the dialogue history:
 - The original image is always referred to as "img_1".
 - Each subsequent image, including those returned from tools, is assigned "img_2", "img_3", and so on, in the order they appear in the dialogue.
-For example:{"parameters": {"image": "img_1", "other_params": "other_values"}}
+For example:{{"parameters": {{"image": "img_1", "other_params": "other_values"}}}}
 """
 
 
@@ -46,76 +46,208 @@ Notes:
 """
 
 ocr_instruction = """
-OCR: 
-Extracts all texts from an image. 
-Input: The image that you want to apply OCR. 
-Output: All texts that appear on the input image. 
-Format Requirement: `{"name": "OCR", "arguments": {"image": "img_1"}}`
-Example: `{"name": "OCR", "arguments": {"image": "img_1"}}`
+        {
+            "type": "function",
+            "function": {
+                "name": "OCR",
+                "description": "Extracts and localizes text from the given image using OCR. Returns bounding boxes, recognized text, and confidence scores.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "image": {
+                            "type": "string",
+                            "description": "The identifier or base64-encoded image content in which to detect text, e.g., 'img_1' or base64 string."
+                        }
+                    },
+                    "required": ["image"]
+                }
+            }
+        }
 """
 
-point_instruction = """
-Point:
-Identifies a point in the image based on description and returns coordinates. 
-Input: The image that you want to point at and the description of the point location.
-Output: Coordinates of the point in the image.
-Format Requirement: `{"name": "Point", "arguments": {"image": "img_1", "param": "The description that you want to point at."}}`
-Example: `{"name": "Point", "arguments": {"image": "img_1", "param": "A dog."}}`
-"""
+point_instruction = '''
+        {
+            "type": "function",
+            "function": {
+                "name": "Point",
+                "description": "Identify a point in the image based on a natural language description.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "image": {
+                            "type": "string",
+                            "description": "The identifier or path of the image in which to locate the point, e.g., 'img_1'."
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "A natural language description of the point of interest, e.g., 'the dog's nose', 'center of the clock', 'the tallest tree'."
+                        }
+                    },
+                    "required": ["image", "description"]
+                }
+            }
+        }
+'''
 
-segment_around_point_instruction = """
-SegmentRegionAroundPoint:
-Segments a region around a given point. 
-Input: The image that you want to segement and the point coordinate of the point that you want to segment near.
-Output: The segemented image.
-Format Requirement: `{"name": "SegmentRegionAroundPoint", "arguments": {"image": "img_1", "param": "x=the x coordinate of the point y=the y coordinate of the point"}}`
-Example: `{"name": "SegmentRegionAroundPoint", "arguments": {"image": "img_1", "param": "x=21.5 y=28.5"}}`
-"""
+segment_around_point_instruction = '''
+        {
+            "type": "function",
+            "function": {
+                "name": "SegmentRegionAroundPoint",
+                "description": "Segment the region around a given point in the image.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "image": {
+                            "type": "string",
+                            "description": "The base64 encoded image or path to the image file."
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "The point coordinates in format 'x=50 y=50' (as percentage of image dimensions)."
+                        }
+                    },
+                    "required": ["image", "description"]
+                }
+            }
+        }
+'''
 
-drawhorizontal_line_instruction = """
-DrawHorizontalLineByY:
-Draws a horizontal line at a given y-coordinate.
-Input: The image that you want to draw a horizontal line on and the y-coordinate of the line.
-Output: The image with a horizontal line drawn.
-Format Requirement: `{"name": "DrawHorizontalLineByY", "arguments": {"image": "img_1", "param": "y=the y coordinate of the line"}}`
-Example: `{"name": "DrawHorizontalLineByY", "arguments": {"image": "img_1", "param": "y=28.5"}}`
-"""
+drawn_line_instruction = '''
+        {
+            "type": "function",
+            "function": {
+                "name": "DrawLine",
+                "description": "Draw horizontal or vertical lines on an image.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "image": {
+                            "type": "string",
+                            "description": "The identifier or path of the image to draw on, or base64 encoded image data."
+                        },
+                        "line_type": {
+                            "type": "string",
+                            "description": "Type of line to draw: 'horizontal' or 'vertical'.",
+                            "enum": ["horizontal", "vertical"]
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "Coordinates in format 'x=\"value\"' or 'y=\"value\"'. Values can be absolute pixel values or normalized between 0-1 (automatically detected)."
+                        }
+                    },
+                    "required": ["image", "line_type", "description"]
+                }
+            }
+        }
+'''
 
-drawvertical_line_instruction = """
-DrawVerticalLineByX:
-Draws a vertical line at a given x-coordinate.
-Input: The image that you want to draw a vertical line on and the x-coordinate of the line.
-Output: The image with a vertical line drawn.
-Format Requirement: `{"name": "DrawVerticalLineByX", "arguments": {"image": "img_1", "param": "x=the x coordinate of the line"}}`
-Example: `{"name": "DrawVerticalLineByX", "arguments": {"image": "img_1", "param": "x=21.5"}}`
-"""
+grounding_dino_instruction = '''
+        {
+            "type": "function",
+            "function": {
+                "name": "GroundingDINO",
+                "description": "Locate objects in the image based on a natural language description.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "image": {
+                            "type": "string",
+                            "description": "The identifier or path of the image in which to locate the object, e.g., 'img_1'."
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "A natural language description of the object to locate, e.g., 'a red car', 'a man holding a dog'."
+                        }
+                    },
+                    "required": ["image", "description"]
+                }
+            }
+        }
+'''
 
-grounding_dino_instruction = """
-GroundingDINO:
-Locates objects in the image based on a description.
-Input: The image that you want to locate objects in and the description of the object.
-Output: The coordinates of the located object in the image.
-Format Requirement: `{"name": "GroundingDINO", "arguments": {"image": "img_1", "param": "The description of the object you want to locate."}}`
-Example: `{"name": "GroundingDINO", "arguments": {"image": "img_1", "param": "A Dog"}}`
-"""
-
-terminate_instruction = """
-Terminate:
-Ends the task and provides the final answer.
-Input: The final answer to the task.
-Output: No outputs.
-Format Requirement: `{"name": "Terminate", "arguments": {"ans": "The final answer"}}`
-Example: `{"name": "Terminate", "arguments": {"ans": "1985"}}`
-"""
 
 tool_desc_dict = dict(
    OCR=ocr_instruction,
    Point=point_instruction,
    SegmentRegionAroundPoint=segment_around_point_instruction,
-   DrawHorizontalLineByY=drawhorizontal_line_instruction,
-   DrawVerticalLineByX=drawvertical_line_instruction,
+   DrawLine=drawn_line_instruction,
    GroundingDINO=grounding_dino_instruction,
-   Terminate=terminate_instruction,
-   all=f"{ocr_instruction}\n{point_instruction}\n{segment_around_point_instruction}\n{drawhorizontal_line_instruction}\n{drawvertical_line_instruction}\n{grounding_dino_instruction}\n{terminate_instruction}",
+#    Terminate=terminate_instruction, # 根据prompt一个就不需要这个东西了吧
+   all=f"{ocr_instruction}\n{point_instruction}\n{segment_around_point_instruction}\n{drawn_line_instruction}\n{grounding_dino_instruction}",
 )
+
+# 格式化 tool_planning_model_prompt
+# 在vllm_models中被使用
+tool_planning_model_prompt = tool_planning_model_prompt.format(tool_list=tool_desc_dict['all'])
+
+# print(tool_planning_model_prompt)
+
+
+
+
+
+# ocr_instruction = """
+# OCR: 
+# Extracts all texts from an image. 
+# Input: The image that you want to apply OCR. 
+# Output: All texts that appear on the input image. 
+# Format Requirement: `{"name": "OCR", "arguments": {"image": "img_1"}}`
+# Example: `{"name": "OCR", "arguments": {"image": "img_1"}}`
+# """
+
+# point_instruction = """
+# Point:
+# Identifies a point in the image based on description and returns coordinates. 
+# Input: The image that you want to point at and the description of the point location.
+# Output: Coordinates of the point in the image.
+# Format Requirement: `{"name": "Point", "arguments": {"image": "img_1", "param": "The description that you want to point at."}}`
+# Example: `{"name": "Point", "arguments": {"image": "img_1", "param": "A dog."}}`
+# """
+
+# segment_around_point_instruction = """
+# SegmentRegionAroundPoint:
+# Segments a region around a given point. 
+# Input: The image that you want to segement and the point coordinate of the point that you want to segment near.
+# Output: The segemented image.
+# Format Requirement: `{"name": "SegmentRegionAroundPoint", "arguments": {"image": "img_1", "param": "x=the x coordinate of the point y=the y coordinate of the point"}}`
+# Example: `{"name": "SegmentRegionAroundPoint", "arguments": {"image": "img_1", "param": "x=21.5 y=28.5"}}`
+# """
+
+# drawhorizontal_line_instruction = """
+# DrawHorizontalLineByY:
+# Draws a horizontal line at a given y-coordinate.
+# Input: The image that you want to draw a horizontal line on and the y-coordinate of the line.
+# Output: The image with a horizontal line drawn.
+# Format Requirement: `{"name": "DrawHorizontalLineByY", "arguments": {"image": "img_1", "param": "y=the y coordinate of the line"}}`
+# Example: `{"name": "DrawHorizontalLineByY", "arguments": {"image": "img_1", "param": "y=28.5"}}`
+# """
+
+# drawvertical_line_instruction = """
+# DrawVerticalLineByX:
+# Draws a vertical line at a given x-coordinate.
+# Input: The image that you want to draw a vertical line on and the x-coordinate of the line.
+# Output: The image with a vertical line drawn.
+# Format Requirement: `{"name": "DrawVerticalLineByX", "arguments": {"image": "img_1", "param": "x=the x coordinate of the line"}}`
+# Example: `{"name": "DrawVerticalLineByX", "arguments": {"image": "img_1", "param": "x=21.5"}}`
+# """
+
+# grounding_dino_instruction = """
+# GroundingDINO:
+# Locates objects in the image based on a description.
+# Input: The image that you want to locate objects in and the description of the object.
+# Output: The coordinates of the located object in the image.
+# Format Requirement: `{"name": "GroundingDINO", "arguments": {"image": "img_1", "param": "The description of the object you want to locate."}}`
+# Example: `{"name": "GroundingDINO", "arguments": {"image": "img_1", "param": "A Dog"}}`
+# """
+
+# terminate_instruction = """
+# Terminate:
+# Ends the task and provides the final answer.
+# Input: The final answer to the task.
+# Output: No outputs.
+# Format Requirement: `{"name": "Terminate", "arguments": {"ans": "The final answer"}}`
+# Example: `{"name": "Terminate", "arguments": {"ans": "1985"}}`
+# """
+
 

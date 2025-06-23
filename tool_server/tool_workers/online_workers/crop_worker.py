@@ -49,12 +49,12 @@ class CropToolWorker(BaseToolWorker):
                             "type": "string",
                             "description": "The identifier or path of the image to crop, or base64 encoded image data."
                         },
-                        "param": {
+                        "description": {
                             "type": "string",
                             "description": "Coordinates in format '[x_min, y_min, x_max, y_max]'. Can be absolute pixel values (integers) or normalized values between 0 and 1 (floats)."
                         }
                     },
-                    "required": ["image", "param"]
+                    "required": ["image", "description"]
                 }
             }
         }
@@ -68,12 +68,12 @@ class CropToolWorker(BaseToolWorker):
             # 提取输入参数
             try:
                 image_data = params["image"]
-                crop_param = params.get("param", "")
+                crop_param = params.get("description", "")
                 
                 if not crop_param:
-                    raise KeyError("'param' not found in params")
+                    raise KeyError("'description' not found in params")
             except Exception as e:
-                message = f"Invalid parameters: expected keys: image, param. Error: {str(e)}"
+                message = f"Invalid parameters: expected keys: image, description. Error: {str(e)}"
                 pred_dict = {
                     "tool_response_from": self.model_name,
                     "status": "failed",
@@ -149,25 +149,7 @@ class CropToolWorker(BaseToolWorker):
                         "image_dimensions_pixels": {
                             "width": cropped_image.width,
                             "height": cropped_image.height
-                        },
-                        # "crop_coordinates": {
-                        #     "x_min": x_min,
-                        #     "y_min": y_min,
-                        #     "x_max": x_max,
-                        #     "y_max": y_max,
-                        #     "normalized": normalized,
-                        #     "normalized_coords": {
-                        #         "x_min": x_min / image.width,
-                        #         "y_min": y_min / image.height,
-                        #         "x_max": x_max / image.width,
-                        #         "y_max": y_max / image.height
-                        #     } if not normalized else {
-                        #         "x_min": crop_coords[0],
-                        #         "y_min": crop_coords[1],
-                        #         "x_max": crop_coords[2],
-                        #         "y_max": crop_coords[3]
-                        #     }
-                        # }
+                        }
                     }
                     
                     return pred_dict

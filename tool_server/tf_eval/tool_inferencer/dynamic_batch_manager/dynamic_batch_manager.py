@@ -37,11 +37,11 @@ class DynamicBatchManager():
         self.generate_conversation_fn = generate_conversation_fn
     
     def extract_final_answer(self, final_response: str):
-        res_prefix = "{\"name\": \"Terminate\", \"arguments\": {\"ans\":"
-        res_postfix = "}"
-        temp = final_response.split(res_prefix)[-1].strip()
-        res = temp.split(res_postfix)[0].strip()
-        return res
+        # 根据新的prompt格式，最终答案在<response>标签中
+        if "<response>" in final_response and "</response>" in final_response:
+            # 提取<response>标签中的内容
+            response_content = final_response.split("<response>")[-1].split("</response>")[0].strip()
+            return response_content
     
         
     def pop_qualified_items(self):
@@ -100,14 +100,21 @@ class DynamicBatchManager():
     # Caution: Only model.generate can call this function
     def update_item_status(self):
         for item in self.dynamic_batch:
+            # 检查回答中是否包含<response>....</response>格式内容
+            has_response_tag = False
+            if item.model_response and "<response>" in item.model_response[-1] and "</response>" in item.model_response[-1]:
+                has_response_tag = True
+                
             if item.status == "pending":
-                if item.current_round == item.max_rounds or "Terminate" in item.model_response[-1]:
+                # 达到max_rounds或者回答中含有<response>....</response>
+                if item.current_round == item.max_rounds or has_response_tag:
                     item.status = "finished"
                 else:
                     item.current_round += 1
                     item.status = "processing"
             elif item.status == "processing":
-                if item.current_round == item.max_rounds or "Terminate" in item.model_response[-1]:
+                # 达到max_rounds或者回答中含有<response>....</response>
+                if item.current_round == item.max_rounds or has_response_tag:
                     item.status = "finished"
                 else:
                     item.current_round += 1

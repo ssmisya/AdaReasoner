@@ -145,12 +145,12 @@ class SAMAroundPointWorker(BaseToolWorker):
                             "type": "string",
                             "description": "The base64 encoded image or path to the image file."
                         },
-                        "param": {
+                        "description": {
                             "type": "string",
                             "description": "The point coordinates in format 'x=50 y=50' (as percentage of image dimensions)."
                         }
                     },
-                    "required": ["image", "param"]
+                    "required": ["image", "description"]
                 }
             }
         }
@@ -189,11 +189,11 @@ class SAMAroundPointWorker(BaseToolWorker):
             # Extract inputs
             try:
                 image_data = params["image"]
-                point_param = params.get("param", "")
+                point_param = params.get("description", "")
                 if not point_param:
-                    raise KeyError("Required parameter 'param' not found in params")
+                    raise KeyError("Required parameter 'description' not found in params")
             except Exception as e:
-                message = f"Invalid parameters: expected keys: image, param. Error: {str(e)}"
+                message = f"Invalid parameters: expected keys: image, description. Error: {str(e)}"
                 return {
                     "tool_response_from": self.model_name,
                     "status": "failed",

@@ -1,3 +1,9 @@
+'''
+适配了工具接口
+实现了使用img_1进行索引
+但是应该round只能使用一个工具
+'''
+
 import torch
 from torch.utils.data import DataLoader,Dataset
 from accelerate import Accelerator
@@ -6,12 +12,14 @@ import re
 import copy
 import json
 
+
 from ..models.abstract_model import tp_model
 from .dynamic_batch_manager import DynamicBatchManager
 from ..utils.utils import *
 from ..utils.log_utils import get_logger
 from ...tool_workers.tool_manager.base_manager import ToolManager
 import torch.distributed as dist
+from dataclasses import asdict
 
 logger = get_logger(__name__)
 
@@ -29,6 +37,7 @@ class BaseToolInferencer(object):
         max_rounds: int = 3,  # 最大对话轮数
         stop_token: str = "<stop>",  # 停止标记
         controller_addr: str = "http://SH-IDCA1404-10-140-54-2:20001",  # 控制器地址
+        use_tool: bool = True,  # 是否使用工具
     ):
         # 初始化加速器
         self.accelerator = Accelerator()
@@ -47,6 +56,7 @@ class BaseToolInferencer(object):
         self.max_rounds = max_rounds
         self.stop_token = stop_token
         self.controlller_addr = controller_addr
+        self.use_tool = use_tool
         # 初始化动态批处理管理器
         self.manager = DynamicBatchManager(
             batch_size=self.batch_size, 
@@ -70,7 +80,6 @@ class BaseToolInferencer(object):
         """
         current_batch = self.manager.get_current_batch()
         
-        next_round_prompt = []
         for idx,item in enumerate(current_batch):
             # 跳过未处理或状态不是processing的项目
             if item.model_response is None or item.status != "processing":
@@ -137,6 +146,7 @@ class BaseToolInferencer(object):
                 new_round_prompt = original_prompt
             
             # 创建新轮次输入并添加到项目中
+            # 将图片也添加到new_round_input中
             new_round_input = dict(text=new_round_prompt,image=edited_image)
             item.new_round_input.append(new_round_input)
             # 将新输入添加到对话中
@@ -166,7 +176,7 @@ class BaseToolInferencer(object):
                 self.image_history[item_id] = {
                     "img_1": item.meta_data.get("image", None)
                 }
-                # 如果有当前图像，也将其添加到历史
+                # 如果有current_image，也将其添加到历史
                 if item.current_image is not None and "img_2" not in self.image_history[item_id]:
                     self.image_history[item_id]["img_2"] = item.current_image
 
@@ -298,7 +308,7 @@ class BaseToolInferencer(object):
                     json_obj = json.loads(tool_call_content)
                     if "name" in json_obj and "parameters" in json_obj:
                         return [json_obj]
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
                 pass
             
             # 如果上述方法失败，尝试提取单个JSON对象
@@ -341,6 +351,8 @@ class BaseToolInferencer(object):
             try:
                 # 根据模型模式解析工具配置
                 if self.model_mode == "general":
+                    # 添加调试信息
+                    
                     # 提取工具调用信息
                     tool_calls = self.extract_tool_call(model_response)
                     
@@ -360,24 +372,6 @@ class BaseToolInferencer(object):
                     else:
                         # 如果没有提取到工具调用，设置工具配置为None
                         tool_cfg = None
-                    
-                # # 以下这个if不会被运行
-                # if self.model_mode == "llava_plus":
-                #     # 使用正则表达式匹配llava_plus模式的响应格式
-                #     pattern = r'"thoughts🤔"(.*)"actions🚀"(.*)"value👉"(.*)'
-                #     matches = re.findall(pattern, model_response, re.DOTALL)
-                #     if len(matches) > 0:
-                #         try:
-                #             # 尝试解析JSON字符串
-                #             tool_cfg = json.loads(matches[0][1].strip())
-                #         except Exception as e:
-                #             # 如果解析失败，尝试替换单引号为双引号后再解析
-                #             tool_cfg = json.loads(
-                #                 matches[0][1].strip().replace("\'", "\""))
-                #         logger.info(f"tool_cfg: {tool_cfg}")
-                #     else:
-                #         # 如果没有匹配到模式，设置工具配置为None
-                #         tool_cfg = None
             except Exception as e:
                 # 异常处理：如果解析工具配置时出错，记录错误并设置工具配置为None
                 logger.info(f"Failed to parse tool config: {e}.")
@@ -385,7 +379,42 @@ class BaseToolInferencer(object):
                 
             # 将工具配置添加到数据项中
             item.tool_cfg.append(tool_cfg)
-
+            
+    def pop_qualified_items(self):
+        """
+        弹出符合条件的项目
+        返回已完成处理的项目，并从当前批次中移除它们
+        同时清理对应的image_history
+        """
+        res = []
+        new_batch = []
+        removed_item_ids = []
+        
+        for idx, item in enumerate(self.manager.get_current_batch()):
+            if item.status == "finished":
+                item_dict = asdict(item)
+                item_dict = remove_pil_objects(item_dict)
+                
+                final_model_output = item_dict["model_response"][-1]
+                final_answer = self.manager.extract_final_answer(final_model_output)
+                item_dict["final_answer"] = final_answer
+                
+                # 记录要移除的item_id
+                item_id = item_dict["meta_data"].get("idx", str(id(item)))
+                removed_item_ids.append(item_id)
+                
+                res.append(item_dict)
+            else:
+                new_batch.append(item)
+        
+        # 清理已完成项目的image_history
+        for item_id in removed_item_ids:
+            if item_id in self.image_history:
+                del self.image_history[item_id]
+                logger.info(f"Cleaned up image history for item {item_id}")
+        
+        self.manager.dynamic_batch = new_batch
+        return res
     
     def batch_inference(self, dataset):
         """
@@ -433,7 +462,7 @@ class BaseToolInferencer(object):
         while len(current_batch) > 0:
             try:
                 # 弹出所有已完成处理的项目
-                results = self.manager.pop_qualified_items()
+                results = self.pop_qualified_items()
                 # 将结果存储到数据集中
                 for res in results:
                     idx = res["meta_data"]["idx"]
@@ -464,5 +493,4 @@ class BaseToolInferencer(object):
         # 如果不使用vLLM模型，等待所有进程完成
         if not 'vllm_models' in str(type(self.tp_model)):
             self.accelerator.wait_for_everyone()
-    
     

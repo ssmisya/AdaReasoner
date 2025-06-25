@@ -47,23 +47,44 @@ class SAMAroundPointArguments(WorkerArguments):
     )
 
 def extract_points(generate_param, image_w, image_h):
-    all_points = []
-    pattern = r'x\d*=\s*\\?"?([0-9]+(?:\.[0-9]*)?)\\?"?\s*y\d*=\s*\\?"?([0-9]+(?:\.[0-9]*)?)\\?"?'
+    """Extract a single point from the description. Only accepts one point in format 'x=50, y=50'."""
+    # 支持的格式：
+    # x=50, y=50 (绝对坐标)
     
-    for match in re.finditer(pattern, generate_param):
-        try:
-            point = [float(match.group(i)) for i in range(1, 3)]
-        except ValueError:
-            continue
+    # 格式：x=50, y=50 (绝对坐标)
+    pattern_absolute = r'x\s*=\s*([0-9]+(?:\.[0-9]*)?)\s*,\s*y\s*=\s*([0-9]+(?:\.[0-9]*)?)' 
+  
+    try:
+        # 尝试匹配绝对坐标格式
+        matches = list(re.finditer(pattern_absolute, generate_param))
+        if not matches:
+            raise ValueError("Invalid point coordinates format. Please use the format 'x=50, y=50' with absolute coordinates.")
+        
+        # 只取第一个匹配，忽略其他可能的点
+        if len(matches) > 1:
+            logger.warning(f"Multiple points detected. Only the first point will be used.")
+            
+        match = matches[0]
+        x = float(match.group(1))
+        y = float(match.group(2))
+        
+        # 检查坐标是否在图像范围内
+        if 0 <= x < image_w and 0 <= y < image_h:
+            return np.array([[x, y]])
         else:
-            point = np.array(point)
-            if np.max(point) > 100:
-                continue
-            point /= 100.0
-            point = point * np.array([image_w, image_h])
-            all_points.append(point)
-    
-    return all_points
+            # 坐标超出图像范围
+            raise ValueError(f"Point coordinates ({x}, {y}) out of image bounds ({image_w}x{image_h})")
+            
+    except Exception as e:
+        message = f"Invalid point coordinates format. Please use the format 'x=50, y=50' with absolute coordinates. Error: {str(e)}"
+        pred_dict = {
+            "tool_response_from": "SegmentRegionAroundPoint",
+            "status": "failed",
+            "message": message,
+        }
+        return pred_dict
+
+    return []
 
 def show_mask(mask, ax, random_color=False, borders = True):
     if random_color:
@@ -100,7 +121,7 @@ def show_masks(image, masks, scores, point_coords=None, box_coords=None, input_l
         image_format = 'png'
     
     for i, (mask, score) in enumerate(zip(masks, scores)):
-        show_mask(mask, ax, borders=borders)
+        show_mask(mask, ax, random_color=True, borders=borders)
         if len(scores) > 1:
             ax.set_title(f"Mask {i+1}, Score: {score:.3f}", fontsize=18)
     
@@ -121,6 +142,32 @@ def show_masks(image, masks, scores, point_coords=None, box_coords=None, input_l
     
     return edited_image
 
+def segment_everything(predictor, img):
+    """对整个图像进行自动分割，无需输入点坐标"""
+    # 获取图像尺寸
+    height, width = np.array(img).shape[:2]
+    
+    # 自动分割模式
+    masks, scores, _ = predictor.predict(
+        point_coords=None,
+        point_labels=None,
+        box=None,
+        multimask_output=True,  # 返回多个掩码
+    )
+    
+    # 根据分数对掩码进行排序
+    if len(masks) > 0:
+        indices = np.argsort(-scores)  # 按分数降序排序
+        masks = masks[indices]
+        scores = scores[indices]
+        
+        # 限制返回的掩码数量（避免过多）
+        max_masks = min(5, len(masks))  # 最多显示5个掩码
+        masks = masks[:max_masks]
+        scores = scores[:max_masks]
+    
+    return masks, scores
+
 class SAMAroundPointWorker(BaseToolWorker):
     def __init__(self, worker_arguments: SAMAroundPointArguments = None):
         # 在调用父类初始化前先设置模型名称和必要的属性
@@ -137,23 +184,25 @@ class SAMAroundPointWorker(BaseToolWorker):
             "type": "function",
             "function": {
                 "name": self.model_name,
-                "description": "Segment the region around a given point in the image.",
+                "description": "Segments objects in an image. Can perform automatic segmentation on the entire image or segment a specific object based on a single designated point. Returns the image with segmentation masks and related processing info.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "image": {
                             "type": "string",
-                            "description": "The base64 encoded image or path to the image file."
+                            "description": "The identifier of the image in which to locate the object, e.g., 'img_1'."
                         },
                         "description": {
                             "type": "string",
-                            "description": "The point coordinates in format 'x=50 y=50' (as percentage of image dimensions)."
+                            "description": "Optional: Single point coordinates in format 'x=value1, y=value2', eg., 'x=50, y=100'. Using absolute pixel coordinates within image bounds. If not provided, the tool will automatically segment all objects in the image."
                         }
                     },
                     "required": ["image", "description"]
                 }
             }
         }
+
+
 
     def init_model(self):
         logger.info(f"Initializing model {self.model_name}...")
@@ -190,10 +239,8 @@ class SAMAroundPointWorker(BaseToolWorker):
             try:
                 image_data = params["image"]
                 point_param = params.get("description", "")
-                if not point_param:
-                    raise KeyError("Required parameter 'description' not found in params")
             except Exception as e:
-                message = f"Invalid parameters: expected keys: image, description. Error: {str(e)}"
+                message = f"Invalid parameters: expected key: image. Error: {str(e)}"
                 return {
                     "tool_response_from": self.model_name,
                     "status": "failed",
@@ -210,27 +257,42 @@ class SAMAroundPointWorker(BaseToolWorker):
                 width, height = img.size
                 self.predictor.set_image(img)
 
-                # Extract points from input parameters
-                points = extract_points(point_param, width, height)
+                # 检查是否有点坐标
+                point_result = extract_points(point_param, width, height) if point_param else []
+                
+                # 如果extract_points返回了错误信息（字典类型）
+                if isinstance(point_result, dict) and point_result.get("status") == "failed":
+                    return point_result
+                
+                # 处理提取的点
+                points = point_result
 
-                if not points:
-                    return {
-                        "tool_response_from": self.model_name,
-                        "status": "failed",
-                        "message": "No valid points extracted from the parameters."
-                    }
-
-                # Run segmentation
-                input_labels = np.ones(len(points))
-                masks, scores, _ = self.predictor.predict(
-                    point_coords=points,
-                    point_labels=input_labels,
-                    box=None,
-                    multimask_output=False,
-                )
-
-                # Generate the visualization
-                edited_img = show_masks(img, masks, scores, point_coords=np.array(points), input_labels=input_labels)
+                if len(points) > 0:
+                    # 有点坐标，执行点周围区域分割
+                    input_labels = np.ones(len(points))
+                    masks, scores, _ = self.predictor.predict(
+                        point_coords=points,
+                        point_labels=input_labels,
+                        box=None,
+                        multimask_output=False,
+                    )
+                    
+                    # 生成可视化结果
+                    edited_img = show_masks(img, masks, scores, point_coords=points, input_labels=input_labels)
+                else:
+                    # 没有点坐标，执行整图分割
+                    logger.info("No point coordinates provided, performing automatic segmentation on the entire image.")
+                    masks, scores = segment_everything(self.predictor, img)
+                    
+                    if len(masks) == 0:
+                        return {
+                            "tool_response_from": self.model_name,
+                            "status": "failed",
+                            "message": "Automatic segmentation did not produce any valid masks."
+                        }
+                    
+                    # 生成带有所有分割掩码的可视化结果
+                    edited_img = show_masks(img, masks, scores, borders=True)
                 
                 # Prepare the response
                 buffered = BytesIO()
@@ -238,7 +300,8 @@ class SAMAroundPointWorker(BaseToolWorker):
                 edited_img.save(buffered, format=image_format)
                 img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
                 
-                return {
+                # 准备响应
+                response = {
                     "tool_response_from": self.model_name,
                     "status": "success",
                     "edited_image": img_str,
@@ -247,6 +310,22 @@ class SAMAroundPointWorker(BaseToolWorker):
                         "height": height
                     },
                 }
+                
+                # 添加分割模式信息
+                if len(points) > 0:
+                    response["segmentation_mode"] = "point_based"
+                    
+                    # 添加使用的点坐标（绝对坐标）
+                    point = points[0]  # 只有一个点
+                    response["point_used"] = {
+                        "x": float(point[0]),
+                        "y": float(point[1])
+                    }
+                else:
+                    response["segmentation_mode"] = "automatic"
+                    response["mask_count"] = len(masks)
+                
+                return response
                 
             except Exception as e:
                 return {

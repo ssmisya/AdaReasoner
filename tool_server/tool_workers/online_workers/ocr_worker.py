@@ -42,7 +42,7 @@ class OCRToolWorker(BaseToolWorker):
                     "properties": {
                         "image": {
                             "type": "string",
-                            "description": "The identifier or base64-encoded image content in which to detect text, e.g., 'img_1' or base64 string."
+                            "description": "The identifier of the image in which to locate the object, e.g., 'img_1'."
                         }
                     },
                     "required": ["image"]

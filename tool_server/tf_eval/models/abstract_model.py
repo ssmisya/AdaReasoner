@@ -7,6 +7,7 @@ from functools import partial
 from ...utils.utils import *
 from ...utils.server_utils import *
 from ..tool_inferencer.dynamic_batch_manager import DynamicBatchItem
+from PIL import Image as PILImage
 
 import uuid
 
@@ -22,7 +23,9 @@ T = TypeVar("T", bound="tp_model")
 class tp_model(abc.ABC):
     def __init__(
         self,
+        use_tool: bool = True,
     ):
+        self.use_tool = use_tool
         pass
     
     def to(self, *args, **kwargs):
@@ -61,7 +64,7 @@ class tp_model(abc.ABC):
         if "image" in item:
             image = item["image"]
         elif "image_path" in item:
-            image = Image.open(item["image_path"])
+            image = PILImage.open(item["image_path"])
         else:
             raise ValueError("Item must contain 'image' or 'image_path' key.")
         

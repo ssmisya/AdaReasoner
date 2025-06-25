@@ -244,22 +244,27 @@ class GroundingDinoWorker(BaseToolWorker):
             boxes, logits, phrases = self.nms(boxes, logits, phrases)
             boxes = box_ops.box_cxcywh_to_xyxy(boxes)
 
-            # Format output
-            boxes_list = [[round(x, 2) for x in box] for box in boxes.tolist()]
-            logits_list = [round(x, 2) for x in logits.tolist()]
+            # 过滤低于box_threshold的检测结果
+            valid_indices = [i for i, logit in enumerate(logits.tolist()) if logit >= box_threshold]
+            filtered_boxes = boxes[valid_indices]
+            filtered_logits = logits[valid_indices]
+            filtered_phrases = [phrases[i] for i in valid_indices]
 
             h, w, _ = image_np.shape
     
-            detect_res_num = len(boxes_list)
+            detect_res_num = len(filtered_boxes)
             detections = []
             for detect_res_idx in range(detect_res_num):
-                x_min = int(boxes_list[detect_res_idx][0] * w)
-                y_min = int(boxes_list[detect_res_idx][1] * h)
-                x_max = int(boxes_list[detect_res_idx][2] * w)
-                y_max = int(boxes_list[detect_res_idx][3] * h)
+                box = filtered_boxes[detect_res_idx].tolist()
+                x_min = int(box[0] * w)
+                y_min = int(box[1] * h)
+                x_max = int(box[2] * w)
+                y_max = int(box[3] * h)
+                # 确保confidence保留两位小数
+                confidence = round(filtered_logits[detect_res_idx].item(), 2)
                 detections.append({
-                    "label": phrases[detect_res_idx],
-                    "confidence": logits_list[detect_res_idx],
+                    "label": filtered_phrases[detect_res_idx],
+                    "confidence": confidence,
                     "bbox": {
                         "x_min": x_min,
                         "y_min": y_min,
@@ -268,8 +273,8 @@ class GroundingDinoWorker(BaseToolWorker):
                     }
                 })
             
-            # 生成带有边界框的图像
-            annotated_image = self.annotate_image(image_np, boxes.tolist(), logits.tolist(), phrases)
+            # 生成带有边界框的图像 - 使用过滤后的结果
+            annotated_image = self.annotate_image(image_np, filtered_boxes.tolist(), filtered_logits.tolist(), filtered_phrases)
             annotated_image_base64 = self.image_to_base64(annotated_image)
             
             pred_dict = {

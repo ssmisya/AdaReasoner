@@ -107,7 +107,13 @@ def DrawLine(image, point_coords=None, line_type="horizontal"):
     if image_format not in ['png', 'jpeg', 'jpg']:
         image_format = 'png'
         
-    fig, ax = plt.subplots()
+    # 获取原始图像尺寸
+    width, height = image.size
+        
+    # 创建具有固定尺寸的图形
+    dpi = 100
+    figsize = (width / dpi, height / dpi)
+    fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
     ax.imshow(image)
     ax.axis("off")
     
@@ -121,12 +127,23 @@ def DrawLine(image, point_coords=None, line_type="horizontal"):
             if 0 <= x < image.width:
                 ax.axvline(x=x, color='#e6194b', linewidth=2, linestyle='dashed')
     
+    # 设置图形范围以匹配原始图像
+    ax.set_xlim(0, width)
+    ax.set_ylim(height, 0)  # 注意y轴方向是反的
+    
+    # 移除所有边距
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+    
     buf = BytesIO()
-    fig.savefig(buf, format=image_format, bbox_inches='tight', pad_inches=0)  
+    fig.savefig(buf, format=image_format, bbox_inches='tight', pad_inches=0, dpi=dpi)  
     plt.close(fig) 
     buf.seek(0)
     
     edited_image = Image.open(buf).convert("RGB")
+    
+    # 确保输出图像尺寸与输入相同
+    if edited_image.size != (width, height):
+        edited_image = edited_image.resize((width, height), Image.LANCZOS)
     
     return edited_image
 

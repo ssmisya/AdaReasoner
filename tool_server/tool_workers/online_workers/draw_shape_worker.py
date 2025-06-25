@@ -38,10 +38,8 @@ class DrawShapeWorker(BaseToolWorker):
             "type": "function",
             "function": {
                 "name": "DrawShape",
-                "description": (
-                    "Draw geometric shapes (rectangle, ellipse, or circle) with red borders at specified bounding box locations on the image. "
-                    "Returns the edited image in base64 format."
-                ),
+                "description": 
+                    "Draw geometric shapes (rectangle, ellipse, or circle) with red borders at specified bounding box locations on the image. Returns the edited image in base64 format.",
                 "parameters": {
                     "type": "object",
                     "properties": {

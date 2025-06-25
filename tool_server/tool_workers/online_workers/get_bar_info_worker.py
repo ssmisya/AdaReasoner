@@ -38,10 +38,8 @@ class GetBarInfoWorker(BaseToolWorker):
             "type": "function",
             "function": {
                 "name": "GetBarInfo",
-                "description": (
-                    "Extract bounding boxes of all bars in the image along with their corresponding axis titles or labels. "
-                    "Returns a dictionary mapping each label to its bounding box."
-                ),
+                "description": 
+                    "Extract bounding boxes of all bars in the image along with their corresponding axis titles or labels. Returns a dictionary mapping each label to its bounding box.",
                 "parameters": {
                     "type": "object",
                     "properties": {

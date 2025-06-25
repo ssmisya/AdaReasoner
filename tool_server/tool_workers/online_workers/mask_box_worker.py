@@ -39,10 +39,8 @@ class MaskBoxWorker(BaseToolWorker):
             "type": "function",
             "function": {
                 "name": "MaskBox",
-                "description": (
-                    "Mask out all specified bounding box regions in the input image by overlaying white rectangles. "
-                    "Returns the edited image in base64 format."
-                ),
+                "description": 
+                    "Mask out all specified bounding box regions in the input image by overlaying white rectangles. Returns the edited image in base64 format.",
                 "parameters": {
                     "type": "object",
                     "properties": {

@@ -39,10 +39,8 @@ class HighlightBoxWorker(BaseToolWorker):
             "type": "function",
             "function": {
                 "name": "HighlightBox",
-                "description": (
-                    "Highlight specified bounding box regions in the image using semi-transparent red overlays. "
-                    "Returns the edited image in base64 format."
-                ),
+                "description": 
+                    "Highlight specified bounding box regions in the image using semi-transparent red overlays. Returns the edited image in base64 format.",
                 "parameters": {
                     "type": "object",
                     "properties": {

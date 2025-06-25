@@ -42,7 +42,7 @@ class MolmoPointWorker(BaseToolWorker):
             "type": "function",
             "function": {
                 "name": self.model_name,
-                "description": "Identify a point in the image based on a natural language description.",
+                "description": "Identify a point in the image based on a natural language description. This tool returns the absolute pixel coordinates of the identified point along with an edited image showing the point. Only absolute coordinates are supported for output.",
                 "parameters": {
                     "type": "object",
                     "properties": {

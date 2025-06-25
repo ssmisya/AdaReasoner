@@ -41,17 +41,17 @@ class CropToolWorker(BaseToolWorker):
             "type": "function",
             "function": {
                 "name": self.model_name,
-                "description": "Crop an image using specified bounding box coordinates.",
+                "description": "Crop an image using specified bounding box coordinates. This tool returns the cropped image in base64 format along with its dimensions.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "image": {
                             "type": "string",
-                            "description": "The identifier or path of the image to crop, or base64 encoded image data."
+                            "description": "The identifier of the image to crop, e.g., 'img_1'."
                         },
                         "description": {
                             "type": "string",
-                            "description": "Coordinates in format '[x_min, y_min, x_max, y_max]'. Can be absolute pixel values (integers) or normalized values between 0 and 1 (floats)."
+                            "description": "Coordinates in format '[x_min, y_min, x_max, y_max]', eg., '[100, 100, 200, 200]'. Only absolute pixel values (integers) are supported."
                         }
                     },
                     "required": ["image", "description"]
@@ -65,7 +65,7 @@ class CropToolWorker(BaseToolWorker):
         
     def generate(self, params):
         try:
-            # 提取输入参数
+            # Extract input parameters
             try:
                 image_data = params["image"]
                 crop_param = params.get("description", "")
@@ -81,7 +81,7 @@ class CropToolWorker(BaseToolWorker):
                 }
                 return pred_dict
             
-            # 加载图像
+            # Load image
             try:
                 if os.path.exists(image_data):
                     image = Image.open(image_data).convert("RGB")
@@ -95,47 +95,39 @@ class CropToolWorker(BaseToolWorker):
                 }
                 return pred_dict
             
-            # 解析裁剪参数
+            # Parse crop parameters
             match = re.match(r'\[\s*([\d\.,\s]+)\s*\]', crop_param)
             if match:
                 try:
-                    # 提取坐标 - 允许浮点数
+                    # Extract coordinates
                     coords_str = match.group(1).split(',')
-                    # 尝试转换为浮点数
+                    # Try to convert to float
                     crop_coords = [float(c) for c in coords_str]
                     
                     if len(crop_coords) != 4:
                         raise ValueError(f"Invalid number of coordinates: {crop_coords}. Expected 4 values [x_min, y_min, x_max, y_max].")
                     
-                    # 解析坐标，格式为 [x_min, y_min, x_max, y_max]
-                    x_min, y_min, x_max, y_max = crop_coords
+                    # Ensure all coordinates are absolute values (no normalized coordinates)
+                    width, height = image.size
+                    if any(0 <= c <= 1 for c in crop_coords) and all(c <= 1 for c in crop_coords):
+                        pred_dict = {
+                            "tool_response_from": self.model_name,
+                            "status": "failed",
+                            "message": "Normalized coordinates (0-1) are not supported. Please use absolute pixel values.",
+                        }
+                        return pred_dict
                     
-                    # 自动检测是否为归一化坐标
-                    normalized = all(0 <= c <= 1 for c in crop_coords)
-                    logger.info(f"自动检测坐标类型: {'归一化' if normalized else '绝对'} 坐标")
+                    # Convert to integers for PIL crop
+                    absolute_coords = [int(c) for c in crop_coords]
                     
-                    # 如果是归一化坐标，将其转换为绝对坐标
-                    if normalized:
-                        width, height = image.size
-                        absolute_coords = [
-                            int(x_min * width),    # x_min
-                            int(y_min * height),   # y_min
-                            int(x_max * width),    # x_max
-                            int(y_max * height)    # y_max
-                        ]
-                        logger.info(f"归一化坐标转换为绝对坐标: {absolute_coords}")
-                    else:
-                        # 确保绝对坐标为整数
-                        absolute_coords = [int(c) for c in crop_coords]
-                    
-                    # 转换为PIL的裁剪格式 [left, upper, right, lower]
+                    # Convert to PIL crop format [left, upper, right, lower]
                     x_min, y_min, x_max, y_max = absolute_coords
                     pil_crop_coords = [x_min, y_min, x_max, y_max]
                     
-                    # 裁剪图像
+                    # Crop image
                     cropped_image = image.crop(pil_crop_coords)
                     
-                    # 将裁剪后的图像转换为base64
+                    # Convert cropped image to base64
                     buffered = BytesIO()
                     image_format = image.format if image.format else 'PNG'
                     cropped_image.save(buffered, format=image_format)
@@ -145,7 +137,7 @@ class CropToolWorker(BaseToolWorker):
                         "tool_response_from": self.model_name,
                         "status": "success",
                         "edited_image": img_str,
-                        "message": f"Image cropped successfully using {'normalized' if normalized else 'absolute'} coordinates.",
+                        "message": f"Image cropped successfully using absolute coordinates.",
                         "image_dimensions_pixels": {
                             "width": cropped_image.width,
                             "height": cropped_image.height
@@ -165,7 +157,7 @@ class CropToolWorker(BaseToolWorker):
                 pred_dict = {
                     "tool_response_from": self.model_name,
                     "status": "failed",
-                    "message": f"Parameter format mismatch: {crop_param}. Expected format '[x_min, y_min, x_max, y_max]'.",
+                    "message": f"Parameter format mismatch: {crop_param}. Expected format '[x_min, y_min, x_max, y_max]' with absolute pixel values.",
                 }
                 return pred_dict
                 

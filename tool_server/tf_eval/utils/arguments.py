@@ -29,6 +29,7 @@ class ModelArguments:
     batch_size: Optional[int] = field(default=1)
     stop_token: Optional[str] = field(default=None)
     max_rounds: Optional[int] = field(default=3)
+    use_tool: Optional[bool] = field(default=True)
 
 @dataclass
 class TaskArguments:
@@ -65,7 +66,7 @@ class ScriptArguments:
     wandb_args: Optional[str] = field(default="project=mr_eval,entity=mr_eval")
     output_path: Optional[str] = field(default="output")
     controller_addr: Optional[str] = field(default=None)
-
+    use_tool: Optional[bool] = field(default=True)
 
 def parse_str_into_dict(args_str: str) -> Dict:
     """

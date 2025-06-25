@@ -41,6 +41,7 @@ class TFEvaluator():
         self.script_args = script_args
         self.tasks = self.task_args.task_name
         self.model = get_model(self.model_args.model)(**self.model_args.model_args)
+        self.use_tool = self.script_args.use_tool
         max_rounds = self.model_args.max_rounds
         stop_token = self.model_args.stop_token
         
@@ -53,6 +54,7 @@ class TFEvaluator():
             max_rounds = max_rounds,
             stop_token = stop_token,
             controller_addr = self.script_args.controller_addr,
+            use_tool = self.use_tool,
         )
 
     

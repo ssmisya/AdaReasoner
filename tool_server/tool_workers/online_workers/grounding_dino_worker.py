@@ -48,13 +48,13 @@ class GroundingDinoWorker(BaseToolWorker):
             "type": "function",
             "function": {
                 "name": self.model_name,
-                "description": "Locate objects in the image based on a natural language description.",
+                "description": "Locate objects in the image based on a natural language description. Returns detected objects with their bounding boxes in absolute pixel coordinates, confidence scores, and an annotated image with visualized detections.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "image": {
                             "type": "string",
-                            "description": "The identifier or path of the image in which to locate the object, e.g., 'img_1'."
+                            "description": "The identifier of the image in which to locate the object, e.g., 'img_1'."
                         },
                         "description": {
                             "type": "string",
@@ -231,13 +231,7 @@ class GroundingDinoWorker(BaseToolWorker):
                 detections.append({
                     "label": phrases[detect_res_idx],
                     "confidence": logits_list[detect_res_idx],
-                    "normalized_bbox": {
-                        "x_min": boxes_list[detect_res_idx][0],
-                        "y_min": boxes_list[detect_res_idx][1],
-                        "x_max": boxes_list[detect_res_idx][2],
-                        "y_max": boxes_list[detect_res_idx][3],
-                    },
-                    "pixel_bbox": {
+                    "bbox": {
                         "x_min": x_min,
                         "y_min": y_min,
                         "x_max": x_max,

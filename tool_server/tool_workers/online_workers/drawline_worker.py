@@ -31,58 +31,73 @@ logger = build_logger(__file__, f"DrawLine_worker_{worker_id}.log")
 class DrawLineArguments(WorkerArguments):
     pass
 
-def extract_points(generate_param, image_w, image_h):
+def extract_points(generate_param, image_w, image_h, line_type):
     all_points = []
     
-    # Regular expression to match x and y values separately or together, with or without quotes
-    pattern = re.compile(r'(x\d*)?=\s*"?([0-9]+(?:\.[0-9]+)?)"?|'
-                         r'(y\d*)?=\s*"?([0-9]+(?:\.[0-9]+)?)"?')
+    # 根据线条类型确定需要提取的坐标类型
+    if line_type.lower() == "horizontal":
+        coordinate_type = "y"
+    else:  # vertical
+        coordinate_type = "x"
     
-    # Initialize default x and y
-    points = {}
+    # 提取坐标值，支持逗号分隔的格式
+    # 匹配 x1=100, y2=200 这样的格式
+    pattern = re.compile(r'([xy]\d*)=\s*"?([0-9]+(?:\.[0-9]+)?)"?')
+    
+    coords = {}
+    wrong_coord_type_found = False
+    wrong_coord_name = None
+    
     for match in pattern.finditer(generate_param):
-        attr, x_val, _, y_val = match.groups()
+        attr, value = match.groups()
         
-        if attr and 'x' in attr:
-            points[attr] = float(x_val)
-        elif _ and 'y' in _:
-            points[_] = float(y_val)
-    
-    # Process matched pairs
-    indices = sorted(set(int(key[1:]) for key in points.keys() if key[1:].isdigit()))
-    if not indices:
-        indices = [0] if 'x' in points or 'y' in points else []
-    
-    raw_points = []
-    for i in indices:
-        x_key = f'x{i}' if f'x{i}' in points else 'x'
-        y_key = f'y{i}' if f'y{i}' in points else 'y'
+        # 检查坐标类型是否正确
+        if attr and attr[0].lower() != coordinate_type:
+            wrong_coord_type_found = True
+            wrong_coord_name = attr
+            continue
         
-        x_value = points.get(x_key, 0.0)
-        y_value = points.get(y_key, 0.0)
+        if attr:
+            # 有数字索引的坐标 (y1, y2, ...)
+            index = attr[1:] if len(attr) > 1 and attr[1:].isdigit() else "0"
+            coords[index] = float(value)
+    
+    # 如果发现了错误类型的坐标
+    if wrong_coord_type_found:
+        logger.info(f"Found wrong coordinate type: {wrong_coord_name} for line_type: {line_type}")
+        raise ValueError(f"For {line_type} lines, only {coordinate_type} coordinates should be provided, but found {wrong_coord_name}.")
+    
+    # 如果没有找到坐标
+    if not coords:
+        raise ValueError(f"No valid {coordinate_type} coordinates found. For {line_type} lines, please provide {coordinate_type} coordinates in format '{coordinate_type}1=value1, {coordinate_type}2=value2'.")
+    
+    # 检查是否可能是归一化坐标
+    for index, value in coords.items():
+        # 检测可能的归一化坐标
+        is_small_decimal = 0 < value < 1 and value != int(value)
         
-        raw_points.append([x_value, y_value])
+        # 检查坐标是否明显小于图像尺寸
+        max_dimension = image_h if coordinate_type == "y" else image_w
+        too_small_for_pixels = (0 < value < 10 and 
+                               value != int(value) and
+                               max_dimension > 50)
+        
+        if is_small_decimal or too_small_for_pixels:
+            logger.info(f"Detected potential normalized coordinate: {value}")
+            raise ValueError("Normalized coordinates (0-1) are not supported. Please use absolute pixel coordinates instead.")
     
-    # 自动判断是否为归一化坐标
-    is_normalized = True
-    for point in raw_points:
-        # 如果任何坐标值大于1，则认为是绝对坐标
-        if any(coord > 1.0 for coord in point):
-            is_normalized = False
-            break
-            
-    logger.info(f"坐标类型自动检测: {'归一化(0-1)' if is_normalized else '绝对像素值'}")
-    
-    # 根据坐标类型进行转换
-    for point in raw_points:
-        if is_normalized:
-            # 归一化坐标，转换为绝对坐标
-            point = np.array(point) * np.array([image_w, image_h])
-        else:
-            # 已经是绝对坐标，不需要额外处理
-            point = np.array(point)
+    # 构建点坐标
+    for index, value in coords.items():
+        if line_type.lower() == "horizontal":
+            # 水平线 (x值不重要，设为0)
+            point = np.array([0, value])
+        else:  # vertical
+            # 垂直线 (y值不重要，设为0)
+            point = np.array([value, 0])
         
         all_points.append(point)
+    
+    logger.info(f"Extracted {len(all_points)} {line_type} lines with {coordinate_type} coordinates")
     
     return all_points
     
@@ -97,11 +112,11 @@ def DrawLine(image, point_coords=None, line_type="horizontal"):
     
     for point in point_coords:
         if line_type.lower() == "horizontal":
-            y = point[1]
+            y = point[1]  # 只使用y坐标
             if 0 <= y < image.height:
                 ax.axhline(y=y, color='#e6194b', linewidth=2, linestyle='dashed')
         else:  # vertical
-            x = point[0]
+            x = point[0]  # 只使用x坐标
             if 0 <= x < image.width:
                 ax.axvline(x=x, color='#e6194b', linewidth=2, linestyle='dashed')
     
@@ -125,22 +140,22 @@ class DrawLineToolWorker(BaseToolWorker):
             "type": "function",
             "function": {
                 "name": self.model_name,
-                "description": "Draw horizontal or vertical lines on an image.",
+                "description": "Draw horizontal or vertical lines on an image. This tool supports drawing multiple lines of the same type simultaneously. Only accepts absolute pixel coordinates (not normalized values). Returns base64 encoded image with lines drawn.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "image": {
                             "type": "string",
-                            "description": "The identifier or path of the image to draw on, or base64 encoded image data."
+                            "description": "The identifier of the image in which to locate the object, e.g., 'img_1'."
                         },
                         "line_type": {
                             "type": "string",
-                            "description": "Type of line to draw: 'horizontal' or 'vertical'.",
+                            "description": "Type of line to draw: 'horizontal' (requires y coordinates) or 'vertical' (requires x coordinates).",
                             "enum": ["horizontal", "vertical"]
                         },
                         "description": {
                             "type": "string",
-                            "description": "Coordinates in format 'x=\"value\"' or 'y=\"value\"'. Values can be absolute pixel values or normalized between 0-1 (automatically detected)."
+                            "description": "For horizontal lines, provide y coordinates in format 'y1=100, y2=200, y3=300'. For vertical lines, provide x coordinates in format 'x1=100, x2=200, x3=300'. Multiple coordinates should be separated by commas. Only absolute pixel values are supported."
                         }
                     },
                     "required": ["image", "line_type", "description"]
@@ -192,7 +207,15 @@ class DrawLineToolWorker(BaseToolWorker):
             width, height = img.size
             
             # 提取点坐标
-            points = extract_points(generate_param, width, height)
+            try:
+                points = extract_points(generate_param, width, height, line_type)
+            except ValueError as e:
+                pred_dict = {
+                    "tool_response_from": self.model_name,
+                    "status": "failed",
+                    "message": str(e),
+                }
+                return pred_dict
             
             if not points:
                 pred_dict = {

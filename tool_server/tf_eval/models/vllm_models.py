@@ -25,7 +25,8 @@ class VllmModels(tp_model):
       self,  
       pretrained : str = None,        # 预训练模型路径
       tensor_parallel: str = "1",     # 张量并行数量
-      limit_mm_per_prompt: str = "1"  # 每限制的是单个消息中的图片数量，而不是整个对话历史中的图片总数
+      limit_mm_per_prompt: str = "1",  # 每限制的是单个消息中的图片数量，而不是整个对话历史中的图片总数
+      use_tool: bool = True,          # 是否使用工具
     ):
         tensor_parallel = eval(tensor_parallel)  # 将字符串转换为数值
         self.model = LLM(
@@ -33,6 +34,8 @@ class VllmModels(tp_model):
             tensor_parallel_size=tensor_parallel,  # 并行数
             limit_mm_per_prompt={"image": int(limit_mm_per_prompt)}  # 限制每个prompt的图像数量
         )
+
+        self.use_tool = use_tool
 
     def generate_conversation_fn(
         self,
@@ -52,6 +55,11 @@ class VllmModels(tp_model):
             messages: 格式化的对话消息列表
         """
         text = "Question: " + text  # 在文本前添加"Question:"前缀
+
+        if self.use_tool:
+            system_prompt = tool_planning_model_prompt_one_tool_call
+        else:
+            system_prompt = tool_planning_model_prompt_no_tool_call
         
         image = pil_to_base64(image)  # 将PIL图像转换为base64编码
         messages = [
@@ -60,7 +68,7 @@ class VllmModels(tp_model):
                 "content": [
                     {
                         "type": "text",
-                        "text": tool_planning_model_prompt,  # prompt.py中定义的评估提示
+                        "text": system_prompt,  # prompt.py中定义的评估提示
                     },
                 ],
             },

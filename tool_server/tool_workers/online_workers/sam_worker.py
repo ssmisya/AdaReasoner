@@ -23,6 +23,7 @@ from typing import Optional
 from dataclasses import dataclass, field
 from transformers import HfArgumentParser
 from tool_server.utils.worker_arguments import WorkerArguments
+from tool_server.utils.error_codes import *  # Import error codes
 
 
 GB = 1 << 30
@@ -81,6 +82,7 @@ def extract_points(generate_param, image_w, image_h):
             "tool_response_from": "SegmentRegionAroundPoint",
             "status": "failed",
             "message": message,
+            "error_code": INVALID_PARAMETERS
         }
         return pred_dict
 
@@ -245,6 +247,7 @@ class SAMAroundPointWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": message,
+                    "error_code": INVALID_PARAMETERS
                 }
             
             # Load and process the image
@@ -288,7 +291,8 @@ class SAMAroundPointWorker(BaseToolWorker):
                         return {
                             "tool_response_from": self.model_name,
                             "status": "failed",
-                            "message": "Automatic segmentation did not produce any valid masks."
+                            "message": "Automatic segmentation did not produce any valid masks.",
+                            "error_code": TOOL_RUN_FAILED
                         }
                     
                     # 生成带有所有分割掩码的可视化结果
@@ -309,6 +313,7 @@ class SAMAroundPointWorker(BaseToolWorker):
                         "width": width,
                         "height": height
                     },
+                    "error_code": SUCCESS
                 }
                 
                 # 添加分割模式信息
@@ -331,8 +336,8 @@ class SAMAroundPointWorker(BaseToolWorker):
                 return {
                     "tool_response_from": self.model_name,
                     "status": "failed",
-                    "error": str(e),
-                    "traceback": traceback.format_exc()
+                    "message": f"Error: {str(e)} Traceback:{traceback.format_exc()}",
+                    "error_code": CANNOT_LOAD_IMAGE
                 }
                 
         except Exception as e:
@@ -341,8 +346,8 @@ class SAMAroundPointWorker(BaseToolWorker):
             return {
                 "tool_response_from": self.model_name,
                 "status": "failed",
-                "error": str(e),
-                "traceback": traceback.format_exc()
+                "message": f"Error: {str(e)} Traceback:{traceback.format_exc()}",
+                "error_code": TOOL_RUN_FAILED
             }
     
     def get_tool_instruction(self):

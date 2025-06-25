@@ -18,6 +18,7 @@ from typing import Optional
 
 from tool_server.utils.server_utils import build_logger
 from tool_server.utils.worker_arguments import WorkerArguments
+from tool_server.utils.error_codes import *
 from tool_server.tool_workers.online_workers.base_tool_worker import BaseToolWorker
 
 worker_id = str(uuid.uuid4())[:6]
@@ -42,7 +43,7 @@ class MolmoPointWorker(BaseToolWorker):
             "type": "function",
             "function": {
                 "name": self.model_name,
-                "description": "Identify a point in the image based on a natural language description. This tool returns the absolute pixel coordinates of the identified point along with an edited image showing the point. Only absolute coordinates are supported for output.",
+                "description": "Identify a point in the image based on a natural language description.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -76,24 +77,28 @@ class MolmoPointWorker(BaseToolWorker):
                 bnb_4bit_quant_type="nf4"
             )
             logger.info(f"Using quantization config: {quant_config}")
+        try:
+            # load the processor
+            self.processor = AutoProcessor.from_pretrained(
+                self.model_path,
+                trust_remote_code=True,
+                torch_dtype='auto',
+                device_map='auto'
+            )
 
-        # load the processor
-        self.processor = AutoProcessor.from_pretrained(
-            self.model_path,
-            trust_remote_code=True,
-            torch_dtype='auto',
-            device_map='auto'
-        )
-
-        # load the model
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.model_path,
-            trust_remote_code=True,
-            torch_dtype='auto',
-            device_map='auto',
-            quantization_config=quant_config
-        )
-        self.model.eval()
+            # load the model
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.model_path,
+                trust_remote_code=True,
+                torch_dtype='auto',
+                device_map='auto',
+                quantization_config=quant_config
+            )
+            self.model.eval()
+        except Exception as e:
+            logger.error(f"Failed to initialize model: {e}")
+            logger.error(traceback.format_exc())
+            raise
 
         
     def extract_points(self, molmo_output, image_w, image_h):
@@ -162,37 +167,56 @@ class MolmoPointWorker(BaseToolWorker):
                 "tool_response_from": self.model_name,
                 "status": "failed",
                 "message": message,
+                "error_code": INVALID_PARAMETERS
             }
             return pred_dict
         
         try:
             # Convert base64 to PIL image
-            if os.path.exists(image_data):
-                image = Image.open(image_data).convert("RGB")
-            else:
-                image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
+            try:
+                if os.path.exists(image_data):
+                    image = Image.open(image_data).convert("RGB")
+                else:
+                    image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
+            except Exception as e:
+                pred_dict = {
+                    "tool_response_from": self.model_name,
+                    "status": "failed",
+                    "message": f"Failed to load image: {str(e)}",
+                    "error_code": CANNOT_LOAD_IMAGE
+                }
+                return pred_dict
             
             text_prompt = f"Point to the {description} in the scene."
             
             # Process inputs and run model
-            with torch.no_grad():
-                inputs = self.processor.process(
-                    images=[image],
-                    text=text_prompt,
-                )
-                inputs["images"] = inputs["images"].to(torch.bfloat16)
-                inputs = {k: v.to(self.model.device).unsqueeze(0) for k, v in inputs.items()}
-                
-                with torch.cuda.amp.autocast(dtype=torch.bfloat16):
-                    output = self.model.generate_from_batch(
-                        inputs,
-                        GenerationConfig(max_new_tokens=self.max_length, stop_strings="<|endoftext|>"),
-                        tokenizer=self.processor.tokenizer
+            try:
+                with torch.no_grad():
+                    inputs = self.processor.process(
+                        images=[image],
+                        text=text_prompt,
                     )
+                    inputs["images"] = inputs["images"].to(torch.bfloat16)
+                    inputs = {k: v.to(self.model.device).unsqueeze(0) for k, v in inputs.items()}
                     
-                    # Only get generated tokens and decode them to text
-                    generated_tokens = output[0, inputs['input_ids'].size(1):]
-                    response = self.processor.tokenizer.decode(generated_tokens, skip_special_tokens=True)
+                    with torch.cuda.amp.autocast(dtype=torch.bfloat16):
+                        output = self.model.generate_from_batch(
+                            inputs,
+                            GenerationConfig(max_new_tokens=self.max_length, stop_strings="<|endoftext|>"),
+                            tokenizer=self.processor.tokenizer
+                        )
+                        
+                        # Only get generated tokens and decode them to text
+                        generated_tokens = output[0, inputs['input_ids'].size(1):]
+                        response = self.processor.tokenizer.decode(generated_tokens, skip_special_tokens=True)
+            except Exception as e:
+                pred_dict = {
+                    "tool_response_from": self.model_name,
+                    "status": "failed",
+                    "message": f"Model inference failed: {str(e)}",
+                    "error_code": TOOL_RUN_FAILED
+                }
+                return pred_dict
             
             # Extract points from the response
             if response:
@@ -230,6 +254,7 @@ class MolmoPointWorker(BaseToolWorker):
                             "width": image.width,
                             "height": image.height
                         },
+                        "error_code": SUCCESS
                     }
                 else:
                     pred_dict = {
@@ -242,6 +267,7 @@ class MolmoPointWorker(BaseToolWorker):
                             "width": image.width,
                             "height": image.height
                         },
+                        "error_code": SUCCESS
                     }
                 
                 return pred_dict
@@ -249,7 +275,8 @@ class MolmoPointWorker(BaseToolWorker):
                 pred_dict = {
                     "tool_response_from": self.model_name,
                     "status": "failed",
-                    "message": "Model did not generate any response."
+                    "message": "Model did not generate any response.",
+                    "error_code": MODEL_OUTPUT_EMPTY
                 }
                 return pred_dict
                 
@@ -257,8 +284,8 @@ class MolmoPointWorker(BaseToolWorker):
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "failed",
-                "error": str(e),
-                "traceback": traceback.format_exc()
+                "message": f"Error: {str(e)}\n Traceback:{traceback.format_exc()}\n",
+                "error_code": TOOL_RUN_FAILED
             }
             logger.error(f"Error during Molmo Point inference: {e}")
             logger.error(traceback.format_exc())
@@ -269,15 +296,6 @@ class MolmoPointWorker(BaseToolWorker):
         return self.instruction  
 
 
-def str2bool(v):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
 if __name__ == "__main__":

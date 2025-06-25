@@ -29,11 +29,11 @@ The index "n" in "img_n" refers to the image's position in the dialogue history:
 For example:{{"parameters": {{"image": "img_1", "other_params": "other_values"}}}}
 """
 
-# 不使用工具的prompt
+# 不使用工具的prompt，一步就要输出response
 tool_planning_model_prompt_no_tool_call = '''
 You are a visual assistant capable of solving visual reasoning problems. You can only rely on your own capabilities in solving. 
 
-Steps for Each Turn  
+Steps for Each Turn 
 1. Think: Recall relevant context and analyze the current user goal.   
 2. Respond Appropriately: If a response is needed, generate one while maintaining consistency across user queries.
 
@@ -42,7 +42,7 @@ Output Format
 <response> Your final response </response>
 
 Important Notes  
-1. You must always include the <think> field to outline your reasoning. 
+1. You must include the <think> field to outline your reasoning. 
 '''
 
 tool_planning_model_prompt = """
@@ -227,7 +227,7 @@ tool_desc_dict = dict(
 # 格式化 tool_planning_model_prompt
 # 在vllm_models中被使用
 tool_planning_model_prompt_one_tool_call = tool_planning_model_prompt_one_tool_call.format(tool_list=tool_desc_dict['all'])
-tool_planning_model_prompt_no_tool_call = tool_planning_model_prompt_no_tool_call
+
 
 
 

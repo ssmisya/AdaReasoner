@@ -37,7 +37,7 @@ class BaseToolInferencer(object):
         max_rounds: int = 3,  # 最大对话轮数
         stop_token: str = "<stop>",  # 停止标记
         controller_addr: str = "http://SH-IDCA1404-10-140-54-2:20001",  # 控制器地址
-        use_tool: bool = True,  # 是否使用工具
+        if_use_tool: bool = True,  # 是否使用工具
     ):
         # 初始化加速器
         self.accelerator = Accelerator()
@@ -53,16 +53,20 @@ class BaseToolInferencer(object):
             self.tp_model = self.tp_model.to(torch.bfloat16)
 
         self.batch_size = batch_size
-        self.max_rounds = max_rounds
+        self.if_use_tool = if_use_tool
+        print(f"初始化后的self.if_use_tool: {self.if_use_tool}, 类型: {type(self.if_use_tool)}")
+        # 不使用工具时，将max_rounds设置为1，以确保在生成一次响应后完成
+        self.max_rounds = 1 if not if_use_tool else max_rounds
         self.stop_token = stop_token
         self.controlller_addr = controller_addr
-        self.use_tool = use_tool
+        
         # 初始化动态批处理管理器
         self.manager = DynamicBatchManager(
             batch_size=self.batch_size, 
             max_rounds=self.max_rounds, 
             stop_token=self.stop_token,
             generate_conversation_fn = self.tp_model.generate_conversation_fn,
+            if_use_tool=self.if_use_tool,  # 将 if_use_tool 参数传递给 DynamicBatchManager
         )
         # 初始化工具管理器
         self.tool_manager = ToolManager(controller_url_location=self.controlller_addr)
@@ -468,6 +472,20 @@ class BaseToolInferencer(object):
                     idx = res["meta_data"]["idx"]
                     self.dataset.store_results(dict(idx=idx,results=res))
 
+                # 如果不使用工具，直接处理下一批数据
+                if not self.if_use_tool:
+                    # 重新填充当前批次
+                    self.manager.append_item_to_full(self.dataloader_iter, progress_bar=progress_bar)
+                    
+                    # 获取更新后的当前批次并生成新的响应
+                    current_batch = self.manager.get_current_batch()
+                    if len(current_batch) > 0:
+                        self.tp_model.generate(current_batch)
+                        # 更新状态
+                        self.manager.update_item_status()
+                    continue
+                
+                # 以下是使用工具的流程
                 # 解析工具配置
                 self.batch_parse_tool_config()
                 # 获取工具响应
@@ -480,9 +498,10 @@ class BaseToolInferencer(object):
                 
                 # 获取更新后的当前批次并生成新的响应
                 current_batch = self.manager.get_current_batch()
-                self.tp_model.generate(current_batch)
-                # 更新状态，应该会更新current_batch，直到结束
-                self.manager.update_item_status()
+                if len(current_batch) > 0:
+                    self.tp_model.generate(current_batch)
+                    # 更新状态，应该会更新current_batch，直到结束
+                    self.manager.update_item_status()
 
             except StopIteration:
                 # 当迭代器耗尽时退出循环

@@ -23,9 +23,9 @@ T = TypeVar("T", bound="tp_model")
 class tp_model(abc.ABC):
     def __init__(
         self,
-        use_tool: bool = True,
+        enable_tool: bool = True,
     ):
-        self.use_tool = use_tool
+        self.enable_tool = enable_tool
         pass
     
     def to(self, *args, **kwargs):

@@ -26,7 +26,7 @@ class VllmModels(tp_model):
       pretrained : str = None,        # 预训练模型路径
       tensor_parallel: str = "1",     # 张量并行数量
       limit_mm_per_prompt: str = "1",  # 每限制的是单个消息中的图片数量，而不是整个对话历史中的图片总数
-      use_tool: bool = True,          # 是否使用工具
+      enable_tool: bool = True,          # 是否使用工具
     ):
         tensor_parallel = eval(tensor_parallel)  # 将字符串转换为数值
         self.model = LLM(
@@ -34,8 +34,13 @@ class VllmModels(tp_model):
             tensor_parallel_size=tensor_parallel,  # 并行数
             limit_mm_per_prompt={"image": int(limit_mm_per_prompt)}  # 限制每个prompt的图像数量
         )
-
-        self.use_tool = use_tool
+        
+        if enable_tool.lower() == "true":
+            self.enable_tool = True
+        else:
+            self.enable_tool = False
+        
+        # print(f"初始化后的enable_tool: {self.enable_tool}, 类型: {type(self.enable_tool)}")
 
     def generate_conversation_fn(
         self,
@@ -56,10 +61,18 @@ class VllmModels(tp_model):
         """
         text = "Question: " + text  # 在文本前添加"Question:"前缀
 
-        if self.use_tool:
+        # print(f"DEBUG 1: self.enable_tool = {self.enable_tool}, type = {type(self.enable_tool)}")
+
+        if self.enable_tool == True:  # 明确比较
             system_prompt = tool_planning_model_prompt_one_tool_call
+            # print(f"DEBUG 2: 进入True分支, system_prompt = {system_prompt[-20:]}...")
         else:
             system_prompt = tool_planning_model_prompt_no_tool_call
+            # print(f"DEBUG 3: 进入False分支, system_prompt = {system_prompt[-20:]}...")
+
+        # print(f"DEBUG 4: 最终 system_prompt = {system_prompt[-20:]}...")
+        # print(f"DEBUG 5: tool_planning_model_prompt_one_tool_call = {tool_planning_model_prompt_one_tool_call[-20:]}...")
+        # print(f"DEBUG 6: tool_planning_model_prompt_no_tool_call = {tool_planning_model_prompt_no_tool_call[-20:]}...")
         
         image = pil_to_base64(image)  # 将PIL图像转换为base64编码
         messages = [

@@ -29,12 +29,14 @@ class DynamicBatchManager():
         stop_token: str = "<stop>",
         max_rounds: int = 3,
         generate_conversation_fn = None,
+        if_use_tool: bool = True,
     ):
         self.dynamic_batch = []
         self.batch_size = batch_size
         self.stop_token = stop_token
         self.max_rounds = max_rounds
         self.generate_conversation_fn = generate_conversation_fn
+        self.if_use_tool = if_use_tool
     
     def extract_final_answer(self, final_response: str):
         # 根据新的prompt格式，最终答案在<response>标签中
@@ -106,15 +108,15 @@ class DynamicBatchManager():
                 has_response_tag = True
                 
             if item.status == "pending":
-                # 达到max_rounds或者回答中含有<response>....</response>
-                if item.current_round == item.max_rounds or has_response_tag:
+                # 如果不使用工具，或者达到max_rounds，或者回答中含有<response>....</response>，则设为finished
+                if not self.if_use_tool or item.current_round == item.max_rounds or has_response_tag:
                     item.status = "finished"
                 else:
                     item.current_round += 1
                     item.status = "processing"
             elif item.status == "processing":
-                # 达到max_rounds或者回答中含有<response>....</response>
-                if item.current_round == item.max_rounds or has_response_tag:
+                # 如果不使用工具，或者达到max_rounds，或者回答中含有<response>....</response>，则设为finished
+                if not self.if_use_tool or item.current_round == item.max_rounds or has_response_tag:
                     item.status = "finished"
                 else:
                     item.current_round += 1

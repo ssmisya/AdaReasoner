@@ -193,3 +193,5 @@ tool_server/tool_workers/scripts/debug_scripts
 weights/
 
 src/*
+tool_server/tool_workers/scripts/launch_scripts/personal
+

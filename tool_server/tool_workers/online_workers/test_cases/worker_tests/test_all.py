@@ -28,6 +28,12 @@ AVAILABLE_TOOLS = [
     "SegmentRegionAroundPoint",
     "GroundingDINO",
     "Crop",
+    "DrawShape",  # 添加新工具
+    "HighlightBox",  # 添加新工具
+    "MaskBox",  # 添加新工具
+    "LanguageModel",  # 添加语言模型工具
+    "GetSubplotInfo",  # 添加子图信息提取工具
+    "GetBarInfo",  # 添加柱状图信息提取工具
 ]
 
 def load_image(image_path):
@@ -555,6 +561,481 @@ def test_crop(args):
         else:
             print(f"请求失败: {response.text}")
 
+def test_draw_shape(args):
+    """测试DrawShape工具"""
+    print("\n====== 测试DrawShape工具 ======")
+    model_name = 'DrawShape'
+    
+    worker_addr = get_worker_address(args.controller_addr, model_name)
+    if not worker_addr:
+        return
+    
+    img = load_image(args.image_path)
+    img_arg = encode(img)
+    
+    # 测试用例：绘制不同形状
+    test_cases = [
+        {
+            "name": "矩形",
+            "bboxes": [
+                {"shape": "rectangle", "coords": [50, 50, 200, 150]}
+            ],
+            "output_file": "draw_shape_rectangle.jpg"
+        },
+        {
+            "name": "椭圆",
+            "bboxes": [
+                {"shape": "ellipse", "coords": [250, 100, 400, 200]}
+            ],
+            "output_file": "draw_shape_ellipse.jpg"
+        },
+        {
+            "name": "圆形",
+            "bboxes": [
+                {"shape": "circle", "coords": [150, 250, 250, 350]}
+            ],
+            "output_file": "draw_shape_circle.jpg"
+        },
+        {
+            "name": "多形状",
+            "bboxes": [
+                {"shape": "rectangle", "coords": [50, 50, 150, 100]},
+                {"shape": "ellipse", "coords": [200, 100, 300, 200]},
+                {"shape": "circle", "coords": [350, 250, 450, 350]}
+            ],
+            "output_file": "draw_shape_multiple.jpg"
+        }
+    ]
+    
+    for test_case in test_cases:
+        print(f"\n------ 测试DrawShape: {test_case['name']} ------")
+        
+        datas = {
+            "image": img_arg,
+            "bboxes": test_case["bboxes"]
+        }
+        
+        tic = time.time()
+        response = requests.post(
+            worker_addr + "/worker_generate",
+            headers={"User-Agent": "FastChat Client"},
+            json=datas,
+        )
+        toc = time.time()
+        
+        print(f"耗时: {toc - tic:.3f}s")
+        print(f"返回状态: {response.status_code}")
+        
+        if response.status_code == 200:
+            res = response.json()
+            print(f"DrawShape工具状态: {res.get('status', 'unknown')}")
+            
+            if "message" in res:
+                print(f"消息: {res['message']}")
+                
+            if "edited_image" in res:
+                image = base64_to_pil(res["edited_image"])
+                output_path = os.path.join(args.output_dir, test_case["output_file"])
+                image.save(output_path)
+                print(f"结果图像已保存至: {output_path}")
+                
+                if "image_dimensions_pixels" in res:
+                    width = res["image_dimensions_pixels"]["width"]
+                    height = res["image_dimensions_pixels"]["height"]
+                    print(f"图像尺寸: {width}x{height}")
+            else:
+                if "error" in res:
+                    print(f"处理错误: {res['error']}")
+        else:
+            print(f"请求失败: {response.text}")
+
+def test_highlight_box(args):
+    """测试HighlightBox工具"""
+    print("\n====== 测试HighlightBox工具 ======")
+    model_name = 'HighlightBox'
+    
+    worker_addr = get_worker_address(args.controller_addr, model_name)
+    if not worker_addr:
+        return
+    
+    img = load_image(args.image_path)
+    img_arg = encode(img)
+    
+    # 测试用例
+    test_cases = [
+        {
+            "name": "单个区域",
+            "bboxes": [[50, 50, 200, 150]],
+            "output_file": "highlight_box_single.jpg"
+        },
+        {
+            "name": "多个区域",
+            "bboxes": [[50, 50, 150, 100], [200, 150, 300, 250], [350, 200, 450, 300]],
+            "output_file": "highlight_box_multiple.jpg"
+        }
+    ]
+    
+    for test_case in test_cases:
+        print(f"\n------ 测试HighlightBox: {test_case['name']} ------")
+        
+        datas = {
+            "image": img_arg,
+            "bboxes": test_case["bboxes"]
+        }
+        
+        tic = time.time()
+        response = requests.post(
+            worker_addr + "/worker_generate",
+            headers={"User-Agent": "FastChat Client"},
+            json=datas,
+        )
+        toc = time.time()
+        
+        print(f"耗时: {toc - tic:.3f}s")
+        print(f"返回状态: {response.status_code}")
+        
+        if response.status_code == 200:
+            res = response.json()
+            print(f"HighlightBox工具状态: {res.get('status', 'unknown')}")
+            
+            if "message" in res:
+                print(f"消息: {res['message']}")
+                
+            if "edited_image" in res:
+                image = base64_to_pil(res["edited_image"])
+                output_path = os.path.join(args.output_dir, test_case["output_file"])
+                image.save(output_path)
+                print(f"结果图像已保存至: {output_path}")
+                
+                if "image_dimensions_pixels" in res:
+                    width = res["image_dimensions_pixels"]["width"]
+                    height = res["image_dimensions_pixels"]["height"]
+                    print(f"图像尺寸: {width}x{height}")
+            else:
+                if "error" in res:
+                    print(f"处理错误: {res['error']}")
+        else:
+            print(f"请求失败: {response.text}")
+
+def test_mask_box(args):
+    """测试MaskBox工具"""
+    print("\n====== 测试MaskBox工具 ======")
+    model_name = 'MaskBox'
+    
+    worker_addr = get_worker_address(args.controller_addr, model_name)
+    if not worker_addr:
+        return
+    
+    img = load_image(args.image_path)
+    img_arg = encode(img)
+    
+    # 测试用例
+    test_cases = [
+        {
+            "name": "单个区域",
+            "bboxes": [[100, 100, 300, 200]],
+            "output_file": "mask_box_single.jpg"
+        },
+        {
+            "name": "多个区域",
+            "bboxes": [[50, 50, 150, 150], [200, 100, 350, 200], [400, 200, 500, 300]],
+            "output_file": "mask_box_multiple.jpg"
+        }
+    ]
+    
+    for test_case in test_cases:
+        print(f"\n------ 测试MaskBox: {test_case['name']} ------")
+        
+        datas = {
+            "image": img_arg,
+            "bboxes": test_case["bboxes"]
+        }
+        
+        tic = time.time()
+        response = requests.post(
+            worker_addr + "/worker_generate",
+            headers={"User-Agent": "FastChat Client"},
+            json=datas,
+        )
+        toc = time.time()
+        
+        print(f"耗时: {toc - tic:.3f}s")
+        print(f"返回状态: {response.status_code}")
+        
+        if response.status_code == 200:
+            res = response.json()
+            print(f"MaskBox工具状态: {res.get('status', 'unknown')}")
+            
+            if "message" in res:
+                print(f"消息: {res['message']}")
+                
+            if "edited_image" in res:
+                image = base64_to_pil(res["edited_image"])
+                output_path = os.path.join(args.output_dir, test_case["output_file"])
+                image.save(output_path)
+                print(f"结果图像已保存至: {output_path}")
+                
+                if "image_dimensions_pixels" in res:
+                    width = res["image_dimensions_pixels"]["width"]
+                    height = res["image_dimensions_pixels"]["height"]
+                    print(f"图像尺寸: {width}x{height}")
+            else:
+                if "error" in res:
+                    print(f"处理错误: {res['error']}")
+        else:
+            print(f"请求失败: {response.text}")
+
+def test_language_model(args):
+    """测试LanguageModel工具"""
+    print("\n====== 测试LanguageModel工具 ======")
+    model_name = 'LanguageModel'
+    
+    worker_addr = get_worker_address(args.controller_addr, model_name)
+    if not worker_addr:
+        return
+    
+    img = load_image(args.image_path)
+    img_arg = encode(img)
+    
+    # 测试用例
+    test_cases = [
+        {
+            "name": "简单描述",
+            "prompt": "这张图片中一共有几个子图，各个子图的标题和坐标是什么",
+            "output_file": "language_model_description.txt"
+        },
+        {
+            "name": "详细分析",
+            "prompt": "详细分析这张图片中的内容，包括物体、颜色和场景",
+            "output_file": "language_model_analysis.txt"
+        },
+        {
+            "name": "问答",
+            "prompt": "这张图片中有什么物体？它们在做什么？",
+            "output_file": "language_model_qa.txt"
+        }
+    ]
+    
+    for test_case in test_cases:
+        print(f"\n------ 测试LanguageModel: {test_case['name']} ------")
+        print(f"提示词: {test_case['prompt']}")
+        
+        datas = {
+            "image": img_arg,
+            "prompt": test_case["prompt"]
+        }
+        
+        tic = time.time()
+        try:
+            response = requests.post(
+                worker_addr + "/worker_generate",
+                headers={"User-Agent": "FastChat Client"},
+                json=datas,
+                timeout=120  # 语言模型可能需要更长时间
+            )
+            toc = time.time()
+            
+            print(f"耗时: {toc - tic:.3f}s")
+            print(f"返回状态: {response.status_code}")
+            
+            if response.status_code == 200:
+                res = response.json()
+                print(f"LanguageModel工具状态: {res.get('status', 'unknown')}")
+                
+                if "message" in res:
+                    print(f"消息: {res['message']}")
+                
+                if "response" in res:
+                    # 保存文本响应
+                    output_path = os.path.join(args.output_dir, test_case["output_file"])
+                    with open(output_path, 'w', encoding='utf-8') as f:
+                        f.write(res["response"])
+                    print(f"✅ 模型响应已保存至: {output_path}")
+                    
+                    # 显示响应的前100个字符
+                    preview = res["response"][:100] + "..." if len(res["response"]) > 100 else res["response"]
+                    print(f"响应预览: {preview}")
+                else:
+                    print("❌ 响应中没有找到文本内容")
+                    # 保存完整响应以便调试
+                    debug_path = os.path.join(args.output_dir, f"language_model_debug_{test_case['name'].replace(' ', '_')}.json")
+                    with open(debug_path, 'w', encoding='utf-8') as f:
+                        json.dump(res, f, indent=2, ensure_ascii=False)
+                    print(f"已将完整响应保存至: {debug_path}")
+            else:
+                print(f"❌ 请求失败: {response.text}")
+                
+        except requests.exceptions.Timeout:
+            print(f"❌ 请求超时")
+        except requests.exceptions.ConnectionError:
+            print(f"❌ 连接错误")
+        except Exception as e:
+            print(f"❌ 发生异常: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+def test_get_subplot_info(args):
+    """测试GetSubplotInfo工具"""
+    print("\n====== 测试GetSubplotInfo工具 ======")
+    model_name = 'GetSubplotInfo'
+    
+    worker_addr = get_worker_address(args.controller_addr, model_name)
+    if not worker_addr:
+        return
+    
+    # 使用带有子图的图像进行测试
+    img = load_image(args.image_path)
+    img_arg = encode(img)
+    
+    # GetSubplotInfo只需要image参数
+    datas = {
+        "image": img_arg
+    }
+    
+    tic = time.time()
+    response = requests.post(
+        worker_addr + "/worker_generate",
+        headers={"User-Agent": "FastChat Client"},
+        json=datas,
+        timeout=60  # 设置超时时间
+    )
+    toc = time.time()
+    
+    print(f"耗时: {toc - tic:.3f}s")
+    print(f"返回状态: {response.status_code}")
+    
+    if response.status_code == 200:
+        res = response.json()
+        
+        print(f"GetSubplotInfo工具响应状态: {res.get('status', 'unknown')}")
+        
+        if "subplots" in res:
+            subplots = res["subplots"]
+            subplot_count = len(subplots)
+            print(f"这是系统文本----检测到{subplot_count}个子图:")
+            
+            # 显示子图信息
+            for title, bbox in list(subplots.items())[:5]:  # 最多显示5个
+                print(f"  '{title}': {bbox}")
+                
+            if subplot_count > 5:
+                print(f"  ... 还有{subplot_count-5}个子图未显示")
+            
+            # 将结果保存为JSON文件
+            output_json_path = os.path.join(args.output_dir, "subplot_info_result.json")
+            with open(output_json_path, 'w', encoding='utf-8') as f:
+                json.dump(subplots, f, indent=2, ensure_ascii=False)
+            print(f"子图信息已保存至: {output_json_path}")
+            
+            # 可视化子图边界框
+            try:
+                # 创建一个副本用于绘制
+                img_with_boxes = img.copy()
+                draw = ImageDraw.Draw(img_with_boxes)
+                
+                # 为不同的子图使用不同颜色
+                colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), 
+                          (255, 255, 0), (255, 0, 255), (0, 255, 255)]
+                
+                for i, (title, bbox) in enumerate(subplots.items()):
+                    color = colors[i % len(colors)]
+                    # 绘制边界框
+                    draw.rectangle(bbox, outline=color, width=3)
+                    # 绘制标题
+                    draw.text((bbox[0], bbox[1]-20), title, fill=color)
+                
+                # 保存可视化结果
+                output_image_path = os.path.join(args.output_dir, "subplot_info_visualization.png")
+                img_with_boxes.save(output_image_path)
+                print(f"子图可视化结果已保存至: {output_image_path}")
+            except Exception as e:
+                print(f"可视化子图时出错: {str(e)}")
+        else:
+            print(f"GetSubplotInfo工具完整响应: {json.dumps(res, indent=2)}")
+    else:
+        print(f"请求失败: {response.text}")
+
+def test_get_bar_info(args):
+    """测试GetBarInfo工具"""
+    print("\n====== 测试GetBarInfo工具 ======")
+    model_name = 'GetBarInfo'
+    
+    worker_addr = get_worker_address(args.controller_addr, model_name)
+    if not worker_addr:
+        return
+    
+    # 使用带有柱状图的图像进行测试
+    img = load_image(args.image_path)
+    img_arg = encode(img)
+    
+    # GetBarInfo只需要image参数
+    datas = {
+        "image": img_arg
+    }
+    
+    tic = time.time()
+    response = requests.post(
+        worker_addr + "/worker_generate",
+        headers={"User-Agent": "FastChat Client"},
+        json=datas,
+        timeout=60  # 设置超时时间
+    )
+    toc = time.time()
+    
+    print(f"耗时: {toc - tic:.3f}s")
+    print(f"返回状态: {response.status_code}")
+    
+    if response.status_code == 200:
+        res = response.json()
+        
+        print(f"GetBarInfo工具响应状态: {res.get('status', 'unknown')}")
+        
+        if "bars" in res:
+            bars = res["bars"]
+            bar_count = len(bars)
+            print(f"检测到{bar_count}个柱子:")
+            
+            # 显示柱子信息
+            for label, bbox in list(bars.items())[:5]:  # 最多显示5个
+                print(f"  '{label}': {bbox}")
+                
+            if bar_count > 5:
+                print(f"  ... 还有{bar_count-5}个柱子未显示")
+            
+            # 将结果保存为JSON文件
+            output_json_path = os.path.join(args.output_dir, "bar_info_result.json")
+            with open(output_json_path, 'w', encoding='utf-8') as f:
+                json.dump(bars, f, indent=2, ensure_ascii=False)
+            print(f"柱状图信息已保存至: {output_json_path}")
+            
+            # 可视化柱子边界框
+            try:
+                # 创建一个副本用于绘制
+                img_with_boxes = img.copy()
+                draw = ImageDraw.Draw(img_with_boxes)
+                
+                # 为不同的柱子使用不同颜色
+                colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), 
+                          (255, 255, 0), (255, 0, 255), (0, 255, 255)]
+                
+                for i, (label, bbox) in enumerate(bars.items()):
+                    color = colors[i % len(colors)]
+                    # 绘制边界框
+                    draw.rectangle(bbox, outline=color, width=3)
+                    # 绘制标签
+                    draw.text((bbox[0], bbox[1]-20), label, fill=color)
+                
+                # 保存可视化结果
+                output_image_path = os.path.join(args.output_dir, "bar_info_visualization.png")
+                img_with_boxes.save(output_image_path)
+                print(f"柱状图可视化结果已保存至: {output_image_path}")
+            except Exception as e:
+                print(f"可视化柱状图时出错: {str(e)}")
+        else:
+            print(f"GetBarInfo工具完整响应: {json.dumps(res, indent=2)}")
+    else:
+        print(f"请求失败: {response.text}")
+
 def main():
     parser = argparse.ArgumentParser(description="一键测试多种视觉工具")
     
@@ -583,13 +1064,19 @@ def main():
     
     # 确定要测试的工具
     tools_to_test = AVAILABLE_TOOLS if "all" in args.tools else args.tools
+
+    # tools_to_test = ["OCR", "DrawShape","Crop","Point","GroundingDINO","SegmentRegionAroundPoint","DrawLine","HighlightBox","MaskBox"]
+    tools_to_test = ["OCR", "GetSubplotInfo", "GetBarInfo"]
     
     # 为不同工具设置合适的测试图像
     image_dict = {
         "default":"/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
         "GroundingDINO": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/truck.jpg",
         "SegmentRegionAroundPoint": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/zebra.jpg",
-        "Point": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/zebra.jpg"
+        "Point": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/zebra.jpg",
+        "LanguageModel": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots1.jpg",
+        "GetSubplotInfo": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots2.jpg",
+        "GetBarInfo": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/bars1.jpg"
     }
     
     # 运行测试
@@ -610,6 +1097,18 @@ def main():
             test_GroundingDINO(args)
         elif tool == "Crop":
             test_crop(args)
+        elif tool == "DrawShape":  # 添加新工具
+            test_draw_shape(args)
+        elif tool == "HighlightBox":  # 添加新工具
+            test_highlight_box(args)
+        elif tool == "MaskBox":  # 添加新工具
+            test_mask_box(args)
+        elif tool == "LanguageModel":  # 添加语言模型工具
+            test_language_model(args)
+        elif tool == "GetSubplotInfo":  # 添加子图信息提取工具
+            test_get_subplot_info(args)
+        elif tool == "GetBarInfo":  # 添加柱状图信息提取工具
+            test_get_bar_info(args)
     
     print("\n====== 所有测试完成 ======")
 

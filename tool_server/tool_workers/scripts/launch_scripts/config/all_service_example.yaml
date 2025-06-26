@@ -1,10 +1,10 @@
 # base_dir: ../..
 # log_folder: ../../logs/server_log
-base_dir: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers
-log_folder: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/logs/server_log
+base_dir: /mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers
+log_folder: /mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/logs/server_log
 partition: "ai_moe"
-default_calculate_gpus: 1
-default_calculate_cpus: 16
+default_calculate_gpus: 2
+default_calculate_cpus: 32
 default_control_cpus: 2
 default_control_gpus: 0
 retry_interval: 1
@@ -21,6 +21,8 @@ controller_config:
     port: 21112
     host: "0.0.0.0"
 
+# 所有的参数名称都会转义成下划线的形式
+# 比如model-path会转义成model_path
 
 tool_worker_config:
   - Point:
@@ -40,7 +42,7 @@ tool_worker_config:
       calculate_type: calculate
       conda_env: "tool-server"
       cmd:
-        script-addr: tool_server.tool_workers.online_workers.SAMAroundPoint_worker
+        script-addr: tool_server.tool_workers.online_workers.sam_worker
         port: 20036
         host: "0.0.0.0"
         sam2_checkpoint: /mnt/petrelfs/sunhaoyu/visual-code/weights/sam2-hiera-large/sam2_hiera_large.pt
@@ -84,4 +86,65 @@ tool_worker_config:
       cmd:
         script-addr: tool_server.tool_workers.online_workers.ocr_worker
         port: 20009
+        host: "0.0.0.0"
+
+  - DrawShape:
+      worker_name: DrawShape
+      job_name: draw_shape
+      calculate_type: control
+      cmd:
+        script-addr: tool_server.tool_workers.online_workers.draw_shape_worker
+        port: 20041
+        host: "0.0.0.0"
+
+  - HighlightBox:
+      worker_name: HighlightBox
+      job_name: highlight_box
+      calculate_type: control
+      cmd:
+        script-addr: tool_server.tool_workers.online_workers.highlight_box_worker
+        port: 20042
+        host: "0.0.0.0"
+
+  - MaskBox:
+      worker_name: MaskBox
+      job_name: mask_box
+      calculate_type: control
+      cmd:
+        script-addr: tool_server.tool_workers.online_workers.mask_box_worker
+        port: 20043
+        host: "0.0.0.0"
+
+  - LanguageModel:
+      worker_name: LanguageModel
+      job_name: languagemodel
+      calculate_type: calculate
+      conda_env: "visual"
+      cmd:
+        script-addr: tool_server.tool_workers.online_workers.languagemodel_worker
+        port: 20044
+        host: "0.0.0.0"
+        model_path: /mnt/petrelfs/sunhaoyu/visual-code/llm_weights/Qwen2.5-VL-7B-Instruct
+        max_tokens: 1024
+        temperature: 0.7
+
+  - GetSubplotInfo:
+      worker_name: GetSubplotInfo
+      job_name: get_subplot_info
+      calculate_type: control
+      conda_env: "visual"
+      cmd:
+        script-addr: tool_server.tool_workers.online_workers.get_subplot_info_worker
+        port: 20045
+        host: "0.0.0.0"
+
+
+  - GetBarInfo:
+      worker_name: GetBarInfo
+      job_name: get_bar_info
+      calculate_type: control
+      conda_env: "visual"
+      cmd:
+        script-addr: tool_server.tool_workers.online_workers.get_bar_info_worker
+        port: 20046
         host: "0.0.0.0"

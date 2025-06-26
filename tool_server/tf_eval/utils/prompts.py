@@ -85,14 +85,14 @@ ocr_instruction = """
 {
     "type": "function",
     "function": {
-        "name": self.model_name,
+        "name": "OCR",
         "description": "Extracts and localizes text from the given image using OCR. Returns bounding boxes, recognized text, and confidence scores.",
         "parameters": {
             "type": "object",
             "properties": {
                 "image": {
                     "type": "string",
-                    "description": "The identifier of the image in which to locate the object, e.g., 'img_1'."
+                    "description": "The identifier of the image to analyze, e.g., 'img_1'"
                 }
             },
             "required": ["image"]
@@ -105,14 +105,14 @@ point_instruction = '''
 {
     "type": "function",
     "function": {
-        "name": self.model_name,
-        "description": "Identify a point in the image based on a natural language description. This tool returns the absolute pixel coordinates of the identified point along with an edited image showing the point. Only absolute coordinates are supported for output.",
+        "name": "Point",
+        "description": "Identify a point in the image based on a natural language description.",
         "parameters": {
             "type": "object",
             "properties": {
                 "image": {
                     "type": "string",
-                    "description": "The identifier or path of the image in which to locate the point, e.g., 'img_1'."
+                    "description": "The identifier of the image to edit, e.g., 'img_1'"
                 },
                 "description": {
                     "type": "string",
@@ -129,21 +129,21 @@ segment_around_point_instruction = '''
 {
     "type": "function",
     "function": {
-        "name": self.model_name,
+        "name": "SegmentAroundPoint",
         "description": "Segments objects in an image. Can perform automatic segmentation on the entire image or segment a specific object based on a single designated point. Returns the image with segmentation masks and related processing info.",
         "parameters": {
             "type": "object",
             "properties": {
                 "image": {
                     "type": "string",
-                    "description": "The identifier of the image in which to locate the object, e.g., 'img_1'."
+                    "description": "The identifier of the image to edit, e.g., 'img_1'"
                 },
-                "description": {
+                "coordinates": {
                     "type": "string",
                     "description": "Optional: Single point coordinates in format 'x=value1, y=value2', eg., 'x=50, y=100'. Using absolute pixel coordinates within image bounds. If not provided, the tool will automatically segment all objects in the image."
                 }
             },
-            "required": ["image", "description"]
+            "required": ["image", "coordinates"]
         }
     }
 }
@@ -153,26 +153,26 @@ drawn_line_instruction = '''
 {
     "type": "function",
     "function": {
-        "name": self.model_name,
+        "name": "DrawLine",
         "description": "Draw horizontal or vertical lines on an image. This tool supports drawing multiple lines of the same type simultaneously. Only accepts absolute pixel coordinates (not normalized values). Returns base64 encoded image with lines drawn.",
         "parameters": {
             "type": "object",
             "properties": {
                 "image": {
                     "type": "string",
-                    "description": "The identifier of the image in which to locate the object, e.g., 'img_1'."
+                    "description": "The identifier of the image to edit, e.g., 'img_1'"
                 },
                 "line_type": {
                     "type": "string",
                     "description": "Type of line to draw: 'horizontal' (requires y coordinates) or 'vertical' (requires x coordinates).",
                     "enum": ["horizontal", "vertical"]
                 },
-                "description": {
+                "coordinates": {
                     "type": "string",
                     "description": "For horizontal lines, provide y coordinates in format 'y1=100, y2=200, y3=300'. For vertical lines, provide x coordinates in format 'x1=100, x2=200, x3=300'. Multiple coordinates should be separated by commas. Only absolute pixel values are supported."
                 }
             },
-            "required": ["image", "line_type", "description"]
+            "required": ["image", "line_type", "coordinates"]
         }
     }
 }
@@ -182,14 +182,14 @@ grounding_dino_instruction = '''
 {
     "type": "function",
     "function": {
-        "name": self.model_name,
+        "name": "GroundingDINO",
         "description": "Locate objects in the image based on a natural language description. Returns detected objects with their bounding boxes in absolute pixel coordinates, confidence scores, and an annotated image with visualized detections.",
         "parameters": {
             "type": "object",
             "properties": {
                 "image": {
                     "type": "string",
-                    "description": "The identifier of the image in which to locate the object, e.g., 'img_1'."
+                    "description": "The identifier of the image to analyze, e.g., 'img_1'"
                 },
                 "description": {
                     "type": "string",
@@ -201,16 +201,160 @@ grounding_dino_instruction = '''
     }
 }
 '''
+draw_shape_instruction = '''
+{
+    "type": "function",
+    "function": {
+        "name": "DrawShape",
+        "description": 
+            "Draw geometric shapes (rectangle, ellipse, or circle) with red borders at specified bounding box locations on the image. Returns the edited image in base64 format.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "string",
+                    "description": "The identifier of the image to edit, e.g., 'img_1'"
+                },
+                "bboxes": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "shape": {
+                                "type": "string",
+                                "enum": ["rectangle", "ellipse", "circle"],
+                                "description": "Type of shape to draw."
+                            },
+                            "coords": {
+                                "type": "array",
+                                "items": { "type": "integer" },
+                                "description": "Bounding box coordinates in [x_min, y_min, x_max, y_max] format."
+                            }
+                        },
+                        "required": ["shape", "coords"]
+                    },
+                    "description": "List of shapes to draw and their coordinates."
+                }
+            },
+            "required": ["image", "bboxes"]
+        }
+    }
+}
+'''
 
+get_bar_info_instruction = '''
+{
+    "type": "function",
+    "function": {
+        "name": "GetBarInfo",
+        "description": 
+            "Extract bounding boxes of all bars in the image along with their corresponding axis titles or labels. Returns a dictionary mapping each label to its bounding box.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "string",
+                    "description": "The identifier of the image to analyze, e.g., 'img_1'."
+                }
+            },
+            "required": ["image"]
+        }
+    }
+}
+'''
 
+get_subplot_info_instruction = '''
+{
+    "type": "function",
+    "function": {
+        "name": "GetSubplotInfo",
+        "description": 
+            "Extract the bounding boxes of each subplot within the image along with their corresponding titles. Returns a dictionary mapping each title to its subplot bounding box.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "string",
+                    "description": "The identifier of the image to analyze, e.g., 'img_1'"
+                }
+            },
+            "required": ["image"]
+        }
+    }
+}
+'''
+
+highlight_box_instruction = '''
+{
+    "type": "function",
+    "function": {
+        "name": "HighlightBox",
+        "description": 
+            "Highlight specified bounding box regions in the image using semi-transparent red overlays. Returns the edited image in base64 format.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "string",
+                    "description": "The identifier of the image to edit, e.g., 'img_1'"
+                },
+                "bboxes": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": { "type": "integer" },
+                        "description": "Bounding box in the format [x_min, y_min, x_max, y_max] using absolute pixel coordinates."
+                    },
+                    "description": "List of bounding boxes to be highlighted."
+                }
+            },
+            "required": ["image", "bboxes"]
+        }
+    }
+}
+'''
+
+mask_box_instruction = '''
+{
+    "type": "function",
+    "function": {
+        "name": "MaskBox",
+        "description": 
+            "Mask out all specified bounding box regions in the input image by overlaying white rectangles. Returns the edited image in base64 format.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "string",
+                    "description": "The identifier of the image to edit, e.g., 'img_1'."
+                },
+                "bboxes": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": { "type": "integer" },
+                        "description": "Bounding box in the format [x_min, y_min, x_max, y_max] using absolute pixel coordinates."
+                    },
+                    "description": "List of bounding boxes to be masked."
+                }
+            },
+            "required": ["image", "bboxes"]
+        }
+    }
+}
+'''
 tool_desc_dict = dict(
-   OCR=ocr_instruction,
-   Point=point_instruction,
-   SegmentRegionAroundPoint=segment_around_point_instruction,
-   DrawLine=drawn_line_instruction,
-   GroundingDINO=grounding_dino_instruction,
-#    Terminate=terminate_instruction, # 根据prompt应该就不需要这个东西了吧
-   all=f"{ocr_instruction}\n{point_instruction}\n{segment_around_point_instruction}\n{drawn_line_instruction}\n{grounding_dino_instruction}",
+    OCR=ocr_instruction,
+    Point=point_instruction,
+    SegmentRegionAroundPoint=segment_around_point_instruction,
+    DrawLine=drawn_line_instruction,
+    GroundingDINO=grounding_dino_instruction,
+    DrawShape=draw_shape_instruction,
+    GetBarInfo=get_bar_info_instruction,
+    GetSubplotInfo=get_subplot_info_instruction,
+    HighlightBox=highlight_box_instruction,
+    MaskBox=mask_box_instruction,
+    all=f"{ocr_instruction}\n{point_instruction}\n{segment_around_point_instruction}\n{drawn_line_instruction}\n{grounding_dino_instruction}\n{draw_shape_instruction}\n{get_bar_info_instruction}\n{get_subplot_info_instruction}\n{highlight_box_instruction}\n{mask_box_instruction}",
 )
 
 # 格式化 tool_planning_model_prompt

@@ -22,7 +22,6 @@ from typing import Optional
 from tool_server.utils.server_utils import build_logger
 from tool_server.utils.utils import load_image, pil_to_base64, base64_to_pil
 from tool_server.utils.worker_arguments import WorkerArguments
-from tool_server.utils.error_codes import *
 from tool_server.tool_workers.online_workers.base_tool_worker import BaseToolWorker
 
 worker_id = str(uuid.uuid4())[:6]
@@ -106,16 +105,22 @@ def DrawLine(image, point_coords=None, line_type="horizontal"):
     image_format = image.format.lower() if image.format else 'png'
     if image_format not in ['png', 'jpeg', 'jpg']:
         image_format = 'png'
+    
+    # 保存原始图像尺寸
+    original_width, original_height = image.size
         
-    # 获取原始图像尺寸
-    width, height = image.size
-        
-    # 创建具有固定尺寸的图形
+    # 创建图形时指定尺寸和DPI以匹配原始图像
     dpi = 100
-    figsize = (width / dpi, height / dpi)
+    figsize = (original_width / dpi, original_height / dpi)
     fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+    
+    # 设置图像显示范围
     ax.imshow(image)
     ax.axis("off")
+    
+    # 设置坐标轴范围以匹配图像尺寸
+    ax.set_xlim(0, original_width)
+    ax.set_ylim(original_height, 0)  # 注意y轴是反的
     
     for point in point_coords:
         if line_type.lower() == "horizontal":
@@ -127,23 +132,20 @@ def DrawLine(image, point_coords=None, line_type="horizontal"):
             if 0 <= x < image.width:
                 ax.axvline(x=x, color='#e6194b', linewidth=2, linestyle='dashed')
     
-    # 设置图形范围以匹配原始图像
-    ax.set_xlim(0, width)
-    ax.set_ylim(height, 0)  # 注意y轴方向是反的
-    
-    # 移除所有边距
-    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+    # 确保图像边界与原始图像完全一致
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
     
     buf = BytesIO()
-    fig.savefig(buf, format=image_format, bbox_inches='tight', pad_inches=0, dpi=dpi)  
+    # 移除bbox_inches='tight'参数，使用固定尺寸
+    fig.savefig(buf, format=image_format, pad_inches=0, dpi=dpi)  
     plt.close(fig) 
     buf.seek(0)
     
     edited_image = Image.open(buf).convert("RGB")
     
-    # 确保输出图像尺寸与输入相同
-    if edited_image.size != (width, height):
-        edited_image = edited_image.resize((width, height), Image.LANCZOS)
+    # 确保输出图像与输入图像尺寸完全一致
+    if edited_image.size != (original_width, original_height):
+        edited_image = edited_image.resize((original_width, original_height), Image.LANCZOS)
     
     return edited_image
 
@@ -164,19 +166,19 @@ class DrawLineToolWorker(BaseToolWorker):
                     "properties": {
                         "image": {
                             "type": "string",
-                            "description": "The identifier of the image in which to locate the object, e.g., 'img_1'."
+                            "description": "The identifier of the image to edit, e.g., 'img_1'"
                         },
                         "line_type": {
                             "type": "string",
                             "description": "Type of line to draw: 'horizontal' (requires y coordinates) or 'vertical' (requires x coordinates).",
                             "enum": ["horizontal", "vertical"]
                         },
-                        "description": {
+                        "coordinates": {
                             "type": "string",
                             "description": "For horizontal lines, provide y coordinates in format 'y1=100, y2=200, y3=300'. For vertical lines, provide x coordinates in format 'x1=100, x2=200, x3=300'. Multiple coordinates should be separated by commas. Only absolute pixel values are supported."
                         }
                     },
-                    "required": ["image", "line_type", "description"]
+                    "required": ["image", "line_type", "coordinates"]
                 }
             }
         }
@@ -191,21 +193,20 @@ class DrawLineToolWorker(BaseToolWorker):
             try:
                 image_data = params["image"]
                 line_type = params.get("line_type", "horizontal").lower()
-                generate_param = params.get("description", "")
+                generate_param = params.get("coordinates", "")
                 
                 if not generate_param:
-                    raise KeyError("'description' not found in params")
+                    raise KeyError("'coordinates' not found in params")
                     
                 if line_type not in ["horizontal", "vertical"]:
                     line_type = "horizontal"  # 默认水平线
                     
             except Exception as e:
-                message = f"Invalid parameters: expected keys: image, line_type, description. Error: {str(e)}"
+                message = f"Invalid parameters: expected keys: image, line_type, coordinates. Error: {str(e)}"
                 pred_dict = {
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": message,
-                    "error_code": INVALID_PARAMETERS
                 }
                 return pred_dict
             
@@ -220,7 +221,6 @@ class DrawLineToolWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": f"Failed to load image: {str(e)}",
-                    "error_code": CANNOT_LOAD_IMAGE
                 }
                 return pred_dict
             
@@ -234,7 +234,6 @@ class DrawLineToolWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": str(e),
-                    "error_code": INVALID_PARAMETERS
                 }
                 return pred_dict
             
@@ -243,7 +242,6 @@ class DrawLineToolWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": "No valid points extracted from parameters.",
-                    "error_code": INVALID_PARAMETERS
                 }
                 return pred_dict
             
@@ -263,8 +261,7 @@ class DrawLineToolWorker(BaseToolWorker):
                 "image_dimensions_pixels": {
                     "width": edited_img.width,
                     "height": edited_img.height
-                },
-                "error_code": SUCCESS
+                }
             }
             
             return pred_dict
@@ -273,8 +270,8 @@ class DrawLineToolWorker(BaseToolWorker):
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "failed",
-                "message": f"Error: {str(e)}\n Traceback:{traceback.format_exc()}\n",
-                "error_code": TOOL_RUN_FAILED
+                "error": str(e),
+                "traceback": traceback.format_exc()
             }
             logger.error(f"Error during drawing operation: {e}")
             logger.error(traceback.format_exc())
@@ -283,6 +280,15 @@ class DrawLineToolWorker(BaseToolWorker):
     def get_tool_instruction(self):
         return self.instruction
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
 if __name__ == "__main__":

@@ -29,28 +29,28 @@ from tool_server.utils.error_codes import *
 from tool_server.tool_workers.online_workers.base_tool_worker import BaseToolWorker
 
 worker_id = str(uuid.uuid4())[:6]
-logger = build_logger(__file__, f"get_bar_info_worker_{worker_id}.log")
+logger = build_logger(__file__, f"get_subplot_info_worker_{worker_id}.log")
 
 
-class GetBarInfoWorker(BaseToolWorker):
+class GetSubplotInfoWorker(BaseToolWorker):
     def __init__(self, worker_arguments: WorkerArguments = None):
         # 在调用父类初始化前先设置模型名称
         if worker_arguments and worker_arguments.model_name is None:
-            worker_arguments.model_name = "GetBarInfo"
+            worker_arguments.model_name = "GetSubplotInfo"
         super().__init__(worker_arguments)
             
         self.instruction = {
             "type": "function",
             "function": {
-                "name": "GetBarInfo",
+                "name": "GetSubplotInfo",
                 "description": 
-                    "Extract bounding boxes of all bars in the image along with their corresponding axis titles or labels. Returns a dictionary mapping each label to its bounding box.",
+                    "Extract the bounding boxes of each subplot within the image along with their corresponding titles. Returns a dictionary mapping each title to its subplot bounding box.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "image": {
                             "type": "string",
-                            "description": "The identifier of the image to analyze, e.g., 'img_1'."
+                            "description": "The identifier of the image to analyze, e.g., 'img_1'"
                         }
                     },
                     "required": ["image"]
@@ -59,20 +59,20 @@ class GetBarInfoWorker(BaseToolWorker):
         }
         
         self.controller_addr = "http://SH-IDC1-10-140-37-6:21112"
-        
+                
     def init_model(self):
         logger.info(f"No need to initialize model {self.model_name}.")
         self.model = None
         
-    def extract_bars_from_image(self, image):
+    def extract_subplots_from_image(self, image):
         """
-        从图像中提取柱状图
+        从图像中提取子图区域
         
         参数:
         image - PIL图像对象或numpy数组
         
         返回:
-        bar_bboxes - 包含所有柱子bbox的字典
+        subplot_bboxes - 包含所有子图bbox的字典
         """
         # 如果输入是PIL图像，转换为numpy数组
         if isinstance(image, Image.Image):
@@ -82,60 +82,70 @@ class GetBarInfoWorker(BaseToolWorker):
         else:
             image_np = image
             
-        # 转换为HSV颜色空间
-        hsv_image = cv2.cvtColor(image_np, cv2.COLOR_BGR2HSV)
+        # 转换为灰度图
+        gray = cv2.cvtColor(image_np, cv2.COLOR_BGR2GRAY)
         
-        # 定义常见柱状图颜色范围
-        color_ranges = [
-            # 蓝色范围
-            (np.array([100, 150, 50]), np.array([140, 255, 255])),
-            # 红色范围 (由于HSV中红色在0和180附近，需要两个范围)
-            (np.array([0, 150, 50]), np.array([10, 255, 255])),
-            (np.array([170, 150, 50]), np.array([180, 255, 255])),
-            # 绿色范围
-            (np.array([40, 100, 50]), np.array([80, 255, 255])),
-            # 黄色范围
-            (np.array([20, 100, 50]), np.array([40, 255, 255])),
-            # 青色范围
-            (np.array([80, 100, 50]), np.array([100, 255, 255])),
-            # 粉色范围
-            (np.array([140, 100, 50]), np.array([170, 255, 255])),
-            # 灰色范围
-            (np.array([0, 0, 50]), np.array([180, 30, 200])),
-            # 橙色范围
-            (np.array([10, 150, 150]), np.array([25, 255, 255]))
-        ]
+        # 边缘检测
+        edges = cv2.Canny(gray, 50, 150, apertureSize=3)
         
-        bar_bboxes = {}
-        bar_count = 0
+        # 膨胀边缘，使线条更粗
+        kernel = np.ones((5, 5), np.uint8)
+        dilated = cv2.dilate(edges, kernel, iterations=2)
         
-        # 遍历所有颜色范围
-        for lower_hsv, upper_hsv in color_ranges:
-            # 创建颜色掩码
-            mask = cv2.inRange(hsv_image, lower_hsv, upper_hsv)
-            
-            # 形态学操作去除噪点
-            kernel = np.ones((5, 5), np.uint8)
-            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
-            mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
-            
-            # 查找轮廓
-            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            
-            # 遍历轮廓
-            for contour in contours:
-                # 过滤掉太小的轮廓
-                if cv2.contourArea(contour) > 50:  # 可以根据实际情况调整阈值
-                    # 获取边界框
-                    x, y, w, h = cv2.boundingRect(contour)
-                    
-                    bar_bboxes[f'bar_{bar_count}'] = {
-                        'bbox': [x, y, x + w, y + h],  # [x_min, y_min, x_max, y_max]
-                        'area': int(cv2.contourArea(contour))
+        # 查找轮廓
+        contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        subplot_bboxes = {}
+        subplot_count = 0
+        
+        # 获取图像尺寸
+        height, width = image_np.shape[:2]
+        min_area = height * width * 0.05  # 最小面积阈值，图像面积的5%
+        
+        # 遍历轮廓
+        for contour in contours:
+            # 过滤掉太小的轮廓
+            if cv2.contourArea(contour) > min_area:  # 根据图像大小动态调整阈值
+                # 获取边界框
+                x, y, w, h = cv2.boundingRect(contour)
+                
+                # 检查是否为矩形（通过比较轮廓面积与边界框面积的比例）
+                rect_area = w * h
+                contour_area = cv2.contourArea(contour)
+                if contour_area / rect_area > 0.7:  # 可以根据实际情况调整比例
+                    subplot_bboxes[f'subplot_{subplot_count}'] = {
+                        'bbox': [x, y, x + w, y + h]  # [x_min, y_min, x_max, y_max]
                     }
-                    bar_count += 1
+                    subplot_count += 1
         
-        return bar_bboxes
+        # 如果没有检测到子图，尝试使用霍夫线变换方法
+        if not subplot_bboxes:
+            # 使用霍夫线变换检测直线
+            lines = cv2.HoughLinesP(dilated, 1, np.pi/180, threshold=100, minLineLength=100, maxLineGap=10)
+            
+            if lines is not None:
+                # 创建一个新的图像来绘制线条
+                line_image = np.zeros_like(image_np)
+                
+                for line in lines:
+                    x1, y1, x2, y2 = line[0]
+                    cv2.line(line_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                
+                # 使用线条图像进行轮廓检测
+                gray_lines = cv2.cvtColor(line_image, cv2.COLOR_BGR2GRAY)
+                _, thresh = cv2.threshold(gray_lines, 10, 255, cv2.THRESH_BINARY)
+                contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                
+                # 遍历轮廓
+                for contour in contours:
+                    if cv2.contourArea(contour) > min_area:
+                        x, y, w, h = cv2.boundingRect(contour)
+                        subplot_bboxes[f'subplot_{subplot_count}'] = {
+                            'bbox': [x, y, x + w, y + h]
+                        }
+                        subplot_count += 1
+        
+        return subplot_bboxes
     
     def get_worker_address(self, controller_addr, model_name):
         """获取特定工具的worker地址"""
@@ -181,12 +191,13 @@ class GetBarInfoWorker(BaseToolWorker):
             logger.error(f"调用OCR工具出错: {str(e)}")
             return None
     
-    def call_language_model(self, bar_bboxes, ocr_results, image_base64):
+    def call_language_model(self, subplots, ocr_results, image_base64):
         """调用语言模型工具进行结果组合"""
         lm_worker_addr = self.get_worker_address(self.controller_addr, "LanguageModel")
         if not lm_worker_addr:
             logger.error("无法获取LanguageModel工具地址")
             return None
+        
             
         try:
             # 从OCR结果中提取文本信息
@@ -195,50 +206,39 @@ class GetBarInfoWorker(BaseToolWorker):
                 for detection in ocr_results["detections"]:
                     if "label" in detection and "pixel_bbox" in detection:
                         text_detections.append({
-                            "text": detection["label"],
-                            "bbox": [
-                                detection["pixel_bbox"]["x_min"],
-                                detection["pixel_bbox"]["y_min"],
-                                detection["pixel_bbox"]["x_max"],
-                                detection["pixel_bbox"]["y_max"]
-                            ]
+                            "text": detection["label"]
                         })
             
-            # 准备语言模型请求数据
+        #     # 准备语言模型请求数据
         #     prompt = f"""
-        # I have extracted bar regions and text from a bar chart image. Please help match each bar with its corresponding label or title.
+        # I have extracted subplot regions and text from an image. Please help match each subplot with its corresponding title.
 
-        # Bar information (coordinates in [x_min, y_min, x_max, y_max] format):
-        # {json.dumps(bar_bboxes, indent=2)}
+        # Subplot information (coordinates in [x_min, y_min, x_max, y_max] format):
+        # {json.dumps(subplots, indent=2)}
 
         # Detected text information:
         # {json.dumps(text_detections, indent=2)}
 
-        # Based on the spatial relationship between text and bar regions, please generate a dictionary where:
-        # - Keys are the bar labels (use the detected text that most likely represents a label for each bar)
-        # - Values are the corresponding bar coordinates [x_min, y_min, x_max, y_max]
+        # Based on the spatial relationship between text and subplot regions, please generate a dictionary where:
+        # - Keys are the subplot titles (use the detected text that most likely represents a title)
+        # - Values are the corresponding subplot coordinates [x_min, y_min, x_max, y_max]
 
-        # IMPORTANT: If you find that the provided bar coordinates are inaccurate or incomplete:
-        # 1. Modify the coordinates if they don't properly contain the bar content
-        # 2. Add missing bars if you can identify them from the text or visual information
-        # 3. Remove overlapping or duplicate bar regions
+        # IMPORTANT: If you find that the provided subplot coordinates are inaccurate or incomplete:
+        # 1. Modify the coordinates if they don't properly contain the subplot content
+        # 2. Add missing subplots if you can identify them from the text or visual information
+        # 3. Merge overlapping or duplicate subplot regions
 
-        # If a bar doesn't have a clear label, use "bar_X" as the key.
+        # If a subplot doesn't have a clear title, use "subplot_X" as the key.
 
         # Return ONLY a valid JSON dictionary in this format:
-        # {{"bar_label1": [x_min, y_min, x_max, y_max], "bar_label2": [x_min, y_min, x_max, y_max], ...}}
-        #     """
+        # {{"subplot_title1": [x_min, y_min, x_max, y_max], "subplot_title2": [x_min, y_min, x_max, y_max], ...}}
+            # """
 
             prompt = f"""
-            Please carefully observe the image and output the labels and bounding box coordinates of all bars.
+        Please carefully observe the image and output the titles and coordinates of all the subplots.
 
-            Key considerations:
-            1.  A single bar may be composed of multiple colored segments stacked vertically. Treat this entire stack as a single bar and provide one bounding box that covers all its segments.
-            2.  Adjacent bars may be positioned next to each other with no gap in between. These should be treated as separate, distinct bars.
-            3.  As a general rule, different bars do not have overlapping x-coordinate ranges.
-
-            Return ONLY a valid JSON dictionary in this format:
-            {{"bar_label1": [x_min, y_min, x_max, y_max], "bar_label2": [x_min, y_min, x_max, y_max], ...}}
+        Return ONLY a valid JSON dictionary in this format:
+        {{"subplot_title1": [x_min, y_min, x_max, y_max], "subplot_title2": [x_min, y_min, x_max, y_max], ...}}
             """
             
             datas = {
@@ -288,6 +288,21 @@ class GetBarInfoWorker(BaseToolWorker):
             logger.error(f"调用语言模型工具出错: {str(e)}")
             return None
     
+    def base64_to_pil(self, base64_str):
+        """将base64字符串转换为PIL图像"""
+        try:
+            image_data = base64.b64decode(base64_str)
+            return Image.open(BytesIO(image_data))
+        except Exception as e:
+            logger.error(f"Base64转PIL图像失败: {str(e)}")
+            return None
+    
+    def pil_to_base64(self, img, format="PNG"):
+        """将PIL图像转换为base64字符串"""
+        buffered = BytesIO()
+        img.save(buffered, format=format)
+        return base64.b64encode(buffered.getvalue()).decode("utf-8")
+    
     def generate(self, params):
         try:
             # 提取输入参数
@@ -322,59 +337,63 @@ class GetBarInfoWorker(BaseToolWorker):
                 }
                 return pred_dict
             
-            # 1. 提取柱子区域
+            # 1. 提取子图区域
             try:
-                bar_bboxes = self.extract_bars_from_image(image)
-                if not bar_bboxes:
-                    logger.warning("No bar regions detected by color-based method, continuing with OCR and language model...")
-                else:
-                    logger.info(f"Detected {len(bar_bboxes)} bar regions.")
+                subplot_bboxes = self.extract_subplots_from_image(image)
+                logger.info(f"Detected {len(subplot_bboxes)} subplot regions.")
             except Exception as e:
-                logger.error(f"Failed to extract bar regions: {str(e)}")
-                bar_bboxes = {}  # 设置为空字典，继续执行
-            
-            # 2. 调用OCR工具识别文本
-            ocr_results = self.call_ocr_tool(image_base64)
-            if not ocr_results or ocr_results.get("status") != "success":
-                logger.warning("OCR detection failed or returned no results")
-                ocr_results = {"detections": []}  # 设置为空列表，继续执行
-            
-            # 3. 调用语言模型进行结果组合
-            final_result = {}
-            try:
-                # 即使前面的步骤没有成功，也尝试使用语言模型
-                lm_result = self.call_language_model(bar_bboxes, ocr_results, image_base64)
-                if lm_result:
-                    final_result = lm_result
-                else:
-                    logger.warning("Language model returned empty result")
-                    # 如果语言模型没有返回结果，但我们有从第一步获取的柱子信息
-                    if bar_bboxes:
-                        for bar_id, bar_info in bar_bboxes.items():
-                            final_result[bar_id] = bar_info["bbox"]
-            except Exception as e:
-                logger.error(f"组合结果失败: {str(e)}")
-                # 如果语言模型处理失败，但我们有从第一步获取的柱子信息
-                if bar_bboxes:
-                    for bar_id, bar_info in bar_bboxes.items():
-                        final_result[bar_id] = bar_info["bbox"]
-            
-            # 4. 检查最终结果，如果仍然没有提取到柱子，则返回错误
-            if not final_result:
                 pred_dict = {
                     "tool_response_from": self.model_name,
                     "status": "failed",
-                    "message": "No bar regions could be detected after all processing steps",
+                    "message": f"Failed to extract subplot regions: {str(e)}",
                     "error_code": TOOL_RUN_FAILED
                 }
                 return pred_dict
             
-            # 5. 返回成功结果
+            # 2. 调用OCR工具识别文本
+            ocr_results = self.call_ocr_tool(image_base64)
+            if not ocr_results or ocr_results.get("status") != "success":
+                pred_dict = {
+                    "tool_response_from": self.model_name,
+                    "status": "failed",
+                    "message": "OCR detection failed",
+                    "error_code": TOOL_RUN_FAILED
+                }
+                return pred_dict
+            
+            # 3. 调用语言模型进行结果组合
+            try:
+                final_result = self.call_language_model(subplot_bboxes, ocr_results, image_base64)
+            except Exception as e:
+                logger.error(f"组合结果失败: {str(e)}")
+                final_result = None
+            
+            # 4. 判断是否成功提取到子图信息
+            if (not subplot_bboxes or len(subplot_bboxes) == 0) and (not final_result or len(final_result) == 0):
+                pred_dict = {
+                    "tool_response_from": self.model_name,
+                    "status": "failed",
+                    "message": "No subplot regions detected after both extraction methods",
+                    "error_code": TOOL_RUN_FAILED
+                }
+                return pred_dict
+            
+            # 5. 如果语言模型返回了结果，使用它，否则使用基本提取结果
+            if final_result and len(final_result) > 0:
+                result_to_use = final_result
+            else:
+                # 如果语言模型未返回有效结果，使用基本提取的结果
+                logger.warning("Language model returned empty result, using basic extraction results")
+                result_to_use = {}
+                for subplot_id, subplot_info in subplot_bboxes.items():
+                    result_to_use[subplot_id] = subplot_info["bbox"]
+            
+            # 6. 返回结果
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "success",
-                "message": "Successfully extracted bar information",
-                "bars": final_result,
+                "message": "Successfully extracted subplot information",
+                "subplots": result_to_use,
                 "error_code": SUCCESS
             }
             
@@ -387,7 +406,7 @@ class GetBarInfoWorker(BaseToolWorker):
                 "message": f"Error: {str(e)}\n Traceback: {traceback.format_exc()}\n",
                 "error_code": TOOL_RUN_FAILED
             }
-            logger.error(f"柱状图信息提取操作错误: {e}")
+            logger.error(f"子图信息提取操作错误: {e}")
             logger.error(traceback.format_exc())
             return pred_dict
     
@@ -402,7 +421,7 @@ if __name__ == "__main__":
     
     logger.info(f"args: {args}")
 
-    worker = GetBarInfoWorker(
+    worker = GetSubplotInfoWorker(
         worker_arguments=args
     )
     worker.run()

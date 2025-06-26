@@ -51,12 +51,12 @@ class CropToolWorker(BaseToolWorker):
                             "type": "string",
                             "description": "The identifier of the image to crop, e.g., 'img_1'."
                         },
-                        "description": {
+                        "coordinates": {
                             "type": "string",
                             "description": "Coordinates in format '[x_min, y_min, x_max, y_max]', eg., '[100, 100, 200, 200]'. Only absolute pixel values (integers) are supported."
                         }
                     },
-                    "required": ["image", "description"]
+                    "required": ["image", "coordinates"]
                 }
             }
         }
@@ -70,12 +70,12 @@ class CropToolWorker(BaseToolWorker):
             # Extract input parameters
             try:
                 image_data = params["image"]
-                crop_param = params.get("description", "")
+                crop_param = params.get("coordinates", "")
                 
                 if not crop_param:
-                    raise KeyError("'description' not found in params")
+                    raise KeyError("'coordinates' not found in params")
             except Exception as e:
-                message = f"Invalid parameters: expected keys: image, description. Error: {str(e)}"
+                message = f"Invalid parameters: expected keys: image, coordinates. Error: {str(e)}"
                 pred_dict = {
                     "tool_response_from": self.model_name,
                     "status": "failed",

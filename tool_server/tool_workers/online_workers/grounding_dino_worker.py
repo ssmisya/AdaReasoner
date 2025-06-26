@@ -10,7 +10,6 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib
-import traceback
 
 from transformers import HfArgumentParser
 from dataclasses import dataclass, field
@@ -22,7 +21,6 @@ from groundingdino.util import box_ops
 
 from tool_server.utils.server_utils import build_logger
 from tool_server.utils.worker_arguments import WorkerArguments
-from tool_server.utils.error_codes import *
 from tool_server.tool_workers.online_workers.base_tool_worker import BaseToolWorker
 
 worker_id = str(uuid.uuid4())[:6]
@@ -56,7 +54,7 @@ class GroundingDinoWorker(BaseToolWorker):
                     "properties": {
                         "image": {
                             "type": "string",
-                            "description": "The identifier of the image in which to locate the object, e.g., 'img_1'."
+                            "description": "The identifier of the image to analyze, e.g., 'img_1'"
                         },
                         "description": {
                             "type": "string",
@@ -71,27 +69,22 @@ class GroundingDinoWorker(BaseToolWorker):
     def init_model(self):
         logger.info(f"Initializing model {self.model_name}...")
         logger.info(f"CUDA available: {torch.cuda.is_available()}, GPU count: {torch.cuda.device_count()}")
-        try:
-            self.model = load_model(
-                model_config_path=self.model_config,
-                model_checkpoint_path=self.model_path,
-                device=self.device,
-            )
-            self.model.to(self.device)
-            self.model.eval()
+        self.model = load_model(
+            model_config_path=self.model_config,
+            model_checkpoint_path=self.model_path,
+            device=self.device,
+        )
+        self.model.to(self.device)
+        self.model.eval()
 
-            self.transform = T.Compose(
-                [
-                    T.RandomResize([800], max_size=1333),
-                    T.ToTensor(),
-                    T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-                ]
-            )
-        except Exception as e:
-            logger.error(f"Failed to initialize model: {e}")
-            logger.error(traceback.format_exc())
-            raise e
-
+        self.transform = T.Compose(
+            [
+                T.RandomResize([800], max_size=1333),
+                T.ToTensor(),
+                T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            ]
+        )
+        
     def load_image(self, image_path: str):
         if os.path.exists(image_path):
             image_source = Image.open(image_path).convert("RGB")
@@ -199,7 +192,7 @@ class GroundingDinoWorker(BaseToolWorker):
                 "tool_response_from": self.model_name,
                 "status": "failed",
                 "message": message,
-                "error_code": INVALID_PARAMETERS
+                "error_code": 1
             }
             return pred_dict
         
@@ -207,38 +200,16 @@ class GroundingDinoWorker(BaseToolWorker):
         box_threshold = params.get("box_threshold", 0.25)
         text_threshold = params.get("text_threshold", 0.25)
         try:
-            # Load image
-            try:
-                image_np, image = self.load_image(image_path)
-            except Exception as e:
-                pred_dict = {
-                    "tool_response_from": self.model_name,
-                    "status": "failed",
-                    "message": f"Failed to load image: {str(e)}",
-                    "error_code": CANNOT_LOAD_IMAGE
-                }
-                return pred_dict
-            
-            # Run model
-            try:
-                boxes, logits, phrases = predict(
-                    model=self.model, 
-                    image=image, 
-                    caption=description, 
-                    box_threshold=box_threshold, 
-                    text_threshold=text_threshold,
-                    device=self.device
-                )
-            except Exception as e:
-                pred_dict = {
-                    "tool_response_from": self.model_name,
-                    "status": "failed",
-                    "message": f"Model inference failed: {str(e)}",
-                    "error_code": TOOL_RUN_FAILED
-                }
-                logger.error(f"Error during GroundingDINO inference: {e}")
-                logger.error(traceback.format_exc())
-                return pred_dict
+            # Load image and run model
+            image_np, image = self.load_image(image_path)
+            boxes, logits, phrases = predict(
+                model=self.model, 
+                image=image, 
+                caption=description, 
+                box_threshold=box_threshold, 
+                text_threshold=text_threshold,
+                device=self.device
+            )
             
             # Apply NMS to boxes
             boxes, logits, phrases = self.nms(boxes, logits, phrases)
@@ -253,13 +224,17 @@ class GroundingDinoWorker(BaseToolWorker):
             detect_res_num = len(boxes_list)
             detections = []
             for detect_res_idx in range(detect_res_num):
+                # 只返回confidence高于box_threshold的结果
+                if logits_list[detect_res_idx] < box_threshold:
+                    continue
+                    
                 x_min = int(boxes_list[detect_res_idx][0] * w)
                 y_min = int(boxes_list[detect_res_idx][1] * h)
                 x_max = int(boxes_list[detect_res_idx][2] * w)
                 y_max = int(boxes_list[detect_res_idx][3] * h)
                 detections.append({
                     "label": phrases[detect_res_idx],
-                    "confidence": logits_list[detect_res_idx],
+                    "confidence": round(logits_list[detect_res_idx], 2),
                     "bbox": {
                         "x_min": x_min,
                         "y_min": y_min,
@@ -281,8 +256,7 @@ class GroundingDinoWorker(BaseToolWorker):
                     "height": h
                 },
                 "edited_image": annotated_image_base64,
-                "message": f"Successfully detected {len(detections)} objects.",
-                "error_code": SUCCESS
+                "message": f"Successfully detected {len(detections)} objects."
             }
             
             return pred_dict
@@ -291,11 +265,10 @@ class GroundingDinoWorker(BaseToolWorker):
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "failed",
-                "message": f"Error: {str(e)}\nTraceback: {traceback.format_exc()}",
-                "error_code": TOOL_RUN_FAILED
+                "error_code": 1,
+                "error": str(e)
             }
             logger.error(f"Error during GroundingDINO inference: {e}")
-            logger.error(traceback.format_exc())
             return pred_dict
         
     

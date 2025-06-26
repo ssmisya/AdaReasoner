@@ -49,7 +49,7 @@ class MolmoPointWorker(BaseToolWorker):
                     "properties": {
                         "image": {
                             "type": "string",
-                            "description": "The identifier or path of the image in which to locate the point, e.g., 'img_1'."
+                            "description": "The identifier of the image to edit, e.g., 'img_1'"
                         },
                         "description": {
                             "type": "string",

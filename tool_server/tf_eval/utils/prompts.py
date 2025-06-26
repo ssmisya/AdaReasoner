@@ -85,14 +85,14 @@ ocr_instruction = """
 {
     "type": "function",
     "function": {
-        "name": self.model_name,
+        "name": "OCR",
         "description": "Extracts and localizes text from the given image using OCR. Returns bounding boxes, recognized text, and confidence scores.",
         "parameters": {
             "type": "object",
             "properties": {
                 "image": {
                     "type": "string",
-                    "description": "The identifier of the image in which to locate the object, e.g., 'img_1'."
+                    "description": "The identifier of the image to analyze, e.g., 'img_1'"
                 }
             },
             "required": ["image"]
@@ -105,14 +105,14 @@ point_instruction = '''
 {
     "type": "function",
     "function": {
-        "name": self.model_name,
-        "description": "Identify a point in the image based on a natural language description. This tool returns the absolute pixel coordinates of the identified point along with an edited image showing the point. Only absolute coordinates are supported for output.",
+        "name": "Point",
+        "description": "Identify a point in the image based on a natural language description.",
         "parameters": {
             "type": "object",
             "properties": {
                 "image": {
                     "type": "string",
-                    "description": "The identifier or path of the image in which to locate the point, e.g., 'img_1'."
+                    "description": "The identifier of the image to edit, e.g., 'img_1'"
                 },
                 "description": {
                     "type": "string",
@@ -129,21 +129,21 @@ segment_around_point_instruction = '''
 {
     "type": "function",
     "function": {
-        "name": self.model_name,
+        "name": "SegmentAroundPoint",
         "description": "Segments objects in an image. Can perform automatic segmentation on the entire image or segment a specific object based on a single designated point. Returns the image with segmentation masks and related processing info.",
         "parameters": {
             "type": "object",
             "properties": {
                 "image": {
                     "type": "string",
-                    "description": "The identifier of the image in which to locate the object, e.g., 'img_1'."
+                    "description": "The identifier of the image to edit, e.g., 'img_1'"
                 },
-                "description": {
+                "coordinates": {
                     "type": "string",
                     "description": "Optional: Single point coordinates in format 'x=value1, y=value2', eg., 'x=50, y=100'. Using absolute pixel coordinates within image bounds. If not provided, the tool will automatically segment all objects in the image."
                 }
             },
-            "required": ["image", "description"]
+            "required": ["image", "coordinates"]
         }
     }
 }
@@ -153,26 +153,26 @@ drawn_line_instruction = '''
 {
     "type": "function",
     "function": {
-        "name": self.model_name,
+        "name": "DrawLine",
         "description": "Draw horizontal or vertical lines on an image. This tool supports drawing multiple lines of the same type simultaneously. Only accepts absolute pixel coordinates (not normalized values). Returns base64 encoded image with lines drawn.",
         "parameters": {
             "type": "object",
             "properties": {
                 "image": {
                     "type": "string",
-                    "description": "The identifier of the image in which to locate the object, e.g., 'img_1'."
+                    "description": "The identifier of the image to edit, e.g., 'img_1'"
                 },
                 "line_type": {
                     "type": "string",
                     "description": "Type of line to draw: 'horizontal' (requires y coordinates) or 'vertical' (requires x coordinates).",
                     "enum": ["horizontal", "vertical"]
                 },
-                "description": {
+                "coordinates": {
                     "type": "string",
                     "description": "For horizontal lines, provide y coordinates in format 'y1=100, y2=200, y3=300'. For vertical lines, provide x coordinates in format 'x1=100, x2=200, x3=300'. Multiple coordinates should be separated by commas. Only absolute pixel values are supported."
                 }
             },
-            "required": ["image", "line_type", "description"]
+            "required": ["image", "line_type", "coordinates"]
         }
     }
 }
@@ -182,14 +182,14 @@ grounding_dino_instruction = '''
 {
     "type": "function",
     "function": {
-        "name": self.model_name,
+        "name": "GroundingDINO",
         "description": "Locate objects in the image based on a natural language description. Returns detected objects with their bounding boxes in absolute pixel coordinates, confidence scores, and an annotated image with visualized detections.",
         "parameters": {
             "type": "object",
             "properties": {
                 "image": {
                     "type": "string",
-                    "description": "The identifier of the image in which to locate the object, e.g., 'img_1'."
+                    "description": "The identifier of the image to analyze, e.g., 'img_1'"
                 },
                 "description": {
                     "type": "string",
@@ -201,7 +201,6 @@ grounding_dino_instruction = '''
     }
 }
 '''
-
 draw_shape_instruction = '''
 {
     "type": "function",
@@ -214,7 +213,7 @@ draw_shape_instruction = '''
             "properties": {
                 "image": {
                     "type": "string",
-                    "description": "The identifier of the image to edit."
+                    "description": "The identifier of the image to edit, e.g., 'img_1'"
                 },
                 "bboxes": {
                     "type": "array",
@@ -255,7 +254,7 @@ get_bar_info_instruction = '''
             "properties": {
                 "image": {
                     "type": "string",
-                    "description": "The identifier of the image to analyze."
+                    "description": "The identifier of the image to analyze, e.g., 'img_1'."
                 }
             },
             "required": ["image"]
@@ -276,7 +275,7 @@ get_subplot_info_instruction = '''
             "properties": {
                 "image": {
                     "type": "string",
-                    "description": "The identifier of the image to analyze."
+                    "description": "The identifier of the image to analyze, e.g., 'img_1'"
                 }
             },
             "required": ["image"]
@@ -297,7 +296,7 @@ highlight_box_instruction = '''
             "properties": {
                 "image": {
                     "type": "string",
-                    "description": "The identifier of the image to edit."
+                    "description": "The identifier of the image to edit, e.g., 'img_1'"
                 },
                 "bboxes": {
                     "type": "array",
@@ -315,7 +314,7 @@ highlight_box_instruction = '''
 }
 '''
 
-mask_box_instruction='''
+mask_box_instruction = '''
 {
     "type": "function",
     "function": {
@@ -344,8 +343,6 @@ mask_box_instruction='''
     }
 }
 '''
-
-
 tool_desc_dict = dict(
     OCR=ocr_instruction,
     Point=point_instruction,

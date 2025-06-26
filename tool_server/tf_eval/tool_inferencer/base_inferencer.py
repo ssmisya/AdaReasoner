@@ -214,7 +214,7 @@ class BaseToolInferencer(object):
                         if img_key in self.image_history[item_id]:
                             image = self.image_history[item_id][img_key]
                             # 如果是需要图像的工具，确保图像格式正确
-                            if api_name in ["Point","SegmentRegionAroundPoint","Crop","GroundingDINO","DrawLine","OCR"]:
+                            if api_name in ["Point","SegmentRegionAroundPoint","Crop","GroundingDINO","DrawLine","OCR","GetSubplotInfo","GetBarInfo", "DrawShape", "HighlightBox", "MaskBox", "LanguageModel"]:
                                 if image is not None:
                                     image = load_image(image)
                                     image = pil_to_base64(image)
@@ -226,7 +226,7 @@ class BaseToolInferencer(object):
                             item.tool_response.append(dict(text=f"Image {img_key} not found in history.",status="failed"))
                             continue
                     # 如果没有指定图像或不是img_n格式，使用当前图像或元数据中的图像
-                    elif api_name in ["Point","SegmentRegionAroundPoint","Crop","GroundingDINO","DrawLine","OCR"]:
+                    elif api_name in ["Point","SegmentRegionAroundPoint","Crop","GroundingDINO","DrawLine","OCR","GetSubplotInfo","GetBarInfo", "DrawShape", "HighlightBox", "MaskBox", "LanguageModel"]:
                         # 确定当前使用的图像：优先使用当前图像，否则使用元数据中的图像
                         if item.current_image is not None:
                             image = item.current_image

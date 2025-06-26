@@ -192,14 +192,14 @@ class SAMAroundPointWorker(BaseToolWorker):
                     "properties": {
                         "image": {
                             "type": "string",
-                            "description": "The identifier of the image in which to locate the object, e.g., 'img_1'."
+                            "description": "The identifier of the image to edit, e.g., 'img_1'"
                         },
-                        "description": {
+                        "coordinates": {
                             "type": "string",
                             "description": "Optional: Single point coordinates in format 'x=value1, y=value2', eg., 'x=50, y=100'. Using absolute pixel coordinates within image bounds. If not provided, the tool will automatically segment all objects in the image."
                         }
                     },
-                    "required": ["image", "description"]
+                    "required": ["image", "coordinates"]
                 }
             }
         }
@@ -240,7 +240,7 @@ class SAMAroundPointWorker(BaseToolWorker):
             # Extract inputs
             try:
                 image_data = params["image"]
-                point_param = params.get("description", "")
+                point_param = params.get("coordinates", "")
             except Exception as e:
                 message = f"Invalid parameters: expected key: image. Error: {str(e)}"
                 return {

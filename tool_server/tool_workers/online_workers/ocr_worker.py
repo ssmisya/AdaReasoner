@@ -9,11 +9,9 @@ import io
 import numpy as np
 from PIL import Image
 import torch
-import traceback
 from tool_server.utils.utils import *
 from tool_server.utils.server_utils import *
 from tool_server.utils.worker_arguments import WorkerArguments
-from tool_server.utils.error_codes import *
 import matplotlib.pyplot as plt
 
 import easyocr
@@ -44,7 +42,7 @@ class OCRToolWorker(BaseToolWorker):
                     "properties": {
                         "image": {
                             "type": "string",
-                            "description": "The identifier of the image in which to locate the object, e.g., 'img_1'."
+                            "description": "The identifier of the image to analyze, e.g., 'img_1'"
                         }
                     },
                     "required": ["image"]
@@ -54,92 +52,74 @@ class OCRToolWorker(BaseToolWorker):
         
     def init_model(self):
         logger.info(f"Initializing model {self.model_name}...")
-        try:
-            self.ocr_model = easyocr.Reader(['ch_sim','en'])
-        except Exception as e:
-            logger.error(f"Error initializing OCR model: {e}")
-            raise
+        self.ocr_model = easyocr.Reader(['ch_sim','en'])
         
     def get_tool_instruction(self):
         return self.instruction
         
     def generate(self, params):
         try:
-            try:
-                image = params["image"]
-            except KeyError as e:
-                message = f"Invalid parameters: expected keys: image. Please reference the tool instruction: {self.get_tool_instruction()}"
-                pred_dict = {
-                    "tool_response_from": self.model_name,
-                    "status": "failed",
-                    "message": message,
-                    "error_code": INVALID_PARAMETERS
-                }
-                return pred_dict
-            
-            # If params are ok, continue
-            try:
-                img = base64_to_pil(image).convert("RGB")
-                width, height = img.size
-
-                result = self.ocr_model.readtext(np.array(img))
-                detections = []
-
-                for polygon, label, confidence in result:
-                    # Extract polygon coordinates min/max values
-                    x_coords = [float(pt[0]) for pt in polygon]  # 确保转换为Python float
-                    y_coords = [float(pt[1]) for pt in polygon]  # 确保转换为Python float
-                    x_min, x_max = min(x_coords), max(x_coords)
-                    y_min, y_max = min(y_coords), max(y_coords)
-
-                    detections.append({
-                        "label": label,
-                        "confidence": float(confidence),  # 确保转换为Python float
-                        "pixel_bbox": {
-                            "x_min": float(x_min),  # 确保转换为Python float
-                            "y_min": float(y_min),  # 确保转换为Python float
-                            "x_max": float(x_max),  # 确保转换为Python float
-                            "y_max": float(y_max)  # 确保转换为Python float
-                        },
-                        "normalized_bbox": {
-                            "x_min": float(x_min / width),  # 确保转换为Python float
-                            "y_min": float(y_min / height),  # 确保转换为Python float
-                            "x_max": float(x_max / width),  # 确保转换为Python float
-                            "y_max": float(y_max / height)  # 确保转换为Python float
-                        }
-                    })
-
-                pred_dict = {
-                    "tool_response_from": self.model_name,
-                    "status": "success",
-                    "detections": detections,
-                    "image_dimensions_pixels": {
-                        "width": int(img.width),  # 确保转换为Python int
-                        "height": int(img.height)  # 确保转换为Python int
-                    },
-                    "error_code": SUCCESS
-                }
-                return pred_dict
-                
-            except Exception as e:
-                logger.error(f"Error when processing OCR: {e}")
-                logger.error(traceback.format_exc())
-                pred_dict = {
-                    "tool_response_from": self.model_name,
-                    "status": "failed",
-                    "message": f"OCR processing failed: {str(e)}",
-                    "error_code": TOOL_RUN_FAILED
-                }
-                return pred_dict
-                
-        except Exception as e:
-            logger.error(f"Unexpected error in OCR worker: {e}")
-            logger.error(traceback.format_exc())
+            image = params["image"]
+            text_threshold = params.get("text_threshold", 0.25)
+        except:
+            message = f"Invalid parameters: expected keys: image. Please reference the tool instruction: {self.get_tool_instruction()}"
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "failed",
-                "message": f"Error: {str(e)}\n Traceback:{traceback.format_exc()}\n",
-                "error_code": TOOL_RUN_FAILED
+                "message": message,
+            }
+            return pred_dict
+        
+        # If params are ok, continue
+        try:
+            img = base64_to_pil(image).convert("RGB")
+            width, height = img.size
+
+            result = self.ocr_model.readtext(np.array(img))
+            detections = []
+
+            for polygon, label, confidence in result:
+                # Skip results with confidence below threshold
+                if confidence < text_threshold:
+                    continue
+                    
+                # Round confidence to 2 decimal places
+                confidence = round(float(confidence), 2)
+                
+                # Extract polygon coordinates min/max values
+                x_coords = [float(pt[0]) for pt in polygon]  # 确保转换为Python float
+                y_coords = [float(pt[1]) for pt in polygon]  # 确保转换为Python float
+                x_min, x_max = min(x_coords), max(x_coords)
+                y_min, y_max = min(y_coords), max(y_coords)
+
+                detections.append({
+                    "label": label,
+                    "confidence": confidence,  # 已经处理为保留两位小数的浮点数
+                    "pixel_bbox": {
+                        "x_min": int(x_min),  # 转换为整数
+                        "y_min": int(y_min),  # 转换为整数
+                        "x_max": int(x_max),  # 转换为整数
+                        "y_max": int(y_max)  # 转换为整数
+                    }
+                })
+
+            pred_dict = {
+                "tool_response_from": self.model_name,
+                "status": "success",
+                "detections": detections,
+                "image_dimensions_pixels": {
+                    "width": int(img.width),  # 确保转换为Python int
+                    "height": int(img.height)  # 确保转换为Python int
+                },
+            }
+            return pred_dict
+            
+        except Exception as e:
+            logger.error(f"Error when ocr: {e}")
+            pred_dict = {
+                "tool_response_from": self.model_name,
+                "status": "failed",
+                "message": str(e),
             }
             return pred_dict
 

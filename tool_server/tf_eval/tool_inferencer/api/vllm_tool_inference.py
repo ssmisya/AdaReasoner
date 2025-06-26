@@ -13,6 +13,7 @@ from PIL import Image
 from contextlib import contextmanager
 from copy import deepcopy
 from tqdm import tqdm as tqdm_rank0
+import threading
 
 from ....utils.utils import pil_to_base64, base64_to_pil, append_jsonl
 
@@ -572,12 +573,11 @@ class VllmToolInferencer(object):
                 # 将模型回复添加到对话中
                 input_data[input_idx]["conversations"] = self.append_conversation_fn(conversation=input_data[input_idx]["conversations"], text=output_text, role="assistant")
                 
-                # 如果回复中包含"Terminate"，则标记为已完成并继续处理下一个
-                if "Terminate" in output_text:
+                # 如果回复中包含"<response>....</response>"，则标记为已完成并继续处理下一个
+                if "<response>" in output_text and "</response>" in output_text:
                     input_data[input_idx]["status"] = "finished"
                     continue
 
-                # 解析工具配置
                 item_id = id(input_data[input_idx])
                 # 获取当前数据项的最新图像
                 newest_image = None
@@ -645,7 +645,14 @@ class VllmToolInferencer(object):
                             'ocr': 'OCR',
                             'drawline': 'DrawLine',
                             'crop': 'Crop',
-                            'groundingdino': 'GroundingDINO'
+                            'groundingdino': 'GroundingDINO',
+                            'languagemodel': 'LanguageModel',
+                            'drawline': 'DrawLine',
+                            'drawshape': 'DrawShape',
+                            'highlight': 'Highlight',
+                            'maskbox': 'MaskBox',
+                            'getsubplotinfo': 'GetSubplotInfo',
+                            'getbarinfo': 'GetBarInfo',
                         }
                         api_name = tool_name_mapping.get(original_api_name, original_api_name)
                     except Exception as e:
@@ -707,11 +714,25 @@ class VllmToolInferencer(object):
             if grouped_results.get(input_item_idx) is None:
                 grouped_results[input_item_idx] = []
             grouped_results[input_item_idx].append(item)
+
+            item_id = id(item)
+            if item_id in self.image_history:
+                del self.image_history[item_id]
         
         # 将分组结果转换为最终输出格式
         for k,v in grouped_results.items():
             results.append({"item_idx": k, "samples": v})
         return results
+
+_lock_lock = threading.Lock()
+_file_locks = {}
+
+def _get_file_lock(filepath):
+    """Get a lock for a specific file path."""
+    with _lock_lock:
+        if filepath not in _file_locks:
+            _file_locks[filepath] = threading.Lock()
+        return _file_locks[filepath]
 
 def append_jsonl(data, filename):
     '''

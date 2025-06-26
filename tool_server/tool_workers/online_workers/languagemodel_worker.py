@@ -22,6 +22,7 @@ from vllm import LLM, SamplingParams
 from tool_server.utils.server_utils import build_logger
 from tool_server.utils.utils import load_image, pil_to_base64
 from tool_server.utils.worker_arguments import WorkerArguments
+from tool_server.utils.error_codes import *
 from tool_server.tool_workers.online_workers.base_tool_worker import BaseToolWorker
 
 worker_id = str(uuid.uuid4())[:6]
@@ -125,22 +126,31 @@ class GetBarInfoWorker(BaseToolWorker):
             if not prompt:
                 raise KeyError("缺少必要参数 'prompt'")
         except Exception as e:
-            message = f"无效参数: 需要的参数: image, prompt. 错误: {str(e)}"
+            message = f"Invalid parameters: expected keys: image, prompt. Error: {str(e)}"
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "failed",
                 "message": message,
-                "error_code": 1
+                "error_code": INVALID_PARAMETERS
             }
             return pred_dict
         
         try:
             # 加载图像
-            if os.path.exists(image_path):
-                image = Image.open(image_path).convert("RGB")
-            else:
-                # 处理base64编码的图像
-                image = Image.open(BytesIO(base64.b64decode(image_path))).convert("RGB")
+            try:
+                if os.path.exists(image_path):
+                    image = Image.open(image_path).convert("RGB")
+                else:
+                    # 处理base64编码的图像
+                    image = Image.open(BytesIO(base64.b64decode(image_path))).convert("RGB")
+            except Exception as e:
+                pred_dict = {
+                    "tool_response_from": self.model_name,
+                    "status": "failed",
+                    "message": f"无法加载图像: {str(e)}",
+                    "error_code": CANNOT_LOAD_IMAGE
+                }
+                return pred_dict
             
             # 构建消息
             messages = [
@@ -185,7 +195,8 @@ class GetBarInfoWorker(BaseToolWorker):
                 "tool_response_from": self.model_name,
                 "status": "success",
                 "response": response,
-                "message": "Successfully generated response"
+                "message": "Successfully generated response",
+                "error_code": SUCCESS
             }
             
             return pred_dict
@@ -197,9 +208,8 @@ class GetBarInfoWorker(BaseToolWorker):
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "failed",
-                "error_code": 1,
-                "error": str(e),
-                "message": f"Failed to generate response: {str(e)}"
+                "error_code": TOOL_RUN_FAILED,
+                "message": f"Error: {str(e)}\nTraceback:{traceback.format_exc()}\n"
             }
             return pred_dict
     

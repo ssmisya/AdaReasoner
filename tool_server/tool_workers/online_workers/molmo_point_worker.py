@@ -276,7 +276,7 @@ class MolmoPointWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": "Model did not generate any response.",
-                    "error_code": MODEL_OUTPUT_EMPTY
+                    "error_code": TOOL_RUN_FAILED
                 }
                 return pred_dict
                 

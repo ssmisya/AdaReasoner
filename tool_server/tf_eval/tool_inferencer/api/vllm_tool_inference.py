@@ -68,8 +68,6 @@ class VllmToolInferencer(object):
         
         # 初始化工具管理器
         tool_manager = ToolManager(tool_controller_addr)
-        # 过滤掉'crop'和'drawline'工具
-        # tool_manager.available_tools = [tool for tool in tool_manager.available_tools if tool not in ['crop', 'drawline']]
         tool_controller_addr_display = tool_controller_addr if tool_controller_addr else "Auto"
         print(f"controller_addr: {tool_controller_addr_display}")
         print(f"Avaliable tools are {tool_manager.available_tools}")
@@ -184,10 +182,6 @@ class VllmToolInferencer(object):
                 else:
                     edited_image = None
 
-                # 检查是否有图像索引信息
-                if "image_key" in tool_result:
-                    image_key = tool_result.pop("image_key")
-                    image_key_info = f"\nNew image available as: {image_key}"
                     
                 # 从工具结果中提取文本输出
                 if "edited_image" in tool_result:
@@ -200,7 +194,6 @@ class VllmToolInferencer(object):
                 # 从结果中获取API名称（支持多个键名）
                 api_name = cfg.get("API_name", cfg.get("api_name", ""))
 
-                # 使用英文
                 new_response = f"OBSERVATION:\n{api_name} tool output: {tool_response_text}\n"
                 new_round_prompt = (
                     f"{new_response}{image_key_info}\nPlease summarize the tool output content and answer my question."
@@ -269,54 +262,54 @@ class VllmToolInferencer(object):
         conversations_str = self.get_repr_of_conversation(conversations)
         append_jsonl(conversations_str, tool_log_file)
 
-    def batch_inference(self, dataset):
-        """
-        批量推理函数，处理BaseEvalDataset数据集中的所有项目
+    # def batch_inference(self, dataset):
+    #     """
+    #     批量推理函数，处理BaseEvalDataset数据集中的所有项目
         
-        参数:
-            dataset: 要处理的BaseEvalDataset数据集
-        """
-        # 创建数据加载器，批大小为1，工作线程数为2，使用collate_fn确保每次返回单个数据项
-        dataloader = torch.utils.data.DataLoader(
-            dataset, 
-            batch_size=1, 
-            num_workers=2, 
-            collate_fn=lambda x: x[0]  # 确保每次返回一个数据项
-        )
+    #     参数:
+    #         dataset: 要处理的BaseEvalDataset数据集
+    #     """
+    #     # 创建数据加载器，批大小为1，工作线程数为2，使用collate_fn确保每次返回单个数据项
+    #     dataloader = torch.utils.data.DataLoader(
+    #         dataset, 
+    #         batch_size=1, 
+    #         num_workers=2, 
+    #         collate_fn=lambda x: x[0]  # 确保每次返回一个数据项
+    #     )
         
-        # 创建进度条
-        progress_bar = tqdm_rank0(len(dataloader), desc="Model Responding")
+    #     # 创建进度条
+    #     progress_bar = tqdm_rank0(len(dataloader), desc="Model Responding")
         
-        # 处理数据集中的每个项目
-        for idx, item in enumerate(dataloader):
-            # 更新进度条
-            progress_bar.update(1)
+    #     # 处理数据集中的每个项目
+    #     for idx, item in enumerate(dataloader):
+    #         # 更新进度条
+    #         progress_bar.update(1)
             
-            # 准备输入数据
-            input_data = {
-                "conversation": item.get("conversation", None),
-                "prompt": item.get("text", ""),
-                "images": [item.get("image")] if item.get("image") is not None else []
-            }
+    #         # 准备输入数据
+    #         input_data = {
+    #             "conversation": item.get("conversation", None),
+    #             "prompt": item.get("text", ""),
+    #             "images": [item.get("image")] if item.get("image") is not None else []
+    #         }
             
-            if "system" in item:
-                input_data["system"] = item["system"]
+    #         if "system" in item:
+    #             input_data["system"] = item["system"]
                 
-            # 执行推理
-            results = self.inference(
-                inputs=[input_data],
-                max_rounds=self.max_rounds,
-                do_sample=False
-            )
+    #         # 执行推理
+    #         results = self.inference(
+    #             inputs=[input_data],
+    #             max_rounds=self.max_rounds,
+    #             do_sample=False
+    #         )
             
-            # 处理结果并存储到数据集中
-            # 所以不需要return
-            for result in results:
-                idx = item["idx"]
-                # 获取最后一个样本的结果
-                sample = result["samples"][0]
-                # 存储结果
-                dataset.store_results(dict(idx=idx, results=sample))
+    #         # 处理结果并存储到数据集中
+    #         # 所以不需要return
+    #         for result in results:
+    #             idx = item["idx"]
+    #             # 获取最后一个样本的结果
+    #             sample = result["samples"][0]
+    #             # 存储结果
+    #             dataset.store_results(dict(idx=idx, results=sample))
 
     def extract_tool_call(self, text: str):
         """

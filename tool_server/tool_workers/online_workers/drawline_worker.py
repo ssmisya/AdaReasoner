@@ -22,6 +22,7 @@ from typing import Optional
 from tool_server.utils.server_utils import build_logger
 from tool_server.utils.utils import load_image, pil_to_base64, base64_to_pil
 from tool_server.utils.worker_arguments import WorkerArguments
+from tool_server.utils.error_codes import *
 from tool_server.tool_workers.online_workers.base_tool_worker import BaseToolWorker
 
 worker_id = str(uuid.uuid4())[:6]
@@ -207,6 +208,7 @@ class DrawLineToolWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": message,
+                    "error_code": INVALID_PARAMETERS
                 }
                 return pred_dict
             
@@ -220,7 +222,8 @@ class DrawLineToolWorker(BaseToolWorker):
                 pred_dict = {
                     "tool_response_from": self.model_name,
                     "status": "failed",
-                    "message": f"Failed to load image: {str(e)}",
+                    "message": f"Cannot load image: {str(e)}",
+                    "error_code": CANNOT_LOAD_IMAGE
                 }
                 return pred_dict
             
@@ -234,6 +237,7 @@ class DrawLineToolWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": str(e),
+                    "error_code": INVALID_PARAMETERS
                 }
                 return pred_dict
             
@@ -242,6 +246,7 @@ class DrawLineToolWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": "No valid points extracted from parameters.",
+                    "error_code": INVALID_PARAMETERS
                 }
                 return pred_dict
             
@@ -261,7 +266,8 @@ class DrawLineToolWorker(BaseToolWorker):
                 "image_dimensions_pixels": {
                     "width": edited_img.width,
                     "height": edited_img.height
-                }
+                },
+                "error_code": SUCCESS
             }
             
             return pred_dict
@@ -270,8 +276,8 @@ class DrawLineToolWorker(BaseToolWorker):
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "failed",
-                "error": str(e),
-                "traceback": traceback.format_exc()
+                "message": f"Error: {str(e)}\nTraceback:{traceback.format_exc()}\n",
+                "error_code": TOOL_RUN_FAILED
             }
             logger.error(f"Error during drawing operation: {e}")
             logger.error(traceback.format_exc())

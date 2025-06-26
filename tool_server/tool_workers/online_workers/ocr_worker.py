@@ -9,9 +9,11 @@ import io
 import numpy as np
 from PIL import Image
 import torch
+import traceback
 from tool_server.utils.utils import *
 from tool_server.utils.server_utils import *
 from tool_server.utils.worker_arguments import WorkerArguments
+from tool_server.utils.error_codes import *
 import matplotlib.pyplot as plt
 
 import easyocr
@@ -67,12 +69,23 @@ class OCRToolWorker(BaseToolWorker):
                 "tool_response_from": self.model_name,
                 "status": "failed",
                 "message": message,
+                "error_code": INVALID_PARAMETERS
             }
             return pred_dict
         
         # If params are ok, continue
         try:
-            img = base64_to_pil(image).convert("RGB")
+            try:
+                img = base64_to_pil(image).convert("RGB")
+            except Exception as e:
+                pred_dict = {
+                    "tool_response_from": self.model_name,
+                    "status": "failed",
+                    "message": f"Cannot load image: {str(e)}",
+                    "error_code": CANNOT_LOAD_IMAGE
+                }
+                return pred_dict
+                
             width, height = img.size
 
             result = self.ocr_model.readtext(np.array(img))
@@ -111,15 +124,18 @@ class OCRToolWorker(BaseToolWorker):
                     "width": int(img.width),  # 确保转换为Python int
                     "height": int(img.height)  # 确保转换为Python int
                 },
+                "error_code": SUCCESS
             }
             return pred_dict
             
         except Exception as e:
             logger.error(f"Error when ocr: {e}")
+            logger.error(traceback.format_exc())
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "failed",
-                "message": str(e),
+                "message": f"Error: {str(e)}\nTraceback:{traceback.format_exc()}\n",
+                "error_code": TOOL_RUN_FAILED
             }
             return pred_dict
 

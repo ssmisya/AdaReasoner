@@ -202,15 +202,162 @@ grounding_dino_instruction = '''
 }
 '''
 
+draw_shape_instruction = '''
+{
+    "type": "function",
+    "function": {
+        "name": "DrawShape",
+        "description": 
+            "Draw geometric shapes (rectangle, ellipse, or circle) with red borders at specified bounding box locations on the image. Returns the edited image in base64 format.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "string",
+                    "description": "The identifier of the image to edit."
+                },
+                "bboxes": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "shape": {
+                                "type": "string",
+                                "enum": ["rectangle", "ellipse", "circle"],
+                                "description": "Type of shape to draw."
+                            },
+                            "coords": {
+                                "type": "array",
+                                "items": { "type": "integer" },
+                                "description": "Bounding box coordinates in [x_min, y_min, x_max, y_max] format."
+                            }
+                        },
+                        "required": ["shape", "coords"]
+                    },
+                    "description": "List of shapes to draw and their coordinates."
+                }
+            },
+            "required": ["image", "bboxes"]
+        }
+    }
+}
+'''
+
+get_bar_info_instruction = '''
+{
+    "type": "function",
+    "function": {
+        "name": "GetBarInfo",
+        "description": 
+            "Extract bounding boxes of all bars in the image along with their corresponding axis titles or labels. Returns a dictionary mapping each label to its bounding box.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "string",
+                    "description": "The identifier of the image to analyze."
+                }
+            },
+            "required": ["image"]
+        }
+    }
+}
+'''
+
+get_subplot_info_instruction = '''
+{
+    "type": "function",
+    "function": {
+        "name": "GetSubplotInfo",
+        "description": 
+            "Extract the bounding boxes of each subplot within the image along with their corresponding titles. Returns a dictionary mapping each title to its subplot bounding box.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "string",
+                    "description": "The identifier of the image to analyze."
+                }
+            },
+            "required": ["image"]
+        }
+    }
+}
+'''
+
+highlight_box_instruction = '''
+{
+    "type": "function",
+    "function": {
+        "name": "HighlightBox",
+        "description": 
+            "Highlight specified bounding box regions in the image using semi-transparent red overlays. Returns the edited image in base64 format.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "string",
+                    "description": "The identifier of the image to edit."
+                },
+                "bboxes": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": { "type": "integer" },
+                        "description": "Bounding box in the format [x_min, y_min, x_max, y_max] using absolute pixel coordinates."
+                    },
+                    "description": "List of bounding boxes to be highlighted."
+                }
+            },
+            "required": ["image", "bboxes"]
+        }
+    }
+}
+'''
+
+mask_box_instruction='''
+{
+    "type": "function",
+    "function": {
+        "name": "MaskBox",
+        "description": 
+            "Mask out all specified bounding box regions in the input image by overlaying white rectangles. Returns the edited image in base64 format.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "string",
+                    "description": "The identifier of the image to edit, e.g., 'img_1'."
+                },
+                "bboxes": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": { "type": "integer" },
+                        "description": "Bounding box in the format [x_min, y_min, x_max, y_max] using absolute pixel coordinates."
+                    },
+                    "description": "List of bounding boxes to be masked."
+                }
+            },
+            "required": ["image", "bboxes"]
+        }
+    }
+}
+'''
+
 
 tool_desc_dict = dict(
-   OCR=ocr_instruction,
-   Point=point_instruction,
-   SegmentRegionAroundPoint=segment_around_point_instruction,
-   DrawLine=drawn_line_instruction,
-   GroundingDINO=grounding_dino_instruction,
-#    Terminate=terminate_instruction, # 根据prompt应该就不需要这个东西了吧
-   all=f"{ocr_instruction}\n{point_instruction}\n{segment_around_point_instruction}\n{drawn_line_instruction}\n{grounding_dino_instruction}",
+    OCR=ocr_instruction,
+    Point=point_instruction,
+    SegmentRegionAroundPoint=segment_around_point_instruction,
+    DrawLine=drawn_line_instruction,
+    GroundingDINO=grounding_dino_instruction,
+    DrawShape=draw_shape_instruction,
+    GetBarInfo=get_bar_info_instruction,
+    GetSubplotInfo=get_subplot_info_instruction,
+    HighlightBox=highlight_box_instruction,
+    MaskBox=mask_box_instruction,
+    all=f"{ocr_instruction}\n{point_instruction}\n{segment_around_point_instruction}\n{drawn_line_instruction}\n{grounding_dino_instruction}\n{draw_shape_instruction}\n{get_bar_info_instruction}\n{get_subplot_info_instruction}\n{highlight_box_instruction}\n{mask_box_instruction}",
 )
 
 # 格式化 tool_planning_model_prompt

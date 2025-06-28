@@ -14,8 +14,10 @@ from contextlib import contextmanager
 from copy import deepcopy
 from tqdm import tqdm as tqdm_rank0
 import threading
+from io import BytesIO
+import base64
 
-from ....utils.utils import pil_to_base64, base64_to_pil, append_jsonl
+# from ....utils.utils import pil_to_base64, base64_to_pil, append_jsonl
 
 # 定义超时异常类
 class TimeoutException(Exception): pass
@@ -24,6 +26,61 @@ class TimeoutException(Exception): pass
 def _timeout_handler(signum, frame):
     raise TimeoutException("chat() timed out.")
 signal.signal(signal.SIGALRM, _timeout_handler)
+
+_lock_lock = threading.Lock()
+_file_locks = {}
+
+def _get_file_lock(filepath):
+    """Get a lock for a specific file path."""
+    with _lock_lock:
+        if filepath not in _file_locks:
+            _file_locks[filepath] = threading.Lock()
+        return _file_locks[filepath]
+
+def append_jsonl(data, filename):
+    '''
+        追加数据到jsonl文件，线程安全
+    '''
+    with _get_file_lock(filename):
+        with open(filename, 'a', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False)
+            f.write('\n')
+
+def pil_to_base64(img: Image.Image, url_format = False) -> str:
+    """
+    Convert a PIL image to a base64 encoded string.
+    
+    Args:
+        img (Image.Image): The PIL image to convert.
+        
+    Returns:
+        str: Base64 encoded string representation of the image.
+    """
+    buffered = BytesIO()
+    img.save(buffered, format="JPEG")
+    img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+    if url_format:
+        img_str = f"data:image/jpeg;base64,{img_str}"
+    return img_str
+
+def load_image_from_base64(image):
+    return Image.open(BytesIO(base64.b64decode(image)))
+    
+
+def base64_to_pil(b64_str: str) -> Image.Image:
+    """
+    Convert a base64 encoded string into a PIL image.
+    
+    Args:
+        b64_str (str): The base64 encoded image string.
+        
+    Returns:
+        Image.Image: The resulting PIL image.
+    """
+    # Remove the data URI scheme if present
+    if b64_str.startswith("data:image"):
+        b64_str = b64_str.split("base64,")[-1]
+    return load_image_from_base64(b64_str)
 
 
 
@@ -649,7 +706,7 @@ class VllmToolInferencer(object):
                             'languagemodel': 'LanguageModel',
                             'drawline': 'DrawLine',
                             'drawshape': 'DrawShape',
-                            'highlight': 'Highlight',
+                            'highlightbox': 'HighlightBox',
                             'maskbox': 'MaskBox',
                             'getsubplotinfo': 'GetSubplotInfo',
                             'getbarinfo': 'GetBarInfo',
@@ -724,21 +781,3 @@ class VllmToolInferencer(object):
             results.append({"item_idx": k, "samples": v})
         return results
 
-_lock_lock = threading.Lock()
-_file_locks = {}
-
-def _get_file_lock(filepath):
-    """Get a lock for a specific file path."""
-    with _lock_lock:
-        if filepath not in _file_locks:
-            _file_locks[filepath] = threading.Lock()
-        return _file_locks[filepath]
-
-def append_jsonl(data, filename):
-    '''
-        追加数据到jsonl文件，线程安全
-    '''
-    with _get_file_lock(filename):
-        with open(filename, 'a', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False)
-            f.write('\n')

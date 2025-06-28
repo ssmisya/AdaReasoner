@@ -342,6 +342,56 @@ mask_box_instruction = '''
         }
     }
 }
+
+'''
+
+languagemodel_instruction = '''
+{
+    "type": "function",
+    "function": {
+        "name": "LanguageModel",
+        "description": 
+            "Reason based on the prompt and image, and return the Language Model's inference text.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "string",
+                    "description": "The identifier of the image to analyze, e.g., 'img_1'."
+                },
+                "prompt": {
+                    "type": "string",
+                    "description": "The prompt to analyze."
+                }
+            },
+            "required": ["image", "prompt"]
+        }
+    }
+}
+'''
+
+crop_instruction = '''
+{
+    "type": "function",
+    "function": {
+        "name": "Crop",
+        "description": "Crop an image using specified bounding box coordinates. This tool returns the cropped image in base64 format along with its dimensions.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "image": {
+                    "type": "string",
+                    "description": "The identifier of the image to crop, e.g., 'img_1'."
+                },
+                "coordinates": {
+                    "type": "string",
+                    "description": "Coordinates in format '[x_min, y_min, x_max, y_max]', eg., '[100, 100, 200, 200]'. Only absolute pixel values (integers) are supported."
+                }
+            },
+            "required": ["image", "coordinates"]
+        }
+    }
+}
 '''
 tool_desc_dict = dict(
     OCR=ocr_instruction,
@@ -354,7 +404,9 @@ tool_desc_dict = dict(
     GetSubplotInfo=get_subplot_info_instruction,
     HighlightBox=highlight_box_instruction,
     MaskBox=mask_box_instruction,
-    all=f"{ocr_instruction}\n{point_instruction}\n{segment_around_point_instruction}\n{drawn_line_instruction}\n{grounding_dino_instruction}\n{draw_shape_instruction}\n{get_bar_info_instruction}\n{get_subplot_info_instruction}\n{highlight_box_instruction}\n{mask_box_instruction}",
+    LanguageModel=languagemodel_instruction,
+    Crop=crop_instruction,
+    all=f"{ocr_instruction}\n{point_instruction}\n{segment_around_point_instruction}\n{drawn_line_instruction}\n{grounding_dino_instruction}\n{draw_shape_instruction}\n{get_bar_info_instruction}\n{get_subplot_info_instruction}\n{highlight_box_instruction}\n{mask_box_instruction}\n{languagemodel_instruction}\n{crop_instruction}\n{languagemodel_instruction}\n{crop_instruction}",
 )
 
 # 格式化 tool_planning_model_prompt

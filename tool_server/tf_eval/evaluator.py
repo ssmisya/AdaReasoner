@@ -3,6 +3,7 @@ import json
 import logging
 import random
 import time
+import os
 from collections import defaultdict
 from typing import TYPE_CHECKING, List, Optional, Union
 
@@ -48,6 +49,16 @@ class TFEvaluator():
         
         set_verbosity(self.script_args.verbosity)
         
+        # 获取日志目录，与save_to_ckpt在同一文件夹
+        log_dir = None
+        if hasattr(self.task_args, 'save_to_ckpt') and self.task_args.save_to_ckpt:
+            # 获取第一个任务的保存路径
+            first_task = list(self.task_args.save_to_ckpt.keys())[0]
+            ckpt_path = self.task_args.save_to_ckpt[first_task]
+            # 提取目录路径
+            log_dir = os.path.dirname(ckpt_path)
+            logger.info(f"Tool call statistics will be saved to {log_dir}")
+        
         self.inferencer = BaseToolInferencer(
             tp_model=self.model,
             batch_size=self.model_args.batch_size,
@@ -56,6 +67,7 @@ class TFEvaluator():
             stop_token = stop_token,
             controller_addr = self.script_args.controller_addr,
             if_use_tool = self.if_use_tool,
+            log_dir = log_dir,
         )
 
     
@@ -76,6 +88,8 @@ class TFEvaluator():
                 task_args = self.task_args,
                 model_args = self.model_args,
             )
+            # 设置任务名称，用于保存工具调用统计
+            dataset.task_name = task_name
             # pdb.set_trace()
             self.inferencer.batch_inference(dataset)
             # breakpoint()

@@ -415,7 +415,7 @@ class BaseToolInferencer(object):
         for item_id in removed_item_ids:
             if item_id in self.image_history:
                 del self.image_history[item_id]
-                logger.info(f"Cleaned up image history for item {item_id}")
+                # logger.info(f"Cleaned up image history for item {item_id}")
         
         self.manager.dynamic_batch = new_batch
         return res

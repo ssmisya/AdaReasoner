@@ -121,8 +121,8 @@ class OCRToolWorker(BaseToolWorker):
                 "status": "success",
                 "detections": detections,
                 "image_dimensions_pixels": {
-                    "width": int(img.width),  # 确保转换为Python int
-                    "height": int(img.height)  # 确保转换为Python int
+                    "width": img.width,  # 确保转换为Python int
+                    "height": img.height  # 确保转换为Python int
                 },
                 "error_code": SUCCESS
             }

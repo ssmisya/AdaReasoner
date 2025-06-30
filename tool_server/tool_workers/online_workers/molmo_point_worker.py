@@ -227,8 +227,8 @@ class MolmoPointWorker(BaseToolWorker):
                 if len(points) > 0:
                     for point in points:
                         point_data.append({
-                            "x": float(point[0]),
-                            "y": float(point[1]),
+                            "x": int(point[0]),
+                            "y": int(point[1]),
                         })
                 
                 # 创建带有标记点的图片

@@ -129,7 +129,29 @@ class DrawShapeWorker(BaseToolWorker):
                         logger.warning(f"Skipping bbox with invalid coordinates: {coords}")
                         continue
                     
+                    # 验证形状类型是否为支持的类型
+                    if shape_type not in ["rectangle", "ellipse", "circle"]:
+                        message = f"Unsupported shape type: {shape_type}. Supported types are: rectangle, ellipse, circle."
+                        pred_dict = {
+                            "tool_response_from": self.model_name,
+                            "status": "failed",
+                            "message": message,
+                            "error_code": INVALID_PARAMETERS
+                        }
+                        return pred_dict
+                    
                     x_min, y_min, x_max, y_max = coords
+                    
+                    # 验证坐标是否在图像范围内
+                    if x_min < 0 or y_min < 0 or x_max > image.width or y_max > image.height:
+                        message = f"Coordinates {coords} are outside the image dimensions ({image.width}x{image.height})."
+                        pred_dict = {
+                            "tool_response_from": self.model_name,
+                            "status": "failed",
+                            "message": message,
+                            "error_code": INVALID_PARAMETERS
+                        }
+                        return pred_dict
                     
                     # 绘制不同类型的形状
                     if shape_type == "rectangle":
@@ -144,11 +166,15 @@ class DrawShapeWorker(BaseToolWorker):
                         draw.ellipse([center_x - radius, center_y - radius, 
                                      center_x + radius, center_y + radius], 
                                      outline="red", width=2)
-                    else:
-                        logger.warning(f"Unsupported shape type: {shape_type}")
-                        
                 except Exception as e:
                     logger.error(f"Error drawing shape {bbox}: {e}")
+                    pred_dict = {
+                        "tool_response_from": self.model_name,
+                        "status": "failed",
+                        "message": f"Error drawing shape: {str(e)}",
+                        "error_code": INVALID_PARAMETERS
+                    }
+                    return pred_dict
             
             # 将修改后的图像转换为base64
             buffered = BytesIO()

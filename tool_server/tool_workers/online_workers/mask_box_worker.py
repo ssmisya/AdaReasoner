@@ -102,6 +102,30 @@ class MaskBoxWorker(BaseToolWorker):
                 }
                 return pred_dict
             
+            # 验证所有边界框坐标是否在图像范围内
+            image_width, image_height = image.size
+            for bbox in bboxes:
+                if len(bbox) != 4:
+                    pred_dict = {
+                        "tool_response_from": self.model_name,
+                        "status": "failed",
+                        "message": f"Invalid bbox format: {bbox}. Expected 4 values [x_min, y_min, x_max, y_max].",
+                        "error_code": INVALID_PARAMETERS
+                    }
+                    return pred_dict
+                
+                x_min, y_min, x_max, y_max = [int(coord) for coord in bbox]
+                
+                # 检查坐标是否在图像范围内
+                if x_min < 0 or y_min < 0 or x_max > image_width or y_max > image_height:
+                    pred_dict = {
+                        "tool_response_from": self.model_name,
+                        "status": "failed",
+                        "message": f"Bounding box coordinates {bbox} are outside of image dimensions ({image_width}x{image_height}).",
+                        "error_code": INVALID_PARAMETERS
+                    }
+                    return pred_dict
+            
             # 处理边界框参数
             try:
                 # 创建可编辑的图像副本
@@ -112,9 +136,6 @@ class MaskBoxWorker(BaseToolWorker):
                 draw = ImageDraw.Draw(draw_image)
                 
                 for bbox in bboxes:
-                    if len(bbox) != 4:
-                        raise ValueError(f"Invalid bounding box: {bbox}. Expected 4 values [x_min, y_min, x_max, y_max].")
-                    
                     # 确保所有坐标都是整数
                     x_min, y_min, x_max, y_max = [int(c) for c in bbox]
                     

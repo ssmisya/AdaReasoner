@@ -36,10 +36,11 @@ task_config["task_name"] = "infographicvqa"  # 强制设置为正确的任务名
 def load_data_function():
     
     dataset_path = task_config["dataset_path"]
-    num_samples = task_config["num_sample"]
+    num_samples = task_config.get("num_sample", None)
 
     dataset = load_dataset(dataset_path, name="InfographicVQA", split="validation")
-    dataset = dataset.select(range(min(num_samples, len(dataset))))
+    if num_samples:
+        dataset = dataset.select(range(min(num_samples, len(dataset))))
 
     meta_data = []
     for idx,item in enumerate(dataset):
@@ -63,13 +64,15 @@ def evaluate_function(results,meta_data):
     compare_logs = []
     answer_type_dict = {item : [] for item in ["single span", "question span", "non-extractive", "multi-span"]}
     ########################
-    comparator = LLMAnswerComparator(threshold=0.8, method="bert", model_path="/mnt/petrelfs/sunhaoyu/visual-code/weights/paraphrase-MiniLM-L6-v2")
+    comparator_path = task_config.get("answer_comparator_path", None)
+    comparator = LLMAnswerComparator(threshold=0.8, method="bert", model_path=comparator_path)
     
     for idx, meta in meta_dict.items():
         if idx in results_dict:
             meta["prediction"] = results_dict[idx]["results"]["final_answer"]
         else:
             meta["prediction"] = "None"
+        meta["prediction"] = "None" if not meta["prediction"] else meta["prediction"]
         prediction = meta["prediction"]
         ground_truth = meta["answer"]
         answer_type = meta["answer_type"]

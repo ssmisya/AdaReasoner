@@ -53,10 +53,11 @@ task_config = get_task_config_from_current_dir(__file__)
 def load_data_function():
     
     dataset_path = task_config["dataset_path"]
-    num_samples = task_config["num_sample"]
-
+    # num_samples = task_config["num_sample"]
+    num_sample = task_config.get("num_sample", None)
     dataset = load_dataset(dataset_path, name="DocVQA", split="validation")
-    dataset = dataset.select(range(min(num_samples, len(dataset))))
+    if num_sample:
+        dataset = dataset.select(range(min(num_sample, len(dataset))))
 
     meta_data = []
     for idx,item in enumerate(dataset):
@@ -78,13 +79,15 @@ def evaluate_function(results,meta_data):
     res_list = []
     compare_logs = []
     ########################
-    comparator = LLMAnswerComparator(threshold=0.8, method="bert", model_path="/mnt/petrelfs/sunhaoyu/visual-code/weights/paraphrase-MiniLM-L6-v2")
+    comparator_path = task_config.get("answer_comparator_path", None)
+    comparator = LLMAnswerComparator(threshold=0.8, method="bert", model_path=comparator_path)
     
     for idx, meta in meta_dict.items():
         if idx in results_dict:
             meta["prediction"] = results_dict[idx]["results"]["final_answer"]
         else:
             meta["prediction"] = "None"
+        meta["prediction"] = "None" if not meta["prediction"] else meta["prediction"]
         prediction = meta["prediction"]
         ground_truth = meta["answer"]
         # ground_truth是一个列表，遍历每个答案进行分数计算，取最高值作为score

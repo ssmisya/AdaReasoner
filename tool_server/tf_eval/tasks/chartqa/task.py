@@ -26,11 +26,12 @@ task_config = get_task_config_from_current_dir(__file__)
 def load_data_function():
 
     dataset_path = task_config["dataset_path"]
-    num_sample = task_config["num_sample"]
+    num_sample = task_config.get("num_sample", None)
     
     testset = load_dataset(dataset_path,split="test")
     # 只处理testset的前num_sample个样本
-    testset = testset.select(range(min(num_sample, len(testset))))
+    if num_sample:
+        testset = testset.select(range(min(num_sample, len(testset))))
     meta_data = []
 
     for idx, item in enumerate(testset):
@@ -51,13 +52,15 @@ def evaluate_function(results,meta_data):
     meta_dict = {meta["idx"]: meta for meta in meta_data}
     res_list = []
     compare_logs = []
-    comparator = LLMAnswerComparator(threshold=0.8, method="bert", model_path="/mnt/petrelfs/sunhaoyu/visual-code/weights/paraphrase-MiniLM-L6-v2")
+    comparator_path = task_config.get("answer_comparator_path", None)
+    comparator = LLMAnswerComparator(threshold=0.8, method="bert", model_path=comparator_path)
     for idx, meta in meta_dict.items():
         if idx in results_dict:
             meta["prediction"] = results_dict[idx]["results"]["final_answer"]
         else:
             meta["prediction"] = "None"
         
+        meta["prediction"] = "None" if not meta["prediction"] else meta["prediction"]
         gold = meta["answer"].strip().lower()
         pred = meta["prediction"].strip().lower()
 

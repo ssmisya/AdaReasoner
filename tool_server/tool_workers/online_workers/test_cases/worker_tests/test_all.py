@@ -1045,11 +1045,11 @@ def main():
         help="控制器地址"
     )
     parser.add_argument(
-        "--image-path", type=str, default="/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
+        "--image-path", type=str, default="./input_cases/subplot_0.png",
         help="测试图像路径"
     )
     parser.add_argument(
-        "--output-dir", type=str, default="/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/test_results",
+        "--output-dir", type=str, default="./test_results",
         help="输出目录"
     )
     parser.add_argument(
@@ -1066,17 +1066,17 @@ def main():
     tools_to_test = AVAILABLE_TOOLS if "all" in args.tools else args.tools
 
     # tools_to_test = ["OCR", "DrawShape","Crop","Point","GroundingDINO","SegmentRegionAroundPoint","DrawLine","HighlightBox","MaskBox"]
-    tools_to_test = ["OCR", "GetSubplotInfo", "GetBarInfo"]
+    # tools_to_test = ["OCR", "GetSubplotInfo", "GetBarInfo"]
     
     # 为不同工具设置合适的测试图像
     image_dict = {
-        "default":"/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
-        "GroundingDINO": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/truck.jpg",
-        "SegmentRegionAroundPoint": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/zebra.jpg",
-        "Point": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/zebra.jpg",
-        "LanguageModel": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots1.jpg",
-        "GetSubplotInfo": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots2.jpg",
-        "GetBarInfo": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/bars1.jpg"
+        "default":"./input_cases/subplot_0.png",
+        "GroundingDINO": "./input_cases/truck.jpg",
+        "SegmentRegionAroundPoint": "./input_cases/zebra.jpg",
+        "Point": "./input_cases/zebra.jpg",
+        "LanguageModel": "./input_cases/subplots1.jpg",
+        "GetSubplotInfo": "./input_cases/subplots2.jpg",
+        "GetBarInfo": "./input_cases/bars1.jpg"
     }
     
     # 运行测试

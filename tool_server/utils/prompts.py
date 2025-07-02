@@ -406,7 +406,7 @@ tool_desc_dict = dict(
     MaskBox=mask_box_instruction,
     LanguageModel=languagemodel_instruction,
     Crop=crop_instruction,
-    all=f"{ocr_instruction}\n{point_instruction}\n{segment_around_point_instruction}\n{drawn_line_instruction}\n{grounding_dino_instruction}\n{draw_shape_instruction}\n{get_bar_info_instruction}\n{get_subplot_info_instruction}\n{highlight_box_instruction}\n{mask_box_instruction}\n{languagemodel_instruction}\n{crop_instruction}\n{languagemodel_instruction}\n{crop_instruction}",
+    all=f"{ocr_instruction}\n{point_instruction}\n{segment_around_point_instruction}\n{drawn_line_instruction}\n{grounding_dino_instruction}\n{draw_shape_instruction}\n{get_bar_info_instruction}\n{get_subplot_info_instruction}\n{highlight_box_instruction}\n{mask_box_instruction}\n{crop_instruction}",
 )
 
 # 格式化 tool_planning_model_prompt

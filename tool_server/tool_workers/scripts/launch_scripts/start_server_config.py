@@ -79,9 +79,8 @@ class ServerManager:
             f"--output={log_file}",  # 指定输出日志文件
         ]
         
-        # 如果需要激活conda环境
         if conda_env:
-            srun_cmd.insert(0, f"source ~/miniconda3/bin/activate {conda_env} &&")
+            srun_cmd.insert(0, f"source ~/anaconda3/bin/activate {conda_env} &&")
             
         # 如果需要设置CUDA可见设备
         if cuda_visible_devices:

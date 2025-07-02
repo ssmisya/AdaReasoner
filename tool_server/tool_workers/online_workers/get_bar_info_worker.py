@@ -58,7 +58,7 @@ class GetBarInfoWorker(BaseToolWorker):
             }
         }
         
-        self.controller_addr = "http://SH-IDC1-10-140-37-6:21112"
+        
         
     def init_model(self):
         logger.info(f"No need to initialize model {self.model_name}.")

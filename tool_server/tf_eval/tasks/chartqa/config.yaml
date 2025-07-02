@@ -1,7 +1,7 @@
 task_name: "chartqa"
-dataset_path: /mnt/petrelfs/sunhaoyu/visual-code/datasets/ChartQA
-# image_dir_path: /mnt/petrelfs/share_data/suzhaochen/datasets/chartqa/image
-num_sample: 2500 # 最大2500
+dataset_path: HuggingFaceM4/ChartQA
+answer_comparator_path: /mnt/petrelfs/share_data/sunhaoyu/weights/paraphrase-MiniLM-L6-v2
+# num_sample: 2500 # 最大2500
 dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv
 generation_config:
   max_length: 2048

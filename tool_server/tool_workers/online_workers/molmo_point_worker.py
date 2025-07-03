@@ -155,35 +155,55 @@ class MolmoPointWorker(BaseToolWorker):
 
     @torch.inference_mode()
     def generate(self, params):
-        # Extract inputs
-        try:
-            image_data = params["image"]
-            description = params.get("description")
-            if not description:
-                raise KeyError("Parameter 'description' not found in params")
-        except Exception as e:
-            message = f"Invalid parameters: expected keys: image, description. Error: {str(e)}"
-            pred_dict = {
+        tool_reward = 2.0
+        # 计算Parameter Name Matching
+        param_keys = set(params.keys())
+        required_keys = set(self.instruction["function"]["parameters"]["required"])
+        parameter_name_match_reward = len(param_keys & required_keys) / len(required_keys | param_keys)
+        tool_reward = tool_reward + parameter_name_match_reward
+        # 参数名称没有完全匹配，直接返回
+        if parameter_name_match_reward < 1:
+            return {
                 "tool_response_from": self.model_name,
                 "status": "failed",
-                "message": message,
-                "error_code": INVALID_PARAMETERS
+                "message": "Invalid parameters: expected keys: image, description.",
+                "error_code": INVALID_PARAMETERS,
+                "tool_reward": tool_reward
             }
-            return pred_dict
+        
+        required_keys_num = len(required_keys)
+        # 初始化参数合规计数器
+        correct_param_content_num = 0
+        
+        # Extract inputs
+        image_data = params["image"]
+        description = params.get("description")
         
         try:
             # Convert base64 to PIL image
             try:
-                if os.path.exists(image_data):
-                    image = Image.open(image_data).convert("RGB")
-                else:
-                    image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
+                image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
+                correct_param_content_num += 1
             except Exception as e:
                 pred_dict = {
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": f"Failed to load image: {str(e)}",
-                    "error_code": CANNOT_LOAD_IMAGE
+                    "error_code": CANNOT_LOAD_IMAGE,
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num
+                }
+                return pred_dict
+            
+            # description参数验证通过
+            if description and len(description.strip()) > 0:
+                correct_param_content_num += 1
+            else:
+                pred_dict = {
+                    "tool_response_from": self.model_name,
+                    "status": "failed",
+                    "message": "Invalid parameters: expected keys: image, description.",
+                    "error_code": INVALID_PARAMETERS,
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num
                 }
                 return pred_dict
             
@@ -214,7 +234,8 @@ class MolmoPointWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": f"Model inference failed: {str(e)}",
-                    "error_code": TOOL_RUN_FAILED
+                    "error_code": TOOL_RUN_FAILED,
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num
                 }
                 return pred_dict
             
@@ -254,7 +275,8 @@ class MolmoPointWorker(BaseToolWorker):
                             "width": image.width,
                             "height": image.height
                         },
-                        "error_code": SUCCESS
+                        "error_code": SUCCESS,
+                        "tool_reward": tool_reward+correct_param_content_num/required_keys_num
                     }
                 else:
                     pred_dict = {
@@ -267,7 +289,8 @@ class MolmoPointWorker(BaseToolWorker):
                             "width": image.width,
                             "height": image.height
                         },
-                        "error_code": SUCCESS
+                        "error_code": SUCCESS,
+                        "tool_reward": tool_reward+correct_param_content_num/required_keys_num
                     }
                 
                 return pred_dict
@@ -276,7 +299,8 @@ class MolmoPointWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": "Model did not generate any response.",
-                    "error_code": TOOL_RUN_FAILED
+                    "error_code": TOOL_RUN_FAILED,
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num
                 }
                 return pred_dict
                 
@@ -285,7 +309,8 @@ class MolmoPointWorker(BaseToolWorker):
                 "tool_response_from": self.model_name,
                 "status": "failed",
                 "message": f"Error: {str(e)}\n Traceback:{traceback.format_exc()}\n",
-                "error_code": TOOL_RUN_FAILED
+                "error_code": TOOL_RUN_FAILED,
+                "tool_reward": tool_reward+(correct_param_content_num/required_keys_num if required_keys_num > 0 else 0)
             }
             logger.error(f"Error during Molmo Point inference: {e}")
             logger.error(traceback.format_exc())

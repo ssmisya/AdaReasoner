@@ -66,38 +66,43 @@ class CropToolWorker(BaseToolWorker):
         self.model = None
         
     def generate(self, params):
+        tool_reward = 2.0
+        # 计算Parameter Name Matching
+        param_keys = set(params.keys())
+        required_keys = set(self.instruction["function"]["parameters"]["required"])
+        parameter_name_match_reward = len(param_keys & required_keys) / len(required_keys | param_keys)
+        tool_reward = tool_reward + parameter_name_match_reward # 这里已经加过了，后面不用加了
+        # 参数名称没有完全匹配，直接返回
+        if parameter_name_match_reward < 1:
+            return {
+                "tool_response_from": self.model_name,
+                "status": "failed",
+                "message": "Invalid parameters: expected keys: image, coordinates.",
+                "error_code": INVALID_PARAMETERS,
+                "tool_reward": tool_reward
+            }
+        
+        required_keys_num = len(required_keys)
+        # 初始化参数合规计数器
+        correct_param_content_num = 0
         try:
-            # Extract input parameters
-            try:
-                image_data = params["image"]
-                crop_param = params.get("coordinates", "")
-                
-                if not crop_param:
-                    raise KeyError("'coordinates' not found in params")
-            except Exception as e:
-                message = f"Invalid parameters: expected keys: image, coordinates. Error: {str(e)}"
-                pred_dict = {
-                    "tool_response_from": self.model_name,
-                    "status": "failed",
-                    "message": message,
-                    "error_code": INVALID_PARAMETERS
-                }
-                return pred_dict
-            
+
+            image_data = params["image"]
+            crop_param = params["coordinates"]
+
             # Load image
             try:
-                if os.path.exists(image_data):
-                    image = Image.open(image_data).convert("RGB")
-                else:
-                    image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
+                image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
             except Exception as e:
                 pred_dict = {
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": f"Failed to load image: {str(e)}",
-                    "error_code": CANNOT_LOAD_IMAGE
+                    "error_code": CANNOT_LOAD_IMAGE,
+                    "tool_reward": tool_reward
                 }
                 return pred_dict
+            correct_param_content_num += 1
             
             # Parse crop parameters
             match = re.match(r'\[\s*([\d\.,\s]+)\s*\]', crop_param)
@@ -109,7 +114,14 @@ class CropToolWorker(BaseToolWorker):
                     crop_coords = [float(c) for c in coords_str]
                     
                     if len(crop_coords) != 4:
-                        raise ValueError(f"Invalid number of coordinates: {crop_coords}. Expected 4 values [x_min, y_min, x_max, y_max].")
+                        pred_dict = {
+                            "tool_response_from": self.model_name,
+                            "status": "failed",
+                            "message": "Invalid number of coordinates: {crop_coords}. Expected 4 values [x_min, y_min, x_max, y_max].",
+                            "error_code": INVALID_PARAMETERS,
+                            "tool_reward": tool_reward+correct_param_content_num/required_keys_num
+                        }
+                        return pred_dict
                     
                     # Ensure all coordinates are absolute values (no normalized coordinates)
                     width, height = image.size
@@ -118,7 +130,8 @@ class CropToolWorker(BaseToolWorker):
                             "tool_response_from": self.model_name,
                             "status": "failed",
                             "message": "Normalized coordinates (0-1) are not supported. Please use absolute pixel values.",
-                            "error_code": INVALID_PARAMETERS
+                            "error_code": INVALID_PARAMETERS,
+                            "tool_reward": tool_reward+correct_param_content_num/required_keys_num
                         }
                         return pred_dict
                     
@@ -127,6 +140,16 @@ class CropToolWorker(BaseToolWorker):
                     
                     # Convert to PIL crop format [left, upper, right, lower]
                     x_min, y_min, x_max, y_max = absolute_coords
+                    # 检查坐标是否超出图像范围
+                    if x_min > width or x_max > width or y_min > height or y_max > height or x_min < 0 or x_max < 0 or y_min < 0 or y_max < 0 or x_min > x_max or y_min > y_max:
+                        pred_dict = {
+                            "tool_response_from": self.model_name,
+                            "status": "failed",
+                            "message": "Coordinates are out of image bounds.",
+                            "error_code": INVALID_PARAMETERS,
+                            "tool_reward": tool_reward+correct_param_content_num/required_keys_num
+                        }
+                        return pred_dict
                     pil_crop_coords = [x_min, y_min, x_max, y_max]
                     
                     # Crop image
@@ -137,6 +160,8 @@ class CropToolWorker(BaseToolWorker):
                     image_format = image.format if image.format else 'PNG'
                     cropped_image.save(buffered, format=image_format)
                     img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+
+                    correct_param_content_num += 1
                     
                     pred_dict = {
                         "tool_response_from": self.model_name,
@@ -147,7 +172,8 @@ class CropToolWorker(BaseToolWorker):
                             "width": cropped_image.width,
                             "height": cropped_image.height
                         },
-                        "error_code":SUCCESS
+                        "error_code":SUCCESS,
+                        "tool_reward": tool_reward+correct_param_content_num/required_keys_num
                     }
                     
                     return pred_dict
@@ -157,7 +183,8 @@ class CropToolWorker(BaseToolWorker):
                         "tool_response_from": self.model_name,
                         "status": "failed",
                         "message": f"Error processing crop parameters '{crop_param}': {str(e)}",
-                        "error_code": TOOL_RUN_FAILED
+                        "error_code": TOOL_RUN_FAILED,
+                        "tool_reward": tool_reward+correct_param_content_num/required_keys_num
                     }
                     return pred_dict
             else:
@@ -165,7 +192,8 @@ class CropToolWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": f"Parameter format mismatch: {crop_param}. Expected format '[x_min, y_min, x_max, y_max]' with absolute pixel values.",
-                    "error_code": INVALID_PARAMETERS
+                    "error_code": INVALID_PARAMETERS,
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num
                 }
                 return pred_dict
                 
@@ -174,7 +202,8 @@ class CropToolWorker(BaseToolWorker):
                 "tool_response_from": self.model_name,
                 "status": "failed",
                 "message": f"Error: {str(e)}\n Traceback:{traceback.format_exc()}\n",
-                "error_code": TOOL_RUN_FAILED
+                "error_code": TOOL_RUN_FAILED,
+                "tool_reward": tool_reward+correct_param_content_num/required_keys_num
             }
             logger.error(f"Error during crop operation: {e}")
             logger.error(traceback.format_exc())

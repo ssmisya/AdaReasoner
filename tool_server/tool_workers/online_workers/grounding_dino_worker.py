@@ -182,21 +182,29 @@ class GroundingDinoWorker(BaseToolWorker):
     
     @torch.inference_mode()
     def generate(self, params):
-        # Extract inputs
-        try:
-            image_path = params["image"]
-            description = params.get("description")
-            if not description:
-                raise KeyError("缺少必要参数 'description'")
-        except Exception as e:
-            message = f"Invalid parameters: expected keys: image, description. Error: {str(e)}"
-            pred_dict = {
+        tool_reward = 2.0
+        # 计算Parameter Name Matching
+        param_keys = set(params.keys())
+        required_keys = set(self.instruction["function"]["parameters"]["required"])
+        parameter_name_match_reward = len(param_keys & required_keys) / len(required_keys | param_keys)
+        tool_reward = tool_reward + parameter_name_match_reward
+        # 参数名称没有完全匹配，直接返回
+        if parameter_name_match_reward < 1:
+            return {
                 "tool_response_from": self.model_name,
                 "status": "failed",
-                "message": message,
-                "error_code": INVALID_PARAMETERS
+                "message": "Invalid parameters: expected keys: image, description.",
+                "error_code": INVALID_PARAMETERS,
+                "tool_reward": tool_reward
             }
-            return pred_dict
+
+        required_keys_num = len(required_keys)
+        # 初始化参数合规计数器
+        correct_param_content_num = 0    
+        
+        # Extract inputs
+        image_path = params["image"]
+        description = params.get("description")
         
         # If the params have been parsed successfully.
         box_threshold = params.get("box_threshold", 0.25)
@@ -210,9 +218,11 @@ class GroundingDinoWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": f"Cannot load image: {str(e)}",
-                    "error_code": CANNOT_LOAD_IMAGE
+                    "error_code": CANNOT_LOAD_IMAGE,
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num
                 }
                 return pred_dict
+            correct_param_content_num += 1  # 图像加载成功，合规+1
                 
             boxes, logits, phrases = predict(
                 model=self.model, 
@@ -258,6 +268,9 @@ class GroundingDinoWorker(BaseToolWorker):
             # 生成带有边界框的图像
             annotated_image = self.annotate_image(image_np, boxes.tolist(), logits.tolist(), phrases)
             annotated_image_base64 = self.image_to_base64(annotated_image)
+
+            # 表明description参数内容合规
+            correct_param_content_num += 1
             
             pred_dict = {
                 "tool_response_from": self.model_name,
@@ -269,7 +282,8 @@ class GroundingDinoWorker(BaseToolWorker):
                 },
                 "edited_image": annotated_image_base64,
                 "message": f"Successfully detected {len(detections)} objects.",
-                "error_code": SUCCESS
+                "error_code": SUCCESS,
+                "tool_reward": tool_reward+correct_param_content_num/required_keys_num
             }
             
             return pred_dict
@@ -279,7 +293,8 @@ class GroundingDinoWorker(BaseToolWorker):
                 "tool_response_from": self.model_name,
                 "status": "failed",
                 "message": f"Error: {str(e)}\nTraceback:{traceback.format_exc()}\n",
-                "error_code": TOOL_RUN_FAILED
+                "error_code": TOOL_RUN_FAILED,
+                "tool_reward": tool_reward+correct_param_content_num/required_keys_num
             }
             logger.error(f"Error during GroundingDINO inference: {e}")
             logger.error(traceback.format_exc())

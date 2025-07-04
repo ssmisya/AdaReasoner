@@ -13,6 +13,7 @@ import copy
 import json
 
 
+from tool_server.utils.debug import remote_breakpoint
 from ..models.abstract_model import tp_model
 from .dynamic_batch_manager import DynamicBatchManager
 from ..utils.utils import *
@@ -76,6 +77,8 @@ class BaseToolInferencer(object):
         
         # 初始化图像历史字典，用于存储每个项目的图像历史
         self.image_history = {}
+        # remote_breakpoint(port=7119)
+        
 
     def batch_tool_response_to_next_round_input(self):
         """
@@ -445,7 +448,6 @@ class BaseToolInferencer(object):
         # 将数据加载器转换为迭代器并设置模型为评估模式
         self.dataloader_iter = iter(self.dataloader)
         self.tp_model.eval()
-
         # 创建进度条
         progress_bar = tqdm_rank0(len(self.dataloader), desc="Model Responding")
 

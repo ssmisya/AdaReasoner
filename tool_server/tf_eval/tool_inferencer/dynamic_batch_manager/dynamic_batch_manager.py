@@ -65,7 +65,9 @@ class DynamicBatchManager():
         return res
     
     def append_item(self, meta_data: Dict):
+        # breakpoint()
         if len(self.dynamic_batch) < self.batch_size:
+            # breakpoint()
             candidate_item = DynamicBatchItem(
                 max_rounds=self.max_rounds,
                 current_round=0,

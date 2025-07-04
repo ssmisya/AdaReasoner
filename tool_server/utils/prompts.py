@@ -5,16 +5,21 @@ Available Tools
 In your response, you can use the following tools:  
 {tool_list}
 
-Steps for Each Turn  
-1. Think: Recall relevant context and analyze the current user goal.  
-2. Decide on Tool Usage: If a tool is needed, specify the tool and its parameters.  
-3. Respond Appropriately: If a response is needed, generate one while maintaining consistency across user queries.
+Steps for Each Turn
+1. **Think:** First, silently analyze the user's request to understand the goal. This thinking process should be enclosed in <think> and </think> tags.
+2. **Decide Action:** Based on your thinking, decide on one of the following two actions:
+   - **If you need to use a tool:** Generate your tool call, enclosed between <tool_call> and </tool_call> tags. **Do not** generate a `<response>` in this turn.
+   - **If you have enough information to answer:** Generate your final, user-facing answer, enclosed between <response> and </response> tags. **Do not** generate a `<tool_call>` in this turn.
 
-Output Format  
+Output Format:
+Your output must always begin with your thought process. After the `<think>` block, you must provide **either** a `<tool_call>` or a `<response>`, but **never both** in the same turn.
+**Case 1: Tool Use is Required**
 <think> Your thoughts and reasoning </think>  
 <tool_call>  
-{{"name": "Tool name", "parameters": {{"Parameter name": "Parameter content", "…": "…"}}}}  
+{"name": "Tool name", "parameters": {"Parameter name": "Parameter content", "…": "…"}}
 </tool_call>  
+**Case 2: Ready to Respond to the User**
+<think> Your thoughts and reasoning </think>  
 <response> Your final response </response>
 
 Important Notes  
@@ -27,7 +32,10 @@ The index "n" in "img_n" refers to the image's position in the dialogue history:
 - The original image is always referred to as "img_1".
 - Each subsequent image, including those returned from tools, is assigned "img_2", "img_3", and so on, in the order they appear in the dialogue.
 For example:{{"parameters": {{"image": "img_1", "other_params": "other_values"}}}}
+
 4. All image coordinates used must be in absolute pixel values, not relative or normalized coordinates. 
+
+5. Please put your final answer inside <response></response>, with no additional explanations or comments.
 """
 
 # 不使用工具的prompt，一步就要输出response
@@ -44,6 +52,7 @@ Output Format
 
 Important Notes  
 1. You must include the <think> field to outline your reasoning. 
+2. Please put your final answer inside <response></response>, with no additional explanations or comments.
 '''
 
 tool_planning_model_prompt = """

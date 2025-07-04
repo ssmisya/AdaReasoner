@@ -46,27 +46,14 @@ def extract_points(generate_param, image_w, image_h, line_type):
     pattern = re.compile(r'([xy]\d*)=\s*"?([0-9]+(?:\.[0-9]+)?)"?')
     
     coords = {}
-    wrong_coord_type_found = False
-    wrong_coord_name = None
     
     for match in pattern.finditer(generate_param):
         attr, value = match.groups()
-        
-        # 检查坐标类型是否正确
-        if attr and attr[0].lower() != coordinate_type:
-            wrong_coord_type_found = True
-            wrong_coord_name = attr
-            continue
         
         if attr:
             # 有数字索引的坐标 (y1, y2, ...)
             index = attr[1:] if len(attr) > 1 and attr[1:].isdigit() else "0"
             coords[index] = float(value)
-    
-    # 如果发现了错误类型的坐标
-    if wrong_coord_type_found:
-        logger.info(f"Found wrong coordinate type: {wrong_coord_name} for line_type: {line_type}")
-        raise ValueError(f"For {line_type} lines, only {coordinate_type} coordinates should be provided, but found {wrong_coord_name}.")
     
     # 如果没有找到坐标
     if not coords:
@@ -77,15 +64,17 @@ def extract_points(generate_param, image_w, image_h, line_type):
         # 检测可能的归一化坐标
         is_small_decimal = 0 < value < 1 and value != int(value)
         
-        # 检查坐标是否明显小于图像尺寸
-        max_dimension = image_h if coordinate_type == "y" else image_w
-        too_small_for_pixels = (0 < value < 10 and 
-                               value != int(value) and
-                               max_dimension > 50)
-        
-        if is_small_decimal or too_small_for_pixels:
+        if is_small_decimal:
             logger.info(f"Detected potential normalized coordinate: {value}")
             raise ValueError("Normalized coordinates (0-1) are not supported. Please use absolute pixel coordinates instead.")
+        
+        # 检查坐标是否超出图像范围
+        if line_type.lower() == "horizontal" and (value < 0 or value >= image_h):
+            logger.info(f"Coordinate y={value} is out of image bounds) (height={image_h})")
+            raise ValueError(f"Coordinate y={value} is out of image bounds")
+        elif line_type.lower() == "vertical" and (value < 0 or value >= image_w):
+            logger.info(f"Coordinate x={value} is out of image bounds (width={image_w})")
+            raise ValueError(f"Coordinate x={value} is out of image bounds")
     
     # 构建点坐标
     for index, value in coords.items():
@@ -126,12 +115,10 @@ def DrawLine(image, point_coords=None, line_type="horizontal"):
     for point in point_coords:
         if line_type.lower() == "horizontal":
             y = point[1]  # 只使用y坐标
-            if 0 <= y < image.height:
-                ax.axhline(y=y, color='#e6194b', linewidth=2, linestyle='dashed')
+            ax.axhline(y=y, color='#e6194b', linewidth=2, linestyle='dashed')
         else:  # vertical
             x = point[0]  # 只使用x坐标
-            if 0 <= x < image.width:
-                ax.axvline(x=x, color='#e6194b', linewidth=2, linestyle='dashed')
+            ax.axvline(x=x, color='#e6194b', linewidth=2, linestyle='dashed')
     
     # 确保图像边界与原始图像完全一致
     plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
@@ -189,44 +176,57 @@ class DrawLineToolWorker(BaseToolWorker):
         self.model = None
         
     def generate(self, params):
+        tool_reward = 2.0
+        # 计算Parameter Name Matching
+        param_keys = set(params.keys())
+        required_keys = set(self.instruction["function"]["parameters"]["required"])
+        parameter_name_match_reward = len(param_keys & required_keys) / len(required_keys | param_keys)
+        tool_reward = tool_reward + parameter_name_match_reward
+        # 参数名称没有完全匹配，直接返回
+        if parameter_name_match_reward < 1:
+            return {
+                "tool_response_from": self.model_name,
+                "status": "failed",
+                "message": "Invalid parameters: expected keys: image, line_type, coordinates.",
+                "error_code": INVALID_PARAMETERS,
+                "tool_reward": tool_reward
+            }
+
+        required_keys_num = len(required_keys)
+        message =""
+        encounter_error = False
+        # 初始化参数合规计数器
+        correct_param_content_num = 0
         try:
-            # 提取输入参数
-            try:
-                image_data = params["image"]
-                line_type = params.get("line_type", "horizontal").lower()
-                generate_param = params.get("coordinates", "")
+            image_data = params["image"]
+            line_type = params["line_type"]
+            generate_param = params["coordinates"]
                 
-                if not generate_param:
-                    raise KeyError("'coordinates' not found in params")
-                    
-                if line_type not in ["horizontal", "vertical"]:
-                    line_type = "horizontal"  # 默认水平线
-                    
+            # 检查line_type参数是否合规
+            if line_type in ["horizontal", "vertical"]:
+                correct_param_content_num += 1
+            else:
+                # line_type参数不合规
+                message = "Invalid line_type: expected 'horizontal' or 'vertical'."
+                encounter_error = True
+            
+            # 加载图像
+            try:
+                img = base64_to_pil(image_data).convert("RGB")
             except Exception as e:
-                message = f"Invalid parameters: expected keys: image, line_type, coordinates. Error: {str(e)}"
+                if encounter_error:
+                    message = message + f"Cannot load image: {str(e)}"
+                else:
+                    message = f"Cannot load image: {str(e)}"
                 pred_dict = {
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": message,
-                    "error_code": INVALID_PARAMETERS
+                    "error_code": CANNOT_LOAD_IMAGE,
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num # 添加合规的参数个数
                 }
                 return pred_dict
-            
-            # 加载图像
-            try:
-                if os.path.exists(image_data):
-                    img = Image.open(image_data).convert("RGB")
-                else:
-                    img = base64_to_pil(image_data).convert("RGB")
-            except Exception as e:
-                pred_dict = {
-                    "tool_response_from": self.model_name,
-                    "status": "failed",
-                    "message": f"Cannot load image: {str(e)}",
-                    "error_code": CANNOT_LOAD_IMAGE
-                }
-                return pred_dict
-            
+            correct_param_content_num += 1 
             width, height = img.size
             
             # 提取点坐标
@@ -237,7 +237,8 @@ class DrawLineToolWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": str(e),
-                    "error_code": INVALID_PARAMETERS
+                    "error_code": INVALID_PARAMETERS,
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num # 添加合规的参数个数
                 }
                 return pred_dict
             
@@ -246,9 +247,12 @@ class DrawLineToolWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": "No valid points extracted from parameters.",
-                    "error_code": INVALID_PARAMETERS
+                    "error_code": INVALID_PARAMETERS,
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num # 添加合规的参数个数
                 }
                 return pred_dict
+
+            correct_param_content_num += 1  # 坐标提取成功且在图像范围内，参数合规+1
             
             # 绘制线条
             edited_img = DrawLine(img, point_coords=points, line_type=line_type)
@@ -264,10 +268,11 @@ class DrawLineToolWorker(BaseToolWorker):
                 "edited_image": img_str,
                 "message": f"{line_type_str.capitalize()} lines drawn successfully at {len(points)} positions.",
                 "image_dimensions_pixels": {
-                    "width": edited_img.width,
-                    "height": edited_img.height
+                    "width": int(edited_img.width),
+                    "height": int(edited_img.height)
                 },
-                "error_code": SUCCESS
+                "error_code": SUCCESS,
+                "tool_reward": tool_reward+correct_param_content_num/required_keys_num,
             }
             
             return pred_dict
@@ -277,7 +282,8 @@ class DrawLineToolWorker(BaseToolWorker):
                 "tool_response_from": self.model_name,
                 "status": "failed",
                 "message": f"Error: {str(e)}\nTraceback:{traceback.format_exc()}\n",
-                "error_code": TOOL_RUN_FAILED
+                "error_code": TOOL_RUN_FAILED,
+                "tool_reward": tool_reward+correct_param_content_num/required_keys_num,
             }
             logger.error(f"Error during drawing operation: {e}")
             logger.error(traceback.format_exc())

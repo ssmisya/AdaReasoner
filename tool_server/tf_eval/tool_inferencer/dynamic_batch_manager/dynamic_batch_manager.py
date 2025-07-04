@@ -40,6 +40,7 @@ class DynamicBatchManager():
     
     def extract_final_answer(self, final_response: str):
         # 根据新的prompt格式，最终答案在<response>标签中
+        response_content = None
         if "<response>" in final_response and "</response>" in final_response:
             # 提取<response>标签中的内容
             response_content = final_response.split("<response>")[-1].split("</response>")[0].strip()
@@ -106,7 +107,8 @@ class DynamicBatchManager():
         for item in self.dynamic_batch:
             # 检查回答中是否包含<response>....</response>格式内容
             has_response_tag = False
-            if item.model_response and "<response>" in item.model_response[-1] and "</response>" in item.model_response[-1]:
+            # if item.model_response and "<response>" in item.model_response[-1] and "</response>" in item.model_response[-1]:
+            if item.model_response and "<response>" in item.model_response[-1]:
                 has_response_tag = True
                 
             if item.status == "pending":

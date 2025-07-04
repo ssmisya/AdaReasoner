@@ -60,18 +60,28 @@ class OCRToolWorker(BaseToolWorker):
         return self.instruction
         
     def generate(self, params):
-        try:
-            image = params["image"]
-            text_threshold = params.get("text_threshold", 0.25)
-        except:
-            message = f"Invalid parameters: expected keys: image. Please reference the tool instruction: {self.get_tool_instruction()}"
-            pred_dict = {
+        tool_reward = 2.0
+        # 计算Parameter Name Matching
+        param_keys = set(params.keys())
+        required_keys = set(self.instruction["function"]["parameters"]["required"])
+        parameter_name_match_reward = len(param_keys & required_keys) / len(required_keys | param_keys)
+        tool_reward = tool_reward + parameter_name_match_reward
+        # 参数名称没有完全匹配，直接返回
+        if parameter_name_match_reward < 1:
+            return {
                 "tool_response_from": self.model_name,
                 "status": "failed",
-                "message": message,
-                "error_code": INVALID_PARAMETERS
+                "message": "Invalid parameters: expected keys: image.",
+                "error_code": INVALID_PARAMETERS,
+                "tool_reward": tool_reward
             }
-            return pred_dict
+        
+        required_keys_num = len(required_keys)
+        # 初始化参数合规计数器
+        correct_param_content_num = 0
+        
+        image = params["image"]
+        text_threshold = params.get("text_threshold", 0.25)
         
         # If params are ok, continue
         try:
@@ -82,11 +92,12 @@ class OCRToolWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": f"Cannot load image: {str(e)}",
-                    "error_code": CANNOT_LOAD_IMAGE
+                    "error_code": CANNOT_LOAD_IMAGE,
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num
                 }
                 return pred_dict
-                
-            width, height = img.size
+            
+            correct_param_content_num += 1
 
             result = self.ocr_model.readtext(np.array(img))
             detections = []
@@ -121,10 +132,11 @@ class OCRToolWorker(BaseToolWorker):
                 "status": "success",
                 "detections": detections,
                 "image_dimensions_pixels": {
-                    "width": int(img.width),  # 确保转换为Python int
-                    "height": int(img.height)  # 确保转换为Python int
+                    "width": img.width,  # 确保转换为Python int
+                    "height": img.height  # 确保转换为Python int
                 },
-                "error_code": SUCCESS
+                "error_code": SUCCESS,
+                "tool_reward": tool_reward+correct_param_content_num/required_keys_num
             }
             return pred_dict
             
@@ -135,7 +147,8 @@ class OCRToolWorker(BaseToolWorker):
                 "tool_response_from": self.model_name,
                 "status": "failed",
                 "message": f"Error: {str(e)}\nTraceback:{traceback.format_exc()}\n",
-                "error_code": TOOL_RUN_FAILED
+                "error_code": TOOL_RUN_FAILED,
+                "tool_reward": tool_reward+(correct_param_content_num/required_keys_num if required_keys_num > 0 else 0)
             }
             return pred_dict
 

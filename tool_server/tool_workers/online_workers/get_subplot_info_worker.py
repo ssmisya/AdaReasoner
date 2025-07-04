@@ -191,6 +191,40 @@ class GetSubplotInfoWorker(BaseToolWorker):
             logger.error(f"调用OCR工具出错: {str(e)}")
             return None
     
+    def handle_duplicate_keys(self, result_dict):
+        """处理字典中的重复键，为重复键添加编号
+        
+        参数:
+        result_dict - 可能包含重复键的字典
+        
+        返回:
+        processed_dict - 处理后的字典，重复键会添加(1)、(2)等编号
+        """
+        # 创建一个新字典来存储处理后的结果
+        processed_dict = {}
+        # 记录每个键出现的次数
+        key_counts = {}
+        
+        # 遍历原始字典中的所有键值对
+        for key, value in result_dict.items():
+            # 检查键是否已经在新字典中
+            if key in processed_dict:
+                # 获取当前键的计数
+                count = key_counts.get(key, 1)
+                # 为重复键创建新的键名
+                new_key = f"{key}({count})"
+                # 更新计数
+                key_counts[key] = count + 1
+                # 将新键值对添加到处理后的字典
+                processed_dict[new_key] = value
+            else:
+                # 如果键是第一次出现，直接添加到新字典
+                processed_dict[key] = value
+                # 初始化计数为1
+                key_counts[key] = 1
+        
+        return processed_dict
+    
     def call_language_model(self, subplots, ocr_results, image_base64):
         """调用语言模型工具进行结果组合"""
         lm_worker_addr = self.get_worker_address(self.controller_addr, "LanguageModel")
@@ -234,10 +268,15 @@ class GetSubplotInfoWorker(BaseToolWorker):
             # """
 
             prompt = f"""
-        Please carefully observe the image and output the titles and coordinates of all the subplots.
-
-        Return ONLY a valid JSON dictionary in this format:
-        {{"subplot_title1": [x_min, y_min, x_max, y_max], "subplot_title2": [x_min, y_min, x_max, y_max], ...}}
+You are an expert in scientific image analysis. Your task is to carefully observe the provided image and identify all subplots.
+For each subplot, you must extract its full title and determine the precise pixel coordinates of its bounding box.
+**Key features to identify a subplot:**
+1.  **Title Pattern:** A subplot almost always has a title. Look for labels that start with an enumeration like `(a)`, `a)`, `(b)`, `b)`, etc., often followed by a descriptive text. The entire string (e.g., "(a) Temperature over time") should be treated as the title.
+2.  **Graphical Area:** The coordinates should represent the bounding box that tightly encloses the main graphical content of the subplot (e.g., the plot area with axes, data points, lines, etc.). This bounding box should generally *exclude* the title itself, which is typically located just above or beside the plot.
+**Output Format:**
+Return ONLY a valid JSON dictionary where each key is the full title of a subplot and its value is a list of four integers representing the bounding box coordinates: `[x_min, y_min, x_max, y_max]`. The origin `(0, 0)` is the top-left corner of the image.
+Example format:
+`{{"(a) Title of first plot": [x1, y1, x2, y2], "(b) Title of second plot": [x3, y3, x4, y4]}}`
             """
             
             datas = {
@@ -265,17 +304,25 @@ class GetSubplotInfoWorker(BaseToolWorker):
                     json_match = re.search(r'\{.*\}', content, re.DOTALL)
                     if json_match:
                         json_str = json_match.group(0)
-                        logger.info(f"Extracted JSON: {json_str[:100]}...")
-                        return json.loads(json_str)
+                        logger.info(f"Extracted JSON: {json_str}...")
+                        
+                        # 处理JSON字符串中的重复键问题
+                        processed_json_str = self.process_json_with_duplicate_keys(json_str)
+                        
+                        return json.loads(processed_json_str)
                     else:
                         # 如果没有找到JSON格式，尝试直接解析整个内容
                         try:
-                            return json.loads(content)
+                            # 处理可能的重复键
+                            processed_content = self.process_json_with_duplicate_keys(content)
+                            return json.loads(processed_content)
                         except json.JSONDecodeError:
                             # 如果直接解析失败，尝试清理内容后再解析
                             # 移除可能的代码块标记
                             clean_content = re.sub(r'```json|```', '', content).strip()
-                            return json.loads(clean_content)
+                            # 处理可能的重复键
+                            processed_content = self.process_json_with_duplicate_keys(clean_content)
+                            return json.loads(processed_content)
                 except json.JSONDecodeError as e:
                     logger.error(f"无法解析语言模型返回的JSON: {e}")
                     logger.error(f"原始内容: {content[:200]}...")
@@ -286,6 +333,49 @@ class GetSubplotInfoWorker(BaseToolWorker):
         except Exception as e:
             logger.error(f"调用语言模型工具出错: {str(e)}")
             return None
+    
+    def process_json_with_duplicate_keys(self, json_str):
+        """处理JSON字符串中的重复键问题
+        
+        参数:
+        json_str - 可能包含重复键的JSON字符串
+        
+        返回:
+        processed_json_str - 处理后的JSON字符串，重复键会添加(1)、(2)等编号
+        """
+        # 使用正则表达式查找所有键值对
+        pattern = r'"([^"]+)"\s*:\s*(\[[^\]]+\])'
+        matches = re.findall(pattern, json_str)
+        
+        # 创建一个字典来记录每个键出现的次数
+        key_counts = {}
+        
+        # 创建一个新的JSON字符串
+        processed_json_str = "{"
+        
+        for key, value in matches:
+            # 检查键是否已经在字典中
+            if key in key_counts:
+                # 获取当前键的计数
+                count = key_counts[key]
+                # 为重复键创建新的键名
+                new_key = f"{key}({count})"
+                # 更新计数
+                key_counts[key] += 1
+                # 将新键值对添加到处理后的JSON字符串
+                processed_json_str += f'"{new_key}": {value}, '
+            else:
+                # 如果键是第一次出现，直接添加到JSON字符串
+                processed_json_str += f'"{key}": {value}, '
+                # 初始化计数为1
+                key_counts[key] = 1
+        
+        # 移除最后的逗号和空格，并添加结束括号
+        if processed_json_str.endswith(", "):
+            processed_json_str = processed_json_str[:-2]
+        processed_json_str += "}"
+        
+        return processed_json_str
     
     def base64_to_pil(self, base64_str):
         """将base64字符串转换为PIL图像"""
@@ -303,36 +393,34 @@ class GetSubplotInfoWorker(BaseToolWorker):
         return base64.b64encode(buffered.getvalue()).decode("utf-8")
     
     def generate(self, params):
-        try:
-            # 提取输入参数
-            try:
-                image_data = params["image"]
-            except KeyError:
-                message = "Missing required parameter: image"
-                pred_dict = {
-                    "tool_response_from": self.model_name,
-                    "status": "failed",
-                    "message": message,
-                    "error_code": INVALID_PARAMETERS
-                }
-                return pred_dict
-            
+        tool_reward = 2.0
+        # 计算Parameter Name Matching
+        param_keys = set(params.keys())
+        required_keys = set(self.instruction["function"]["parameters"]["required"])
+        parameter_name_match_reward = len(param_keys & required_keys) / len(required_keys | param_keys)
+        tool_reward = tool_reward + parameter_name_match_reward
+        # 参数名称没有完全匹配，直接返回
+        if parameter_name_match_reward < 1:
+            return {
+                "tool_response_from": self.model_name,
+                "status": "failed",
+                "message": "Invalid parameters: expected keys: image.",
+                "error_code": INVALID_PARAMETERS,
+                "tool_reward": tool_reward
+            }
+        try:            
             # 加载图像
             try:
-                if os.path.exists(image_data):
-                    image = Image.open(image_data).convert("RGB")
-                    # 将图像转换为base64以便传递给其他工具
-                    with open(image_data, "rb") as f:
-                        image_base64 = base64.b64encode(f.read()).decode("utf-8")
-                else:
-                    image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
-                    image_base64 = image_data
+                image_data = params["image"]
+                image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
+                image_base64 = image_data
             except Exception as e:
                 pred_dict = {
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": f"Failed to load image: {str(e)}",
-                    "error_code": CANNOT_LOAD_IMAGE
+                    "error_code": CANNOT_LOAD_IMAGE,
+                    "tool_reward": tool_reward
                 }
                 return pred_dict
             
@@ -363,6 +451,7 @@ class GetSubplotInfoWorker(BaseToolWorker):
             # 3. 调用语言模型进行结果组合
             try:
                 final_result = self.call_language_model(subplot_bboxes, ocr_results, image_base64)
+                print("getsubplotinfo_worker的final_result: ", final_result)
             except Exception as e:
                 logger.error(f"组合结果失败: {str(e)}")
                 final_result = None
@@ -373,7 +462,8 @@ class GetSubplotInfoWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": "No subplot regions detected after both extraction methods",
-                    "error_code": TOOL_RUN_FAILED
+                    "error_code": TOOL_RUN_FAILED,
+                    "tool_reward": tool_reward
                 }
                 return pred_dict
             
@@ -386,14 +476,19 @@ class GetSubplotInfoWorker(BaseToolWorker):
                 result_to_use = {}
                 for subplot_id, subplot_info in subplot_bboxes.items():
                     result_to_use[subplot_id] = subplot_info["bbox"]
+                
+                # 处理基本提取结果中可能的重复键
+                result_to_use = self.handle_duplicate_keys(result_to_use)
             
+            tool_reward += 1
             # 6. 返回结果
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "success",
                 "message": "Successfully extracted subplot information",
                 "subplots": result_to_use,
-                "error_code": SUCCESS
+                "error_code": SUCCESS,
+                "tool_reward": tool_reward
             }
             
             return pred_dict
@@ -403,7 +498,8 @@ class GetSubplotInfoWorker(BaseToolWorker):
                 "tool_response_from": self.model_name,
                 "status": "failed",
                 "message": f"Error: {str(e)}\n Traceback: {traceback.format_exc()}\n",
-                "error_code": TOOL_RUN_FAILED
+                "error_code": TOOL_RUN_FAILED,
+                "tool_reward": tool_reward
             }
             logger.error(f"子图信息提取操作错误: {e}")
             logger.error(traceback.format_exc())

@@ -27,6 +27,9 @@ from tool_server.tool_workers.online_workers.base_tool_worker import BaseToolWor
 worker_id = str(uuid.uuid4())[:6]
 logger = build_logger(__file__, f"crop_worker_{worker_id}.log")
 
+@dataclass
+class DrawShapeArguments(WorkerArguments):
+    pass
 
 class DrawShapeWorker(BaseToolWorker):
     def __init__(self, worker_arguments: WorkerArguments = None):
@@ -79,6 +82,26 @@ class DrawShapeWorker(BaseToolWorker):
         self.model = None
         
     def generate(self, params):
+        tool_reward = 2.0
+        # 计算Parameter Name Matching
+        param_keys = set(params.keys())
+        required_keys = set(self.instruction["function"]["parameters"]["required"])
+        parameter_name_match_reward = len(param_keys & required_keys) / len(required_keys | param_keys)
+        tool_reward = tool_reward + parameter_name_match_reward
+        # 参数名称没有完全匹配，直接返回
+        if parameter_name_match_reward < 1:
+            return {
+                "tool_response_from": self.model_name,
+                "status": "failed",
+                "message": "Invalid parameters: expected keys: image, bboxes.",
+                "error_code": INVALID_PARAMETERS,
+                "tool_reward": tool_reward
+            }
+        
+        required_keys_num = len(required_keys)
+        # 初始化参数合规计数器
+        correct_param_content_num = 0
+        
         try:
             # 提取输入参数
             try:
@@ -93,24 +116,24 @@ class DrawShapeWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": message,
-                    "error_code": INVALID_PARAMETERS
+                    "error_code": INVALID_PARAMETERS,
+                    "tool_reward": tool_reward
                 }
                 return pred_dict
             
             # 加载图像
             try:
-                if os.path.exists(image_data):
-                    image = Image.open(image_data).convert("RGB")
-                else:
-                    image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
+                image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")  # 图像加载成功，参数合规+1
             except Exception as e:
                 pred_dict = {
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": f"Failed to load image: {str(e)}",
-                    "error_code": CANNOT_LOAD_IMAGE
+                    "error_code": CANNOT_LOAD_IMAGE,
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num
                 }
                 return pred_dict
+            correct_param_content_num += 1
             
             # 创建绘图对象
             draw = ImageDraw.Draw(image)
@@ -129,7 +152,31 @@ class DrawShapeWorker(BaseToolWorker):
                         logger.warning(f"Skipping bbox with invalid coordinates: {coords}")
                         continue
                     
+                    # 验证形状类型是否为支持的类型
+                    if shape_type not in ["rectangle", "ellipse", "circle"]:
+                        message = f"Unsupported shape type: {shape_type}. Supported types are: rectangle, ellipse, circle."
+                        pred_dict = {
+                            "tool_response_from": self.model_name,
+                            "status": "failed",
+                            "message": message,
+                            "error_code": INVALID_PARAMETERS,
+                            "tool_reward": tool_reward+correct_param_content_num/required_keys_num
+                        }
+                        return pred_dict
+                    
                     x_min, y_min, x_max, y_max = coords
+                    
+                    # 验证坐标是否在图像范围内
+                    if x_min < 0 or y_min < 0 or x_max > image.width or y_max > image.height:
+                        message = f"Coordinates {coords} are outside the image dimensions ({image.width}x{image.height})."
+                        pred_dict = {
+                            "tool_response_from": self.model_name,
+                            "status": "failed",
+                            "message": message,
+                            "error_code": INVALID_PARAMETERS,
+                            "tool_reward": tool_reward+correct_param_content_num/required_keys_num
+                        }
+                        return pred_dict
                     
                     # 绘制不同类型的形状
                     if shape_type == "rectangle":
@@ -144,11 +191,18 @@ class DrawShapeWorker(BaseToolWorker):
                         draw.ellipse([center_x - radius, center_y - radius, 
                                      center_x + radius, center_y + radius], 
                                      outline="red", width=2)
-                    else:
-                        logger.warning(f"Unsupported shape type: {shape_type}")
-                        
                 except Exception as e:
                     logger.error(f"Error drawing shape {bbox}: {e}")
+                    pred_dict = {
+                        "tool_response_from": self.model_name,
+                        "status": "failed",
+                        "message": f"Error drawing shape: {str(e)}",
+                        "error_code": INVALID_PARAMETERS,
+                        "tool_reward": tool_reward+correct_param_content_num/required_keys_num
+                    }
+                    return pred_dict
+            
+            correct_param_content_num += 1  # bboxes参数验证和处理成功，参数合规+1
             
             # 将修改后的图像转换为base64
             buffered = BytesIO()
@@ -165,7 +219,8 @@ class DrawShapeWorker(BaseToolWorker):
                     "width": image.width,
                     "height": image.height
                 },
-                "error_code": SUCCESS
+                "error_code": SUCCESS,
+                "tool_reward": tool_reward+correct_param_content_num/required_keys_num
             }
             
             return pred_dict
@@ -175,7 +230,8 @@ class DrawShapeWorker(BaseToolWorker):
                 "tool_response_from": self.model_name,
                 "status": "failed",
                 "message": f"Error: {str(e)}\n Traceback:{traceback.format_exc()}\n",
-                "error_code": TOOL_RUN_FAILED
+                "error_code": TOOL_RUN_FAILED,
+                "tool_reward": tool_reward+correct_param_content_num/required_keys_num
             }
             logger.error(f"Error during shape drawing operation: {e}")
             logger.error(traceback.format_exc())
@@ -187,7 +243,7 @@ class DrawShapeWorker(BaseToolWorker):
 
 
 if __name__ == "__main__":
-    parser = HfArgumentParser((WorkerArguments,))
+    parser = HfArgumentParser((DrawShapeArguments,))
     args, = parser.parse_args_into_dataclasses()
     
     logger.info(f"args: {args}")

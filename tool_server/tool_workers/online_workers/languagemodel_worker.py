@@ -47,14 +47,14 @@ class LanguageModelArguments(WorkerArguments):
     )
 
 
-class GetBarInfoWorker(BaseToolWorker):
+class LanguageModelWorker(BaseToolWorker):
     def __init__(self, worker_arguments: LanguageModelArguments = None):
         # 在调用父类初始化前先设置模型名称
         if worker_arguments and worker_arguments.model_name is None:
             worker_arguments.model_name = "LanguageModel"
         
         # 保存参数到实例变量
-        self.max_tokens = worker_arguments.max_tokens if worker_arguments else 1024
+        self.max_tokens = worker_arguments.max_tokens if worker_arguments else 4096
         self.temperature = worker_arguments.temperature if worker_arguments else 0.7
         self.tensor_parallel_size = worker_arguments.tensor_parallel_size if worker_arguments else 1
         
@@ -104,7 +104,7 @@ class GetBarInfoWorker(BaseToolWorker):
         except Exception as e:
             logger.error(f"加载模型时出错: {e}")
             logger.error(traceback.format_exc())
-            raise RuntimeError(f"模型初始化失败: {str(e)}")
+            raise RuntimeError(f"Failed to load model: {str(e)}")
         
     def process_vision_info(self, messages):
         """处理消息中的图像信息"""
@@ -121,38 +121,48 @@ class GetBarInfoWorker(BaseToolWorker):
         return image_inputs, video_inputs
         
     def generate(self, params):
-        # 提取输入参数
-        try:
-            image_path = params["image"]
-            prompt = params.get("prompt")
-            if not prompt:
-                raise KeyError("缺少必要参数 'prompt'")
-        except Exception as e:
-            message = f"Invalid parameters: expected keys: image, prompt. Error: {str(e)}"
-            pred_dict = {
+        tool_reward = 2.0
+        # 计算Parameter Name Matching
+        param_keys = set(params.keys())
+        required_keys = set(self.instruction["function"]["parameters"]["required"])
+        parameter_name_match_reward = len(param_keys & required_keys) / len(required_keys | param_keys)
+        tool_reward = tool_reward + parameter_name_match_reward
+        # 参数名称没有完全匹配，直接返回
+        if parameter_name_match_reward < 1:
+            return {
                 "tool_response_from": self.model_name,
                 "status": "failed",
-                "message": message,
-                "error_code": INVALID_PARAMETERS
+                "message": "Invalid parameters: expected keys: image, prompt.",
+                "error_code": INVALID_PARAMETERS,
+                "tool_reward": tool_reward
             }
-            return pred_dict
+        
+        required_keys_num = len(required_keys)
+        # 初始化参数合规计数器
+        correct_param_content_num = 0
+        
+        # 提取输入参数
+        image_path = params["image"]
+        prompt = params.get("prompt")
         
         try:
             # 加载图像
             try:
-                if os.path.exists(image_path):
-                    image = Image.open(image_path).convert("RGB")
-                else:
-                    # 处理base64编码的图像
-                    image = Image.open(BytesIO(base64.b64decode(image_path))).convert("RGB")
+                # 处理base64编码的图像
+                image = Image.open(BytesIO(base64.b64decode(image_path))).convert("RGB")
+                correct_param_content_num += 1
             except Exception as e:
                 pred_dict = {
                     "tool_response_from": self.model_name,
                     "status": "failed",
-                    "message": f"无法加载图像: {str(e)}",
-                    "error_code": CANNOT_LOAD_IMAGE
+                    "message": f"Failed to load image: {str(e)}",
+                    "error_code": CANNOT_LOAD_IMAGE,
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num
                 }
                 return pred_dict
+            
+            # prompt参数验证通过
+            correct_param_content_num += 1
             
             # 构建消息
             messages = [
@@ -198,7 +208,8 @@ class GetBarInfoWorker(BaseToolWorker):
                 "status": "success",
                 "response": response,
                 "message": "Successfully generated response",
-                "error_code": SUCCESS
+                "error_code": SUCCESS,
+                "tool_reward": tool_reward+correct_param_content_num/required_keys_num
             }
             
             return pred_dict
@@ -211,7 +222,8 @@ class GetBarInfoWorker(BaseToolWorker):
                 "tool_response_from": self.model_name,
                 "status": "failed",
                 "error_code": TOOL_RUN_FAILED,
-                "message": f"Error: {str(e)}\nTraceback:{traceback.format_exc()}\n"
+                "message": f"Error: {str(e)}\nTraceback:{traceback.format_exc()}\n",
+                "tool_reward": tool_reward+(correct_param_content_num/required_keys_num if required_keys_num > 0 else 0)
             }
             return pred_dict
     
@@ -226,7 +238,7 @@ if __name__ == "__main__":
     
     logger.info(f"args: {args}")
 
-    worker = GetBarInfoWorker(
+    worker = LanguageModelWorker(
         worker_arguments=args
     )
     worker.run()

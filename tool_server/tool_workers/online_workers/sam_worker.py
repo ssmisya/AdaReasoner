@@ -236,27 +236,63 @@ class SAMAroundPointWorker(BaseToolWorker):
 
     @torch.inference_mode()
     def generate(self, params):
-        try:
-            # Extract inputs
-            try:
-                image_data = params["image"]
-                point_param = params.get("coordinates", "")
-            except Exception as e:
-                message = f"Invalid parameters: expected key: image. Error: {str(e)}"
+        tool_reward = 2.0
+        # 计算Parameter Name Matching
+        param_keys = set(params.keys())
+        if "coordinates" in param_keys:
+            required_keys = set(self.instruction["function"]["parameters"]["required"])
+            parameter_name_match_reward = len(param_keys & required_keys) / len(required_keys | param_keys)
+            tool_reward = tool_reward + parameter_name_match_reward
+            # 参数名称没有完全匹配，直接返回
+            if parameter_name_match_reward < 1:
                 return {
                     "tool_response_from": self.model_name,
                     "status": "failed",
-                    "message": message,
-                    "error_code": INVALID_PARAMETERS
+                    "message": "Invalid parameters: expected keys: image, coordinates.",
+                    "error_code": INVALID_PARAMETERS,
+                    "tool_reward": tool_reward
                 }
+        else:
+            required_keys = set(['image'])
+            parameter_name_match_reward = len(param_keys & required_keys) / len(required_keys | param_keys)
+            tool_reward = tool_reward + parameter_name_match_reward
+            # 参数名称没有完全匹配，直接返回
+            if parameter_name_match_reward < 1:
+                return {
+                    "tool_response_from": self.model_name,
+                    "status": "failed",
+                    "message": "Invalid parameters: expected keys: image.",
+                    "error_code": INVALID_PARAMETERS,
+                    "tool_reward": tool_reward
+                }
+
+        
+        required_keys_num = len(required_keys)
+        # 初始化参数合规计数器
+        correct_param_content_num = 0
+        
+        try:
+            # Extract inputs
+            if "coordinates" in param_keys:
+                image_data = params["image"]
+                point_param = params.get("coordinates", "")
+            else:
+                image_data = params["image"]
+                point_param = None
             
             # Load and process the image
             try:
-                if os.path.exists(image_data):
-                    img = Image.open(image_data).convert("RGB")
-                else:
-                    img = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
-                
+                img = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
+            except Exception as e:
+                return {
+                    "tool_response_from": self.model_name,
+                    "status": "failed",
+                    "message": f"Error: {str(e)} Traceback:{traceback.format_exc()}",
+                    "error_code": CANNOT_LOAD_IMAGE,
+                    "tool_reward": tool_reward + correct_param_content_num/required_keys_num
+                }
+            try:
+                correct_param_content_num += 1
                 width, height = img.size
                 self.predictor.set_image(img)
 
@@ -265,10 +301,15 @@ class SAMAroundPointWorker(BaseToolWorker):
                 
                 # 如果extract_points返回了错误信息（字典类型）
                 if isinstance(point_result, dict) and point_result.get("status") == "failed":
+                    point_result["tool_reward"] = tool_reward + correct_param_content_num/required_keys_num
                     return point_result
                 
                 # 处理提取的点
                 points = point_result
+                
+                # 坐标参数验证通过
+                if point_param:
+                    correct_param_content_num += 1
 
                 if len(points) > 0:
                     # 有点坐标，执行点周围区域分割
@@ -292,7 +333,8 @@ class SAMAroundPointWorker(BaseToolWorker):
                             "tool_response_from": self.model_name,
                             "status": "failed",
                             "message": "Automatic segmentation did not produce any valid masks.",
-                            "error_code": TOOL_RUN_FAILED
+                            "error_code": TOOL_RUN_FAILED,
+                            "tool_reward": tool_reward + correct_param_content_num/required_keys_num
                         }
                     
                     # 生成带有所有分割掩码的可视化结果
@@ -313,7 +355,8 @@ class SAMAroundPointWorker(BaseToolWorker):
                         "width": width,
                         "height": height
                     },
-                    "error_code": SUCCESS
+                    "error_code": SUCCESS,
+                    "tool_reward": tool_reward + correct_param_content_num/required_keys_num
                 }
                 
                 # 添加分割模式信息
@@ -337,7 +380,8 @@ class SAMAroundPointWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": f"Error: {str(e)} Traceback:{traceback.format_exc()}",
-                    "error_code": CANNOT_LOAD_IMAGE
+                    "error_code": CANNOT_LOAD_IMAGE,
+                    "tool_reward": tool_reward + correct_param_content_num/required_keys_num
                 }
                 
         except Exception as e:
@@ -347,7 +391,8 @@ class SAMAroundPointWorker(BaseToolWorker):
                 "tool_response_from": self.model_name,
                 "status": "failed",
                 "message": f"Error: {str(e)} Traceback:{traceback.format_exc()}",
-                "error_code": TOOL_RUN_FAILED
+                "error_code": TOOL_RUN_FAILED,
+                "tool_reward": tool_reward + (correct_param_content_num/required_keys_num if required_keys_num > 0 else 0)
             }
     
     def get_tool_instruction(self):

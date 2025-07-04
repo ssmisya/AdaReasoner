@@ -217,25 +217,25 @@ def test_draw_line(args):
         {
             "name": "单水平线",
             "line_type": "horizontal",
-            "description": "y1=100",
+            "coordinates": "y1=100",
             "output_file": "horizontal_line_single.jpg"
         },
         {
             "name": "多水平线",
             "line_type": "horizontal",
-            "description": "y1=100, y2=200, y3=300",
+            "coordinates": "y1=100, y2=200, y3=300",
             "output_file": "horizontal_line_multiple.jpg"
         },
         {
             "name": "单垂直线",
             "line_type": "vertical",
-            "description": "x1=150",
+            "coordinates": "x1=150",
             "output_file": "vertical_line_single.jpg"
         },
         {
             "name": "多垂直线",
             "line_type": "vertical",
-            "description": "x1=100, x2=200, x3=300",
+            "coordinates": "x1=100, x2=200, x3=300",
             "output_file": "vertical_line_multiple.jpg"
         }
     ]
@@ -247,7 +247,7 @@ def test_draw_line(args):
         datas = {
             "image": img_arg,
             "line_type": test_case["line_type"],
-            "description": test_case["description"]
+            "coordinates": test_case["coordinates"]
         }
         
         tic = time.time()
@@ -508,23 +508,23 @@ def test_crop(args):
     test_cases = [
         {
             "name": "绝对坐标",
-            "coords": "[100, 100, 400, 300]",
+            "coordinates": "[100, 100, 400, 300]",
             "output_file": "crop_result_absolute.jpg"
         },
         {
             "name": "归一化坐标",
-            "coords": "[0.2, 0.2, 0.8, 0.8]",
+            "coordinates": "[0.2, 0.2, 0.8, 0.8]",
             "output_file": "crop_result_normalized.jpg"
         }
     ]
     
     for test_case in test_cases:
         print(f"\n------ 测试{test_case['name']} ------")
-        crop_coordinates = test_case["coords"]
+        crop_coordinates = test_case["coordinates"]
         
         datas = {
             "image": img_arg,
-            "description": crop_coordinates
+            "coordinates": crop_coordinates
         }
         
         tic = time.time()
@@ -797,28 +797,42 @@ def test_language_model(args):
     img = load_image(args.image_path)
     img_arg = encode(img)
     
+    prompt1 = '''
+You are an expert in scientific image analysis. Your task is to carefully observe the provided image and identify all subplots.
+For each subplot, you must extract its full title and determine the precise pixel coordinates of its bounding box.
+**Key features to identify a subplot:**
+1.  **Title Pattern:** A subplot almost always has a title. Look for labels that start with an enumeration like `(a)`, `a)`, `(b)`, `b)`, etc., often followed by a descriptive text. The entire string (e.g., "(a) Temperature over time") should be treated as the title.
+2.  **Graphical Area:** The coordinates should represent the bounding box that tightly encloses the main graphical content of the subplot (e.g., the plot area with axes, data points, lines, etc.). This bounding box should generally *exclude* the title itself, which is typically located just above or beside the plot.
+**Output Format:**
+Return ONLY a valid JSON dictionary where each key is the full title of a subplot and its value is a list of four integers representing the bounding box coordinates: `[x_min, y_min, x_max, y_max]`. The origin `(0, 0)` is the top-left corner of the image.
+Example format:
+`{{"(a) Title of first plot": [x1, y1, x2, y2], "(b) Title of second plot": [x3, y3, x4, y4]}}`
+'''
+
     # 测试用例
     test_cases = [
         {
-            "name": "简单描述",
-            "prompt": "这张图片中一共有几个子图，各个子图的标题和坐标是什么",
+            "name": "中文prompt",
+            "prompt": "这张图片中一共有几个子图，各个子图的标题和坐标是什么,坐标是指在图片中的坐标，格式为(x1,y1,x2,y2)",
             "output_file": "language_model_description.txt"
         },
         {
-            "name": "详细分析",
-            "prompt": "详细分析这张图片中的内容，包括物体、颜色和场景",
+            "name": "英文prompt",
+            "prompt": prompt1,
             "output_file": "language_model_analysis.txt"
         },
-        {
-            "name": "问答",
-            "prompt": "这张图片中有什么物体？它们在做什么？",
-            "output_file": "language_model_qa.txt"
-        }
+        # {
+        #     "name": "问答",
+        #     "prompt": "这张图片中有什么物体？它们在做什么？",
+        #     "output_file": "language_model_qa.txt"
+        # }
     ]
     
     for test_case in test_cases:
         print(f"\n------ 测试LanguageModel: {test_case['name']} ------")
         print(f"提示词: {test_case['prompt']}")
+
+        # print("testall中的language model 的image: ", img_arg)
         
         datas = {
             "image": img_arg,
@@ -847,21 +861,22 @@ def test_language_model(args):
                 
                 if "response" in res:
                     # 保存文本响应
-                    output_path = os.path.join(args.output_dir, test_case["output_file"])
-                    with open(output_path, 'w', encoding='utf-8') as f:
-                        f.write(res["response"])
-                    print(f"✅ 模型响应已保存至: {output_path}")
+                    # output_path = os.path.join(args.output_dir, test_case["output_file"])
+                    # with open(output_path, 'w', encoding='utf-8') as f:
+                    #     f.write(res["response"])
+                    # print(f"✅ 模型响应已保存至: {output_path}")
                     
                     # 显示响应的前100个字符
-                    preview = res["response"][:100] + "..." if len(res["response"]) > 100 else res["response"]
+                    # preview = res["response"][:100] + "..." if len(res["response"]) > 100 else res["response"]
+                    preview = res["response"]
                     print(f"响应预览: {preview}")
                 else:
                     print("❌ 响应中没有找到文本内容")
                     # 保存完整响应以便调试
-                    debug_path = os.path.join(args.output_dir, f"language_model_debug_{test_case['name'].replace(' ', '_')}.json")
-                    with open(debug_path, 'w', encoding='utf-8') as f:
-                        json.dump(res, f, indent=2, ensure_ascii=False)
-                    print(f"已将完整响应保存至: {debug_path}")
+                    # debug_path = os.path.join(args.output_dir, f"language_model_debug_{test_case['name'].replace(' ', '_')}.json")
+                    # with open(debug_path, 'w', encoding='utf-8') as f:
+                    #     json.dump(res, f, indent=2, ensure_ascii=False)
+                    # print(f"已将完整响应保存至: {debug_path}")
             else:
                 print(f"❌ 请求失败: {response.text}")
                 
@@ -891,6 +906,8 @@ def test_get_subplot_info(args):
     datas = {
         "image": img_arg
     }
+
+    # print("testall中的getsubplotinfo 的image: ", img_arg)
     
     tic = time.time()
     response = requests.post(
@@ -921,11 +938,11 @@ def test_get_subplot_info(args):
             if subplot_count > 5:
                 print(f"  ... 还有{subplot_count-5}个子图未显示")
             
-            # 将结果保存为JSON文件
-            output_json_path = os.path.join(args.output_dir, "subplot_info_result.json")
-            with open(output_json_path, 'w', encoding='utf-8') as f:
-                json.dump(subplots, f, indent=2, ensure_ascii=False)
-            print(f"子图信息已保存至: {output_json_path}")
+            # # 将结果保存为JSON文件
+            # output_json_path = os.path.join(args.output_dir, "subplot_info_result.json")
+            # with open(output_json_path, 'w', encoding='utf-8') as f:
+            #     json.dump(subplots, f, indent=2, ensure_ascii=False)
+            # print(f"子图信息已保存至: {output_json_path}")
             
             # 可视化子图边界框
             try:

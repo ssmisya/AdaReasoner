@@ -3,8 +3,8 @@
 base_dir: /mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers
 log_folder: /mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/logs/server_log
 partition: "ai_moe"
-default_calculate_gpus: 2
-default_calculate_cpus: 32
+default_calculate_gpus: 1
+default_calculate_cpus: 16
 default_control_cpus: 2
 default_control_gpus: 0
 retry_interval: 1
@@ -25,6 +25,20 @@ controller_config:
 # 比如model-path会转义成model_path
 
 tool_worker_config:
+  - LanguageModel:
+      worker_name: LanguageModel
+      job_name: languagemodel
+      calculate_type: calculate
+      conda_env: "visual"
+      cmd:
+        script-addr: tool_server.tool_workers.online_workers.languagemodel_worker
+        port: 20044
+        host: "0.0.0.0"
+        # model_path: /mnt/petrelfs/sunhaoyu/visual-code/llm_weights/Qwen2.5-VL-7B-Instruct
+        model_path: /mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-72B-Instruct
+        max_tokens: 1024
+        temperature: 0.7
+        tensor_parallel_size: 4
   - Point:
       worker_name: Point
       job_name: point
@@ -123,19 +137,6 @@ tool_worker_config:
         script-addr: tool_server.tool_workers.online_workers.mask_box_worker
         port: 20043
         host: "0.0.0.0"
-
-  - LanguageModel:
-      worker_name: LanguageModel
-      job_name: languagemodel
-      calculate_type: calculate
-      conda_env: "visual"
-      cmd:
-        script-addr: tool_server.tool_workers.online_workers.languagemodel_worker
-        port: 20044
-        host: "0.0.0.0"
-        model_path: /mnt/petrelfs/sunhaoyu/visual-code/llm_weights/Qwen2.5-VL-7B-Instruct
-        max_tokens: 1024
-        temperature: 0.7
 
   - GetSubplotInfo:
       worker_name: GetSubplotInfo

@@ -24,6 +24,7 @@ class ToolManager(object):
         logger.info(f"ToolManager is initialized.")
         # self.available_tools = self.available_offline_tools + self.available_online_tools
         self.available_tools = self.available_online_tools
+        print("available_tools",self.available_tools)
         self.headers = {"User-Agent": "LLaVA-Plus Client"}
         
     def init_online_tools(self, controller_url_location=None):
@@ -44,16 +45,18 @@ class ToolManager(object):
 
         with self.disable_proxy():
             if self.controller_addr is not None and isinstance(self.controller_addr,str):
-                ret = requests.post(self.controller_addr + "/refresh_all_workers")
+                session = requests.Session()
+                session.trust_env = False
+                ret = session.post(self.controller_addr + "/refresh_all_workers",proxies={})
                 if ret.status_code == 200:
-                    ret = requests.post(self.controller_addr + "/list_models")
+                    ret = session.post(self.controller_addr + "/list_models",proxies={})
                     models = ret.json()["models"]
                     logger.info(f"Online Tools: {models}")
                     self.available_online_tools = models
             
 
         miss_tool = []
-        for tool in ["GroundingDINO","OCR","SegmentRegionAroundPoint","Point","Crop","DrawLine"]:
+        for tool in ["GroundingDINO","OCR","SegmentRegionAroundPoint","Point","Crop","DrawLine", "DrawShape", "HighlightBox", "MaskBox", "LanguageModel", "GetSubplotInfo", "GetBarInfo"]:
             if tool not in self.available_online_tools:
                 miss_tool.append(tool)
         if len(miss_tool) == 0:
@@ -69,8 +72,10 @@ class ToolManager(object):
         self.online_tool_addr_dict = {}
         for model_name in self.available_online_tools:
             with self.disable_proxy():
-                ret = requests.post(self.controller_addr + "/get_worker_address",
-                                    json={"model": model_name})
+                session = requests.Session()
+                session.trust_env = False
+                ret = session.post(self.controller_addr + "/get_worker_address",
+                                    json={"model": model_name},proxies={})
             worker_addr = ret.json()["address"]
             if worker_addr == "":
                 logger.error(f"worker_addr for {model_name} is empty")
@@ -97,7 +102,9 @@ class ToolManager(object):
                 try:
                     tool_worker_addr = self.online_tool_addr_dict[tool_name]
                     with self.disable_proxy():
-                        ret = requests.post(tool_worker_addr + "/worker_generate",headers=self.headers,json=params)
+                        session = requests.Session()
+                        session.trust_env = False
+                        ret = session.post(tool_worker_addr + "/worker_generate",headers=self.headers,json=params,proxies={})
                     ret_message = ret.json()
                 except Exception as e:
                     logger.error(f"Failed to call tool {tool_name}: {e}")

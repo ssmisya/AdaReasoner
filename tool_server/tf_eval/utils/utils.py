@@ -56,8 +56,29 @@ def merge_jsonl(input_file_dir, output_filepath):
             output_file.write(json.dumps(data) + '\n')
 
 def append_jsonl(data, filename):
+    # 处理数据中的PIL图像对象
+    cleaned_data = remove_pil_objects(data)
+    
+    # 将所有PIL图像对象替换为<image>占位符
+    def replace_images_with_placeholder(obj):
+        if isinstance(obj, dict):
+            for key, value in list(obj.items()):
+                if isinstance(value, Image.Image):
+                    obj[key] = "<image>"
+                elif isinstance(value, (dict, list)):
+                    replace_images_with_placeholder(value)
+        elif isinstance(obj, list):
+            for i, item in enumerate(obj):
+                if isinstance(item, Image.Image):
+                    obj[i] = "<image>"
+                elif isinstance(item, (dict, list)):
+                    replace_images_with_placeholder(item)
+        return obj
+    
+    cleaned_data = replace_images_with_placeholder(cleaned_data)
+    
     with open(filename, 'a', encoding='utf-8') as f:
-        json.dump(data, f)
+        json.dump(cleaned_data, f)
         f.write('\n')
         
 def load_txt_file(filepath):

@@ -181,6 +181,49 @@ class GetBarInfoWorker(BaseToolWorker):
             logger.error(f"调用OCR工具出错: {str(e)}")
             return None
     
+    def process_json_with_duplicate_keys(self, json_str):
+        """处理JSON字符串中的重复键问题
+        
+        参数:
+        json_str - 可能包含重复键的JSON字符串
+        
+        返回:
+        processed_json_str - 处理后的JSON字符串，重复键会添加(1)、(2)等编号
+        """
+        # 使用正则表达式查找所有键值对
+        pattern = r'"([^"]+)"\s*:\s*(\[[^\]]+\])'
+        matches = re.findall(pattern, json_str)
+        
+        # 创建一个字典来记录每个键出现的次数
+        key_counts = {}
+        
+        # 创建一个新的JSON字符串
+        processed_json_str = "{"
+        
+        for key, value in matches:
+            # 检查键是否已经在字典中
+            if key in key_counts:
+                # 获取当前键的计数
+                count = key_counts[key]
+                # 为重复键创建新的键名
+                new_key = f"{key}({count})"
+                # 更新计数
+                key_counts[key] += 1
+                # 将新键值对添加到处理后的JSON字符串
+                processed_json_str += f'"{new_key}": {value}, '
+            else:
+                # 如果键是第一次出现，直接添加到JSON字符串
+                processed_json_str += f'"{key}": {value}, '
+                # 初始化计数为1
+                key_counts[key] = 1
+        
+        # 移除最后的逗号和空格，并添加结束括号
+        if processed_json_str.endswith(", "):
+            processed_json_str = processed_json_str[:-2]
+        processed_json_str += "}"
+        
+        return processed_json_str
+    
     def call_language_model(self, bar_bboxes, ocr_results, image_base64):
         """调用语言模型工具进行结果组合"""
         lm_worker_addr = self.get_worker_address(self.controller_addr, "LanguageModel")
@@ -230,15 +273,36 @@ class GetBarInfoWorker(BaseToolWorker):
         #     """
 
             prompt = f"""
-            Please carefully observe the image and output the labels and bounding box coordinates of all bars.
+You are a highly meticulous visual analysis agent tasked with extracting data from bar charts.
 
-            Key considerations:
-            1.  A single bar may be composed of multiple colored segments stacked vertically. Treat this entire stack as a single bar and provide one bounding box that covers all its segments.
-            2.  Adjacent bars may be positioned next to each other with no gap in between. These should be treated as separate, distinct bars.
-            3.  As a general rule, different bars do not have overlapping x-coordinate ranges.
+Your objective is to generate a JSON object containing the x-axis labels and bounding box coordinates for every bar in the image.
 
-            Return ONLY a valid JSON dictionary in this format:
-            {{"bar_label1": [x_min, y_min, x_max, y_max], "bar_label2": [x_min, y_min, x_max, y_max], ...}}
+Follow this exact procedure:
+1.  **Scan the X-Axis:** First, identify all the text labels present on the chart's x-axis.
+2.  **Map Labels to Bars:** For each label found, locate the corresponding bar (or stack of bars) vertically aligned with it.
+3.  **Calculate Bounding Box:** Determine the tightest possible bounding box `[x_min, y_min, x_max, y_max]` for the entire bar.
+    * **For stacked bars:** The box must enclose the complete stack.
+    * **For regular bars:** The box encloses the single rectangle.
+    * **Bars in a series usually have uniform widths, and the horizontal spacing between adjacent bars is typically consistent.
+4.  **Construct the JSON:** Assemble the extracted data into the specified JSON format.
+
+**Crucial Rules:**
+* The keys of the JSON dictionary **must be** the text labels from the x-axis.
+* The coordinates must be in pixels, with `(0, 0)` at the top-left corner.
+* Return ONLY the final, valid JSON object. Do not include any other text, reasoning, or explanations in your response.
+
+**Example of the process:**
+* **Thought:** "I am analyzing a bar chart. First, I'll read the x-axis. I see three labels: 'Group A', 'Group B', 'Group C'.
+    * Above 'Group A', there is a blue bar. I will find its bounding box.
+    * Above 'Group B', there is a stacked bar (green and orange). I will find the bounding box for the entire stack.
+    * Above 'Group C', there is another blue bar. I will find its bounding box.
+    * Now, I will format this into the final JSON."
+
+**Output Format:**
+Return ONLY a valid JSON dictionary. The keys should be the labels found on the x-axis, and the values should be the bounding box coordinates `[x_min, y_min, x_max, y_max]`. Coordinates must be in pixels, with the origin `(0, 0)` at the top-left corner of the image.
+
+Example format:
+`{{"x-axis label for bar 1": [x1, y1, x2, y2], "x-axis label for bar 2": [x3, y3, x4, y4]}}`
             """
             
             datas = {
@@ -267,16 +331,24 @@ class GetBarInfoWorker(BaseToolWorker):
                     if json_match:
                         json_str = json_match.group(0)
                         logger.info(f"Extracted JSON: {json_str[:100]}...")
-                        return json.loads(json_str)
+                        
+                        # 处理JSON字符串中的重复键问题
+                        processed_json_str = self.process_json_with_duplicate_keys(json_str)
+                        
+                        return json.loads(processed_json_str)
                     else:
                         # 如果没有找到JSON格式，尝试直接解析整个内容
                         try:
-                            return json.loads(content)
+                            # 处理可能的重复键
+                            processed_content = self.process_json_with_duplicate_keys(content)
+                            return json.loads(processed_content)
                         except json.JSONDecodeError:
                             # 如果直接解析失败，尝试清理内容后再解析
                             # 移除可能的代码块标记
                             clean_content = re.sub(r'```json|```', '', content).strip()
-                            return json.loads(clean_content)
+                            # 处理可能的重复键
+                            processed_content = self.process_json_with_duplicate_keys(clean_content)
+                            return json.loads(processed_content)
                 except json.JSONDecodeError as e:
                     logger.error(f"无法解析语言模型返回的JSON: {e}")
                     logger.error(f"原始内容: {content[:200]}...")
@@ -289,36 +361,34 @@ class GetBarInfoWorker(BaseToolWorker):
             return None
     
     def generate(self, params):
+        tool_reward = 2.0
+        # 计算Parameter Name Matching
+        param_keys = set(params.keys())
+        required_keys = set(self.instruction["function"]["parameters"]["required"])
+        parameter_name_match_reward = len(param_keys & required_keys) / len(required_keys | param_keys)
+        tool_reward = tool_reward + parameter_name_match_reward
+        # 参数名称没有完全匹配，直接返回
+        if parameter_name_match_reward < 1:
+            return {
+                "tool_response_from": self.model_name,
+                "status": "failed",
+                "message": "Invalid parameters: expected keys: image.",
+                "error_code": INVALID_PARAMETERS,
+                "tool_reward": tool_reward
+            }
         try:
-            # 提取输入参数
-            try:
-                image_data = params["image"]
-            except KeyError:
-                message = "Missing required parameter: image"
-                pred_dict = {
-                    "tool_response_from": self.model_name,
-                    "status": "failed",
-                    "message": message,
-                    "error_code": INVALID_PARAMETERS
-                }
-                return pred_dict
-            
             # 加载图像
             try:
-                if os.path.exists(image_data):
-                    image = Image.open(image_data).convert("RGB")
-                    # 将图像转换为base64以便传递给其他工具
-                    with open(image_data, "rb") as f:
-                        image_base64 = base64.b64encode(f.read()).decode("utf-8")
-                else:
-                    image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
-                    image_base64 = image_data
+                image_data = params["image"]
+                image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
+                image_base64 = image_data
             except Exception as e:
                 pred_dict = {
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": f"Failed to load image: {str(e)}",
-                    "error_code": CANNOT_LOAD_IMAGE
+                    "error_code": CANNOT_LOAD_IMAGE,
+                    "tool_reward": tool_reward
                 }
                 return pred_dict
             
@@ -365,17 +435,20 @@ class GetBarInfoWorker(BaseToolWorker):
                     "tool_response_from": self.model_name,
                     "status": "failed",
                     "message": "No bar regions could be detected after all processing steps",
-                    "error_code": TOOL_RUN_FAILED
+                    "error_code": TOOL_RUN_FAILED,
+                    "tool_reward": tool_reward
                 }
                 return pred_dict
             
+            tool_reward += 1
             # 5. 返回成功结果
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "success",
                 "message": "Successfully extracted bar information",
                 "bars": final_result,
-                "error_code": SUCCESS
+                "error_code": SUCCESS,
+                "tool_reward": tool_reward
             }
             
             return pred_dict
@@ -385,7 +458,8 @@ class GetBarInfoWorker(BaseToolWorker):
                 "tool_response_from": self.model_name,
                 "status": "failed",
                 "message": f"Error: {str(e)}\n Traceback: {traceback.format_exc()}\n",
-                "error_code": TOOL_RUN_FAILED
+                "error_code": TOOL_RUN_FAILED,
+                "tool_reward": tool_reward
             }
             logger.error(f"柱状图信息提取操作错误: {e}")
             logger.error(traceback.format_exc())

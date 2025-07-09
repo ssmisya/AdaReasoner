@@ -86,7 +86,8 @@ def evaluate_function(results,meta_data):
             "pred": pred,
             "exact_match": em_score,
             "relaxed_accuracy": ra_score,
-            "anywhere_accuracy": aa_score
+            "anywhere_accuracy": aa_score,
+            "question": meta["text"]
         })
 
     # 计算平均分数

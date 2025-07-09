@@ -138,7 +138,7 @@ def evaluate_function(results,meta_data):
                 
         res_list.append(score)
         question_type_dict[question_type].append(score)
-        compare_logs.append({"idx":idx,"gold":gold,"pred":pred,"score":score,"question_type":question_type})
+        compare_logs.append({"idx":idx,"gold":gold,"pred":pred,"score":score,"question_type":question_type,"question":meta["text"]})
 
     accuracy = sum(res_list) / len(res_list) if len(res_list) > 0 else 0
     for k,v in question_type_dict.items():

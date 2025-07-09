@@ -48,7 +48,6 @@ def load_data_function():
     return meta_data
 
 
-# 有两种qa_type，一种是recognizing，一种是reasoning，需要分别计算准确率
 def evaluate_function(results,meta_data):
     results_dict = {res["idx"]: res for res in results}
     meta_dict = {meta["idx"]: meta for meta in meta_data}
@@ -69,7 +68,7 @@ def evaluate_function(results,meta_data):
         score = rule_based_verify(ground_truth, prediction)
         chart_type_dict[item_chart_type].append(score)
         qa_type_dict[item_qa_type].append(score)
-        compare_logs.append({"idx":idx, "chart_type":item_chart_type, "qa_type":item_qa_type, "gold":ground_truth, "pred":prediction, "score":score})
+        compare_logs.append({"idx":idx, "chart_type":item_chart_type, "qa_type":item_qa_type, "gold":ground_truth, "pred":prediction, "score":score,"question":meta["text"]})
     for k,v in chart_type_dict.items():
         if len(v) > 0:
             chart_type_dict[k] = sum(v) / len(v)

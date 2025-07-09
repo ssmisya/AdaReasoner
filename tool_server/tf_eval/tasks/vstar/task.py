@@ -66,7 +66,7 @@ def evaluate_function(results,meta_data):
         ground_truth = meta["answer"]
         score = rule_based_verify(ground_truth, prediction)
         category_dict[item_category].append(score)
-        compare_logs.append({"idx":idx, "category":item_category, "gold":ground_truth, "pred":prediction, "score":score})
+        compare_logs.append({"idx":idx, "category":item_category, "gold":ground_truth, "pred":prediction, "score":score,"question":meta["text"]})
     for k,v in category_dict.items():
         if len(v) > 0:
             category_dict[k] = sum(v) / len(v)

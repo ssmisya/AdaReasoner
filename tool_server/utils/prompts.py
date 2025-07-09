@@ -20,19 +20,6 @@ Steps for Each Turn
    - **If you need to use a tool:** Generate your tool call, enclosed between <tool_call> and </tool_call> tags. **Do not** generate a `<response>` in this turn.
    - **If you have enough information to answer:** Generate your final, user-facing answer, enclosed between <response> and </response> tags. **Do not** generate a `<tool_call>` in this turn.
 
-Output Format:
-Your output must always begin with your thought process. After the `<think>` block, you must provide **either** a `<tool_call>` or a `<response>`, but **never both** in the same turn.
-**Case 1: Tool Use is Required**
-<think> Your thoughts and reasoning </think>  
-<tool_call>  
-{"name": "Tool name", "parameters": {"Parameter name": "Parameter content", "…": "…"}}
-</tool_call>  
-**Case 2: Ready to Respond to the User**
-<think> Your thoughts and reasoning </think>  
-**Case 2: Ready to Respond to the User**
-<think> Your thoughts and reasoning </think>  
-<response> Your final response </response>
-
 Important Notes  
 1. You must always include the <think> field to outline your reasoning. Provide one of <tool_call> or <response>. You must not include both <tool_call> and <response> in the same turn because they are mutually exclusive. If tool usage is required, you must instead include both <think> and <tool_call>, and omit <response> for that turn. If no further tool usage is required and ready to answer the user's question, you can then use <think> to summarize your reasoning and include <response> with your final answer, and this indicates the ends of the conversation.
 

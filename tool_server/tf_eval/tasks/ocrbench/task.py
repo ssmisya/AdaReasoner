@@ -109,31 +109,34 @@ def evaluate_function(results,meta_data):
         gold = meta["answer"]
         question_type = meta["question_type"]
         score = 0.0
-
-        if meta["dataset_type"] == "HME100k":
-            if type(gold) == list:
-                for j in range(len(gold)):
-                    gold = gold[j].strip().replace("\n", " ").replace(" ", "")
-                    pred = pred[j].strip().replace("\n", " ").replace(" ", "")
-                    if gold in pred:
-                        score = 1.0
-            else:
-                gold = gold.strip().replace("\n", " ").replace(" ", "")
-                pred = pred.strip().replace("\n", " ").replace(" ", "")
-                if gold in pred:
-                    score = 1.0
+        
+        if pred == "" or pred is None or pred == "None":
+            score = 0.0
         else:
-            if type(gold) == list:
-                for j in range(len(gold)):
-                    gold = gold[j].lower().strip().replace("\n", " ")
-                    pred = pred[j].lower().strip().replace("\n", " ")
+            if meta["dataset_type"] == "HME100k":
+                if type(gold) == list:
+                    for j in range(len(gold)):
+                        gold = gold[j].strip().replace("\n", " ").replace(" ", "")
+                        pred = pred[j].strip().replace("\n", " ").replace(" ", "")
+                        if gold in pred:
+                            score = 1.0
+                else:
+                    gold = gold.strip().replace("\n", " ").replace(" ", "")
+                    pred = pred.strip().replace("\n", " ").replace(" ", "")
                     if gold in pred:
                         score = 1.0
             else:
-                gold = gold.lower().strip().replace("\n", " ")
-                pred = pred.lower().strip().replace("\n", " ")
-                if gold in pred:
-                    score = 1.0
+                if type(gold) == list:
+                    for j in range(len(gold)):
+                        gold = gold[j].lower().strip().replace("\n", " ")
+                        pred = pred[j].lower().strip().replace("\n", " ")
+                        if gold in pred:
+                            score = 1.0
+                else:
+                    gold = gold.lower().strip().replace("\n", " ")
+                    pred = pred.lower().strip().replace("\n", " ")
+                    if gold in pred:
+                        score = 1.0
                 
         res_list.append(score)
         question_type_dict[question_type].append(score)

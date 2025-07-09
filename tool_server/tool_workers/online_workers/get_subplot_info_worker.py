@@ -17,6 +17,9 @@ import cv2
 import json
 import requests
 import time
+import contextlib
+import httpx
+import openai
 
 from transformers import HfArgumentParser
 from dataclasses import dataclass, field
@@ -30,6 +33,34 @@ from tool_server.tool_workers.online_workers.base_tool_worker import BaseToolWor
 
 worker_id = str(uuid.uuid4())[:6]
 logger = build_logger(__file__, f"get_subplot_info_worker_{worker_id}.log")
+
+# vLLM 模型配置
+VLLM_API_BASE_URL = "http://SH-IDC1-10-140-37-35:16112/v1"
+VLLM_API_KEY = "not-needed"
+VLLM_MODEL_NAME = "/mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-72B-Instruct"
+        
+@contextlib.contextmanager
+def no_proxy():
+    """一个上下文管理器，可以在其作用域内临时禁用代理环境变量。"""
+    # 定义需要处理的代理环境变量键名
+    proxy_keys = ['http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY']
+    
+    # 保存原始的代理设置
+    original_proxies = {key: os.environ.get(key) for key in proxy_keys}
+    
+    # 临时删除当前环境中的代理设置
+    for key in proxy_keys:
+        if key in os.environ:
+            del os.environ[key]
+            
+    try:
+        # yield 关键字将控制权交给 with 代码块
+        yield
+    finally:
+        # with 代码块执行完毕后（无论是否发生异常），恢复原始的代理设置
+        for key, value in original_proxies.items():
+            if value is not None:
+                os.environ[key] = value
 
 
 class GetSubplotInfoWorker(BaseToolWorker):
@@ -58,7 +89,14 @@ class GetSubplotInfoWorker(BaseToolWorker):
             }
         }
         
+        self.controller_addr = "http://SH-IDC1-10-140-37-6:21112"
         
+
+        # 初始化 OpenAI 客户端
+        self.client = openai.OpenAI(
+            api_key=VLLM_API_KEY, 
+            base_url=VLLM_API_BASE_URL,
+        )
                 
     def init_model(self):
         logger.info(f"No need to initialize model {self.model_name}.")
@@ -226,12 +264,7 @@ class GetSubplotInfoWorker(BaseToolWorker):
         return processed_dict
     
     def call_language_model(self, subplots, ocr_results, image_base64):
-        """调用语言模型工具进行结果组合"""
-        lm_worker_addr = self.get_worker_address(self.controller_addr, "LanguageModel")
-        if not lm_worker_addr:
-            logger.error("无法获取LanguageModel工具地址")
-            return None
-
+        """使用vLLM模型进行结果组合"""
         try:
             # 从OCR结果中提取文本信息
             text_detections = []
@@ -239,7 +272,13 @@ class GetSubplotInfoWorker(BaseToolWorker):
                 for detection in ocr_results["detections"]:
                     if "label" in detection and "pixel_bbox" in detection:
                         text_detections.append({
-                            "text": detection["label"]
+                            "text": detection["label"],
+                            "bbox": [
+                                detection["pixel_bbox"]["x_min"],
+                                detection["pixel_bbox"]["y_min"],
+                                detection["pixel_bbox"]["x_max"],
+                                detection["pixel_bbox"]["y_max"]
+                            ]
                         })
             
         #     # 准备语言模型请求数据
@@ -279,57 +318,55 @@ Example format:
 `{{"(a) Title of first plot": [x1, y1, x2, y2], "(b) Title of second plot": [x3, y3, x4, y4]}}`
             """
             
-            datas = {
-                "image": image_base64,
-                "prompt": prompt
-            }
+            image = image_base64
             
-            # 发送请求
-            response = requests.post(
-                lm_worker_addr + "/worker_generate",
-                headers={"User-Agent": "FastChat Client"},
-                json=datas,
-            )
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image}"}}
+                    ]
+                }
+            ]
             
-            if response.status_code == 200:
-                result = response.json()
-                # 尝试从结果中提取JSON
-                try:
-                    # 首先尝试从 response 字段获取内容
-                    content = result.get("response", "")
-                    
-                    logger.info(f"Language model response: {content[:100]}...")
-                    
-                    # 查找JSON部分
-                    json_match = re.search(r'\{.*\}', content, re.DOTALL)
-                    if json_match:
-                        json_str = json_match.group(0)
-                        logger.info(f"Extracted JSON: {json_str}...")
-                        
-                        # 处理JSON字符串中的重复键问题
-                        processed_json_str = self.process_json_with_duplicate_keys(json_str)
-                        
-                        return json.loads(processed_json_str)
-                    else:
-                        # 如果没有找到JSON格式，尝试直接解析整个内容
-                        try:
-                            # 处理可能的重复键
-                            processed_content = self.process_json_with_duplicate_keys(content)
-                            return json.loads(processed_content)
-                        except json.JSONDecodeError:
-                            # 如果直接解析失败，尝试清理内容后再解析
-                            # 移除可能的代码块标记
-                            clean_content = re.sub(r'```json|```', '', content).strip()
-                            # 处理可能的重复键
-                            processed_content = self.process_json_with_duplicate_keys(clean_content)
-                            return json.loads(processed_content)
-                except json.JSONDecodeError as e:
-                    logger.error(f"无法解析语言模型返回的JSON: {e}")
-                    logger.error(f"原始内容: {content[:200]}...")
-                    return None
+            # 只在请求的时候关闭代理
+            with no_proxy():
+                chat_completion = self.client.chat.completions.create(
+                    model=VLLM_MODEL_NAME,
+                    messages=messages,
+                    max_tokens=20000,
+                    temperature=0.7,
+                )
+            
+            content = chat_completion.choices[0].message.content.strip()
+            
+            logger.info(f"Language model response: {content[:100]}...")
+            
+            # 查找JSON部分
+            json_match = re.search(r'\{.*\}', content, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(0)
+                logger.info(f"Extracted JSON: {json_str[:100]}...")
+                
+                # 处理JSON字符串中的重复键问题
+                processed_json_str = self.process_json_with_duplicate_keys(json_str)
+                
+                return json.loads(processed_json_str)
             else:
-                logger.error(f"语言模型请求失败: {response.text}")
-                return None
+                # 如果没有找到JSON格式，尝试直接解析整个内容
+                try:
+                    # 处理可能的重复键
+                    processed_content = self.process_json_with_duplicate_keys(content)
+                    return json.loads(processed_content)
+                except json.JSONDecodeError:
+                    # 如果直接解析失败，尝试清理内容后再解析
+                    # 移除可能的代码块标记
+                    clean_content = re.sub(r'```json|```', '', content).strip()
+                    # 处理可能的重复键
+                    processed_content = self.process_json_with_duplicate_keys(clean_content)
+                    return json.loads(processed_content)
+                    
         except Exception as e:
             logger.error(f"调用语言模型工具出错: {str(e)}")
             return None

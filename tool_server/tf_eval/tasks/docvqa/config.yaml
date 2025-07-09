@@ -1,7 +1,7 @@
 task_name: "docvqa"
-dataset_path: /mnt/petrelfs/sunhaoyu/visual-code/datasets/DocVQA
-num_sample: 5349 # testset
-# num_sample: 500
+dataset_path: lmms-lab/DocVQA
+# num_sample: 5349 # testset
+answer_comparator_path: /mnt/petrelfs/share_data/sunhaoyu/weights/paraphrase-MiniLM-L6-v2
 dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv
 generation_config:
   max_length: 2048

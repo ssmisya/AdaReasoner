@@ -58,7 +58,7 @@ class GetSubplotInfoWorker(BaseToolWorker):
             }
         }
         
-        self.controller_addr = "http://SH-IDC1-10-140-37-6:21112"
+        
                 
     def init_model(self):
         logger.info(f"No need to initialize model {self.model_name}.")
@@ -231,8 +231,7 @@ class GetSubplotInfoWorker(BaseToolWorker):
         if not lm_worker_addr:
             logger.error("无法获取LanguageModel工具地址")
             return None
-        
-            
+
         try:
             # 从OCR结果中提取文本信息
             text_detections = []

@@ -40,8 +40,9 @@ def get_task_config_from_current_dir(task_file_path):
     file_name = "config.yaml"
     config_path = os.path.join(current_dir, file_name)
     task_config = load_task_config(config_path)
-    if "dataset_path" in task_config and os.path.isabs(task_config["dataset_path"]) == False:
-        task_config["dataset_path"] = os.path.join(current_dir,task_config["dataset_path"])
+    if "dataset_path" in task_config and "<current_dir>" in task_config["dataset_path"]:
+        task_config["dataset_path"] = task_config["dataset_path"].replace("<current_dir>", current_dir)
+        # task_config["dataset_path"] = os.path.join(current_dir,task_config["dataset_path"])
     return task_config
     
     

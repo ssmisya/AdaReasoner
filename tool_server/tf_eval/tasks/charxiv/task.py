@@ -124,13 +124,15 @@ def evaluate_function(results, meta_data):
     compare_logs = []
     classification_dict = {item : [] for item in set(DESCRIPTIVE_CLASSIFICATION_MAP.values()) | set(REASONING_CLASSIFICATION.values())}
     type_dict = {item : [] for item in ["descriptive", "reasoning"]}
-    comparator = LLMAnswerComparator(threshold=0.8, method="bert", model_path="/mnt/petrelfs/sunhaoyu/visual-code/weights/paraphrase-MiniLM-L6-v2")
+    comparator_path = task_config.get("answer_comparator_path", None)
+    comparator = LLMAnswerComparator(threshold=0.8, method="bert", model_path=comparator_path)
     
     for idx, meta in meta_dict.items():
         if idx in results_dict:
             meta["prediction"] = results_dict[idx]["results"]["final_answer"]
         else:
             meta["prediction"] = "None"
+        meta["prediction"] = "None" if not meta["prediction"] else meta["prediction"]
         classification = meta["classification"]
         item_type = meta["type"]
         prediction = meta["prediction"]

@@ -7,11 +7,12 @@ from PIL import Image
 from io import BytesIO
 import io
 import base64
-import json
-import os
 import threading
 import fcntl
+import subprocess
+from pathlib import Path
 
+# File locking mechanism for thread safety
 _file_locks = {}
 _lock_lock = threading.Lock()
 
@@ -92,23 +93,40 @@ def append_jsonl(data, filename):
             f.write('\n')
         
 def load_txt_file_as_list(filepath):
+    '''
+        将文本文件读取为列表，每行作为一个元素
+    '''
     with open(filepath, 'r', encoding='utf-8') as f:
         data = f.readlines()
     data = [line.strip().replace("\n","") for line in data]
     return data
 
 def load_txt_file_as_str(filepath):
+    '''
+        将文本文件读取为字符串
+    '''
     with open(filepath, 'r', encoding='utf-8') as f:
         data = f.read()
     return data
 
+def load_txt_file(filepath):
+    '''
+        将文本文件读取为列表，每行作为一个元素 (兼容旧API)
+    '''
+    return load_txt_file_as_list(filepath)
+
 def write_txt_file(data, filepath):
+    '''
+        将列表数据写入文本文件
+    '''
     for item in data:
         with open(filepath, 'a', encoding='utf-8') as f:
             f.write(item + '\n')
             
-            
 def print_rank0(msg):
+    '''
+        仅在rank 0进程打印消息
+    '''
     if dist.is_available() and dist.is_initialized():
         if dist.get_rank() == 0:
             print(msg)
@@ -116,6 +134,9 @@ def print_rank0(msg):
         print(msg)
 
 def str2list(input_str):
+    '''
+        将字符串转换为列表
+    '''
     if isinstance(input_str,str):
         raw_list = input_str.strip().replace("\n","").split(",")
         new_list = []
@@ -128,22 +149,33 @@ def str2list(input_str):
         raise TypeError("input_str should be str or list")
 
 def get_two_words(word1,word2):
+    '''
+        按字母顺序排列两个单词并以逗号连接
+    '''
     if word1 < word2:
         return f"{word1},{word2}"
     else:
         return f"{word2},{word1}"
     
- 
 def load_yaml_file(filepath):
-    with open(filepath, 'r',encoding="UTF-8") as file:
+    '''
+        读取YAML文件
+    '''
+    with open(filepath, 'r', encoding="UTF-8") as file:
         data = yaml.safe_load(file)
     return data
 
 def write_yaml_file(data, filepath):
-    with open(filepath, 'w',encoding="UTF-8") as file:
-        yaml.dump(data, file,indent=4)
+    '''
+        写入YAML文件
+    '''
+    with open(filepath, 'w', encoding="UTF-8") as file:
+        yaml.dump(data, file, indent=4)
         
 def tqdm_rank0(total, desc):
+    '''
+        只在rank 0进程显示tqdm进度条
+    '''
     if dist.is_available() and dist.is_initialized():
         if dist.get_rank() == 0:
             pbar = tqdm(total=total, desc=desc)
@@ -154,18 +186,36 @@ def tqdm_rank0(total, desc):
         pbar = tqdm(total=total, desc=desc)
         return pbar
 
+def is_vllm_environment():
+    '''
+        检查是否在vLLM环境中运行
+    '''
+    return "VLLM_WORKER_MULTIPROC_METHOD" in os.environ
+
 def is_main_process():
-    if dist.is_available() and dist.is_initialized():
-        return dist.get_rank() == 0
-    else:
-        return True
-    
-    
+    '''
+        检查当前是否为主进程
+    '''
+    if not is_vllm_environment(): 
+        if dist.is_available() and dist.is_initialized():
+            return dist.get_rank() == 0
+        else:
+            return True
+    return True
+
+def dist_wait_for_everyone():
+    '''
+        等待所有进程完成，设置同步点
+    '''
+    if not is_vllm_environment(): 
+        if dist.is_available() and dist.is_initialized():
+            dist.barrier()
+
 def gather_dict_lists(local_dict_list):
     '''
         使用all_gather_object收集所有进程的数据
     '''
-    if dist.is_available() and dist.is_initialized():
+    if dist.is_available() and dist.is_initialized() and not is_vllm_environment():
         # 获取总进程数
         world_size = dist.get_world_size()
 
@@ -182,6 +232,9 @@ def gather_dict_lists(local_dict_list):
         return local_dict_list
 
 def setup_proxy():
+    '''
+        设置代理服务器
+    '''
     AD_NAME="songmingyang"
     encrypted_password="dSpydxsxxhKix63HfIFhjwnZLEInXEDawSoMD35G1IT2CygKnHsJqG9ZHbEP"
     new_proxy_address=f"http://{AD_NAME}:{encrypted_password}@10.1.20.50:23128/"
@@ -191,10 +244,22 @@ def setup_proxy():
     os.environ['HTTP_PROXY'] = new_proxy_address
     os.environ['HTTPS_PROXY'] = new_proxy_address
     
+def setup_openai_proxy():
+    '''
+        设置OpenAI代理服务器
+    '''
+    new_proxy_address="http://closeai-proxy.pjlab.org.cn:23128"
+    # 设置环境变量
+    os.environ['http_proxy'] = new_proxy_address
+    os.environ['https_proxy'] = new_proxy_address
+    os.environ['HTTP_PROXY'] = new_proxy_address
+    os.environ['HTTPS_PROXY'] = new_proxy_address
 
 def load_image_from_base64(image):
+    '''
+        从base64字符串加载图像
+    '''
     return Image.open(BytesIO(base64.b64decode(image)))
-    
 
 def b64_encode(img):
     '''
@@ -205,49 +270,45 @@ def b64_encode(img):
     img_b64_str = base64.b64encode(buffered.getvalue()).decode()
     return img_b64_str
 
-def pil_to_base64(img: Image.Image, url_format = False) -> str:
-    """
-    Convert a PIL image to a base64 encoded string.
-    
-    Args:
-        img (Image.Image): The PIL image to convert.
-        
-    Returns:
-        str: Base64 encoded string representation of the image.
-    """
+def pil_to_base64(image, url_format=False):
+    '''
+        将PIL图像转换为base64编码
+    '''
+    if image.mode in ("RGBA", "LA", "P"):
+        image = image.convert("RGB")
     buffered = BytesIO()
-    img.save(buffered, format="JPEG")
+    image.save(buffered, format="JPEG")
     img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
     if url_format:
         img_str = f"data:image/jpeg;base64,{img_str}"
     return img_str
 
-def base64_to_pil(b64_str: str) -> Image.Image:
-    """
-    Convert a base64 encoded string into a PIL image.
-    
-    Args:
-        b64_str (str): The base64 encoded image string.
-        
-    Returns:
-        Image.Image: The resulting PIL image.
-    """
-    # Remove the data URI scheme if present
+def base64_to_pil(b64_str):
+    '''
+        将base64编码转换为PIL图像
+    '''
     if b64_str.startswith("data:image"):
         b64_str = b64_str.split("base64,")[-1]
     return load_image_from_base64(b64_str)
 
-
 def url_pil_to_base64(image):
+    '''
+        将PIL图像转换为带URL前缀的base64编码
+    '''
     base64_str = b64_encode(image)
     base64_str = "data:image/jpeg;base64," + base64_str
     return base64_str
 
 def url_base64_to_pil(b64_str):
+    '''
+        将带URL前缀的base64编码转换为PIL图像
+    '''
     return base64_to_pil(b64_str)
 
-
 def load_image(image) -> Image.Image:
+    '''
+        通用图像加载函数，支持PIL图像、文件路径和base64字符串
+    '''
     if isinstance(image, Image.Image):
         return image
     else:
@@ -256,4 +317,24 @@ def load_image(image) -> Image.Image:
             return Image.open(image).convert('RGB')
         else:
             return load_image_from_base64(image)
+
+def remove_pil_objects(data):
+    """
+    递归遍历混合数据结构，移除所有 PIL 图像对象。
+    
+    Args:
+        data (dict, list, or other): 输入的数据结构，可能包含 PIL 对象。
+    
+    Returns:
+        清理后的数据结构。
+    """
+    if isinstance(data, list):
+        # 如果是列表，对每个元素递归调用
+        return [remove_pil_objects(item) for item in data if not isinstance(item, Image.Image)]
+    elif isinstance(data, dict):
+        # 如果是字典，对键值递归调用
+        return {key: remove_pil_objects(value) for key, value in data.items() if not isinstance(value, Image.Image) and not key == "image" and not key == "image_url"}
+    else:
+        # 如果是其他类型，直接返回
+        return data
 

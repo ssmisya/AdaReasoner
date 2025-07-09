@@ -13,6 +13,7 @@ import copy
 import json
 
 
+from tool_server.utils.debug import remote_breakpoint
 from ..models.abstract_model import tp_model
 from .dynamic_batch_manager import DynamicBatchManager
 from ..utils.utils import *
@@ -36,7 +37,7 @@ class BaseToolInferencer(object):
         model_mode: str = "general",  # 模型模式，支持general和llava_plus
         max_rounds: int = 3,  # 最大对话轮数
         stop_token: str = "<stop>",  # 停止标记
-        controller_addr: str = "http://SH-IDCA1404-10-140-54-2:20001",  # 控制器地址
+        controller_addr: str = None,  # 控制器地址
         if_use_tool: bool = True,  # 是否使用工具
     ):
         # 初始化加速器
@@ -76,6 +77,8 @@ class BaseToolInferencer(object):
         
         # 初始化图像历史字典，用于存储每个项目的图像历史
         self.image_history = {}
+        # remote_breakpoint(port=7119)
+        
 
     def batch_tool_response_to_next_round_input(self):
         """
@@ -139,7 +142,7 @@ class BaseToolInferencer(object):
 
                     # 根据得到的响应构建新的响应文本
                     new_response = f"OBSERVATION:\n{api_name} tool outputs: {tool_response_text}\n"
-                    new_round_prompt = f"{new_response}Please summarize the tool outputs and answer my first question."                        
+                    new_round_prompt = f"{new_response}Please summarize the tool outputs and answer my first question."
                 except:
                     # 异常处理：如果处理工具响应时出错，使用原始提示
                     edited_image = None
@@ -398,6 +401,7 @@ class BaseToolInferencer(object):
             if item.status == "finished":
                 item_dict = asdict(item)
                 item_dict = remove_pil_objects(item_dict)
+                item_dict = remove_non_serializable(item_dict)
                 
                 final_model_output = item_dict["model_response"][-1]
                 final_answer = self.manager.extract_final_answer(final_model_output)
@@ -444,7 +448,6 @@ class BaseToolInferencer(object):
         # 将数据加载器转换为迭代器并设置模型为评估模式
         self.dataloader_iter = iter(self.dataloader)
         self.tp_model.eval()
-
         # 创建进度条
         progress_bar = tqdm_rank0(len(self.dataloader), desc="Model Responding")
 

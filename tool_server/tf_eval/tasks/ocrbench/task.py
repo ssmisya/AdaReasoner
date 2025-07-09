@@ -69,11 +69,12 @@ def pad_small_image(image, min_size=28):
 def load_data_function():
 
     dataset_path = task_config["dataset_path"]
-    num_sample = task_config["num_sample"]
+    num_sample = task_config.get("num_sample", None)
     
     testset = load_dataset(dataset_path,split="test")
     # 只处理testset的前num_sample个样本
-    testset = testset.select(range(min(num_sample, len(testset))))
+    if num_sample:
+        testset = testset.select(range(min(num_sample, len(testset))))
     meta_data = []
 
     for idx, item in enumerate(testset):
@@ -103,6 +104,7 @@ def evaluate_function(results,meta_data):
         else:
             meta["prediction"] = "None"
 
+        meta["prediction"] = "None" if not meta["prediction"] else meta["prediction"]
         pred = meta["prediction"]
         gold = meta["answer"]
         question_type = meta["question_type"]

@@ -1,13 +1,15 @@
 """
 A model worker executes the model.
 """
-
+# import multiprocessing as mp
+# mp.set_start_method("spawn", force=True)
 import torch
 import numpy as np
 from PIL import Image
 import base64
 import uuid
 import os
+os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
 import traceback
 import re
 from io import BytesIO

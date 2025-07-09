@@ -252,5 +252,33 @@ def remove_pil_objects(data):
         # 如果是其他类型，直接返回
         return data
 
+def remove_non_serializable(obj):
+    if isinstance(obj, dict):
+        cleaned = {}
+        for k, v in obj.items():
+            cleaned_v = remove_non_serializable(v)
+            try:
+                json.dumps(cleaned_v)
+                cleaned[k] = cleaned_v
+            except (TypeError, OverflowError):
+                continue
+        return cleaned
+    elif isinstance(obj, list):
+        cleaned_list = []
+        for item in obj:
+            cleaned_item = remove_non_serializable(item)
+            try:
+                json.dumps(cleaned_item)
+                cleaned_list.append(cleaned_item)
+            except (TypeError, OverflowError):
+                continue
+        return cleaned_list
+    else:
+        try:
+            json.dumps(obj)
+            return obj
+        except (TypeError, OverflowError):
+            return None
+
 def is_vllm_environment():
     return "VLLM_WORKER_MULTIPROC_METHOD" in os.environ

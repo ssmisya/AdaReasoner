@@ -42,8 +42,11 @@ tool_worker_config:
   - Point:
       worker_name: Point
       job_name: point
-      calculate_type: calculate
+      calculate_type: control
       conda_env: "tool-server"
+      srun_kwargs:
+        w: SH-IDC1-10-140-37-103
+      cuda_visible_devices: "0"
       cmd:
         script-addr: tool_server.tool_workers.online_workers.molmo_point_worker
         port: 20027
@@ -53,8 +56,11 @@ tool_worker_config:
   - SegmentRegionAroundPoint:
       worker_name: SegmentRegionAroundPoint
       job_name: sam2
-      calculate_type: calculate
+      calculate_type: control
       conda_env: "tool-server"
+      srun_kwargs:
+        w: SH-IDC1-10-140-37-103
+      cuda_visible_devices: "1"
       cmd:
         script-addr: tool_server.tool_workers.online_workers.sam_worker
         port: 20036
@@ -65,8 +71,11 @@ tool_worker_config:
   - GroundingDINO:
       worker_name: GroundingDINO
       job_name: groundingdino
-      calculate_type: calculate
+      calculate_type: control
       conda_env: "tool-server"
+      srun_kwargs:
+        w: SH-IDC1-10-140-37-103
+      cuda_visible_devices: "2"
       cmd:
         script-addr: tool_server.tool_workers.online_workers.grounding_dino_worker
         port: 20003

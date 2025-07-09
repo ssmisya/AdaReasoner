@@ -67,7 +67,7 @@ class TFEvaluator():
             stop_token = stop_token,
             controller_addr = self.script_args.controller_addr,
             if_use_tool = self.if_use_tool,
-            log_dir = log_dir,
+
         )
 
     
@@ -90,12 +90,13 @@ class TFEvaluator():
             )
             # 设置任务名称，用于保存工具调用统计
             dataset.task_name = task_name
-            # pdb.set_trace()
+
             self.inferencer.batch_inference(dataset)
-            # breakpoint()
+
             res_log = dataset.evaluate()
             if is_main_process() or "vllm_models" in self.model_args.model:
                 logger.info(f"evaluation of {task_name} completed")
+                res_log = remove_non_serializable(res_log)
                 append_jsonl(res_log, self.script_args.output_path)
             
 

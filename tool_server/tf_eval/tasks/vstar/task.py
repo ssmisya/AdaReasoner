@@ -113,7 +113,7 @@ def rule_based_verify(
         pred = ""
 
     # 如果pred字符串为空，则返回0
-    if pred == "" or pred == "none":
+    if pred == "" or pred == "None":
         return 0.0
         
     # 提取pred中的选项字母

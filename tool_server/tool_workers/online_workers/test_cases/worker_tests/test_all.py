@@ -1083,7 +1083,7 @@ def main():
     tools_to_test = AVAILABLE_TOOLS if "all" in args.tools else args.tools
 
     # tools_to_test = ["OCR", "DrawShape","Crop","Point","GroundingDINO","SegmentRegionAroundPoint","DrawLine","HighlightBox","MaskBox"]
-    tools_to_test = ["GetBarInfo"]
+    tools_to_test = ["GetSubplotInfo"]
     
     # 为不同工具设置合适的测试图像
     image_dict = {

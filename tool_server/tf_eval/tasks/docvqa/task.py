@@ -115,7 +115,7 @@ def rule_based_verify(
     """
     
     # 如果pred字符串为空，则返回0
-    if pred == "" or pred == "None":
+    if pred == "" or pred is None or pred == "None":
         return 0.0, 0.0
 
     # 去除双引号，两端的空白并转换成小写
@@ -124,10 +124,11 @@ def rule_based_verify(
 
 
     SquadExample = collections.namedtuple("SquadExample", ["qas_id", "answers"])
-    # 将gold和pred转换为SquadExample格式
-    pred_example = [SquadExample(qas_id="", answers=[{"text":pred}])]
-    gold_example = [SquadExample(qas_id="", answers=[{"text":gold}])]
+    # 将gold和pred转换为正确格式
+    examples = [SquadExample(qas_id="", answers=[{"text": gold}])]
+    preds = {"": pred}  # 这里需要是字典，键为qas_id，值为预测文本
+    
     # 使用squad_evaluate计算exact和f1
-    result = squad_evaluate(pred_example, gold_example)
+    result = squad_evaluate(examples, preds)
     # 除以100
     return result['exact'] / 100, result['f1'] / 100

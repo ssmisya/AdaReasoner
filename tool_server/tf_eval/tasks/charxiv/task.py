@@ -185,7 +185,7 @@ def rule_based_verify(
     """
     
     # 如果pred字符串为空，则返回0
-    if pred == "" or pred == "none":
+    if pred == "" or pred is None or pred == "None":
         return 0.0
 
     # 去除双引号，两端的空白并转换成小写

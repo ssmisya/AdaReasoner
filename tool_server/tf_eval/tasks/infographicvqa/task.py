@@ -101,7 +101,7 @@ def rule_based_verify(
         bool: True if the prediction is correct, False otherwise.
     """
     # 如果pred字符串为空，则返回0
-    if pred == "" or pred == "None":
+    if pred == "" or pred is None or pred == "None":
         return 0.0
     # 去除双引号，两端的空白并转换成小写
     gold = gold.replace("\"","").strip().lower()

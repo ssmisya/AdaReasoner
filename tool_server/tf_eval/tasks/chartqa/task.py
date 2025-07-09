@@ -64,11 +64,17 @@ def evaluate_function(results,meta_data):
         
         gold = meta["answer"]
         pred = meta["prediction"]
-
-        # 计算三个指标，确保gold和pred是列表形式
-        em_score = exact_match([gold], [pred])["exact_match"]
-        ra_score = relaxed_accuracy([gold], [pred])["relaxed_accuracy"]
-        aa_score = anywhere_accuracy([gold], [pred])["anywhere_accuracy"]
+        
+        # 检查pred是否为null或None
+        if pred is None:
+            em_score = 0.0
+            ra_score = 0.0
+            aa_score = 0.0
+        else:
+            # 计算三个指标，确保gold和pred是列表形式
+            em_score = exact_match([gold], [pred])["exact_match"]
+            ra_score = relaxed_accuracy([gold], [pred])["relaxed_accuracy"]
+            aa_score = anywhere_accuracy([gold], [pred])["anywhere_accuracy"]
         
         exact_match_scores.append(em_score)
         relaxed_accuracy_scores.append(ra_score)

@@ -93,7 +93,7 @@ def evaluate_function(results,meta_data):
         exact_score_list.append(max_exact_score)
         f1_score_list.append(max_f1_score)
         compare_logs.append(
-            f"Ground Truth: {ground_truth}, Prediction: {prediction}, Exact Score: {max_exact_score}, F1 Score: {max_f1_score}"
+            f"idx: {idx}, gold: {ground_truth}, pred: {prediction}, exact_score: {max_exact_score}, f1_score: {max_f1_score}"
         )
 
     return {"exact_score":sum(exact_score_list) / len(exact_score_list), "f1_score":sum(f1_score_list) / len(f1_score_list), "compare_logs":compare_logs, "results":results,"meta_data":meta_data}
@@ -114,13 +114,15 @@ def rule_based_verify(
         bool: True if the prediction is correct, False otherwise.
     """
     
+    # 如果pred字符串为空，则返回0
+    if pred == "" or pred == "none":
+        return 0.0, 0.0
+
     # 去除双引号，两端的空白并转换成小写
     gold = gold.replace("\"","").strip().lower()
     pred = pred.replace("\"","").strip().lower()
 
-    # 如果pred字符串为空，则返回0
-    if pred == "" or pred == "none":
-        return 0.0, 0.0
+
     SquadExample = collections.namedtuple("SquadExample", ["qas_id", "answers"])
     # 将gold和pred转换为SquadExample格式
     pred_example = [SquadExample(qas_id="", answers=[{"text":pred}])]

@@ -77,7 +77,7 @@ class BaseToolInferencer(object):
         
         # 初始化图像历史字典，用于存储每个项目的图像历史
         self.image_history = {}
-        remote_breakpoint(port=7119)
+        # remote_breakpoint(port=7119)
         
         
 

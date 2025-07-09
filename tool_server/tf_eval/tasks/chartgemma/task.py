@@ -73,8 +73,9 @@ def evaluate_function(results,meta_data):
         # pred = meta["prediction"].replace("\"","").strip().lower()
         pred = meta["prediction"]
         if pred is None:
-            pred = "None"
-        pred = pred.replace("\"","").strip().lower()
+            score = 0.0
+        else:
+            pred = pred.replace("\"","").strip().lower()
         
         score = rule_based_verify(gold, pred)
         res_list.append(score)

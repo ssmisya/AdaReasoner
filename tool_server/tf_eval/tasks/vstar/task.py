@@ -69,10 +69,7 @@ def evaluate_function(results,meta_data):
         ground_truth = meta["answer"]
         score = rule_based_verify(ground_truth, prediction)
         category_dict[item_category].append(score)
-        compare_logs.append(
-            f"QID: {idx}, Category: {item_category}, "
-            f"Ground Truth: {ground_truth}, Prediction: {prediction}, Score: {score}"
-        )
+        compare_logs.append({"idx":idx, "category":item_category, "gold":ground_truth, "pred":prediction, "score":score})
     for k,v in category_dict.items():
         if len(v) > 0:
             category_dict[k] = sum(v) / len(v)
@@ -120,7 +117,7 @@ def rule_based_verify(
         pred = ""
 
     # 如果pred字符串为空，则返回0
-    if pred == "" or pred == "none":
+    if pred == "" or pred is None or pred == "None":
         return 0.0
         
     # 提取pred中的选项字母

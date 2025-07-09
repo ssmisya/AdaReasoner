@@ -137,10 +137,7 @@ def evaluate_function(results, meta_data):
         # 按照分类计算分数
         classification_dict[classification].append(score)
         type_dict[item_type].append(score)
-        compare_logs.append(
-            f"QID: {idx}, Type: {item_type}, Classification: {classification}, "
-            f"Ground Truth: {ground_truth}, Prediction: {prediction}, Score: {score}"
-        )
+        compare_logs.append({"idx":idx, "Type":item_type, "Classification":classification, "gold":ground_truth, "pred":prediction, "Score":score})
     for k,v in classification_dict.items():
         if len(v) > 0:
             classification_dict[k] = sum(v) / len(v)
@@ -186,13 +183,15 @@ def rule_based_verify(
         bool: True if the prediction is correct, False otherwise.
     """
     
+    # 如果pred字符串为空，则返回0
+    if pred == "" or pred is None or pred == "None":
+        return 0.0
+
     # 去除双引号，两端的空白并转换成小写
     gold = gold.replace("\"","").strip().lower()
     pred = pred.replace("\"","").strip().lower()
 
-    # 如果pred字符串为空，则返回0
-    if pred == "" or pred == "none":
-        return 0.0
+
 
     # 直接字符串比较
     if gold == pred:

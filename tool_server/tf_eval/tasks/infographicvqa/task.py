@@ -76,9 +76,7 @@ def evaluate_function(results,meta_data):
             max_score = max(max_score, score)
         res_list.append(max_score)
         answer_type_dict[answer_type].append(max_score)
-        compare_logs.append(
-            f"Ground Truth: {ground_truth}, Prediction: {prediction}, Score: {max_score}"
-        )
+        compare_logs.append({"idx":idx, "gold":ground_truth, "pred":prediction, "answer_type":answer_type, "score":max_score})
     for k,v in answer_type_dict.items():
         if len(v) > 0:
             answer_type_dict[k] = sum(v) / len(v)
@@ -103,7 +101,7 @@ def rule_based_verify(
         bool: True if the prediction is correct, False otherwise.
     """
     # 如果pred字符串为空，则返回0
-    if pred == "" or pred == "none":
+    if pred == "" or pred is None or pred == "None":
         return 0.0
     # 去除双引号，两端的空白并转换成小写
     gold = gold.replace("\"","").strip().lower()

@@ -72,10 +72,7 @@ def evaluate_function(results,meta_data):
         score = rule_based_verify(ground_truth, prediction)
         chart_type_dict[item_chart_type].append(score)
         qa_type_dict[item_qa_type].append(score)
-        compare_logs.append(
-            f"QID: {idx}, Chart Type: {item_chart_type}, QA Type: {item_qa_type}, "
-            f"Ground Truth: {ground_truth}, Prediction: {prediction}, Score: {score}"
-        )
+        compare_logs.append({"idx":idx, "chart_type":item_chart_type, "qa_type":item_qa_type, "gold":ground_truth, "pred":prediction, "score":score})
     for k,v in chart_type_dict.items():
         if len(v) > 0:
             chart_type_dict[k] = sum(v) / len(v)
@@ -118,13 +115,15 @@ def rule_based_verify(
         bool: True if the prediction is correct, False otherwise.
     """
     
+    # 如果pred字符串为空，则返回0
+    if pred == "" or pred is None or pred == "None":
+        return 0.0
+
     # 去除双引号，两端的空白并转换成小写
     gold = gold.replace("\"","").strip().lower()
     pred = pred.replace("\"","").strip().lower()
 
-    # 如果pred字符串为空，则返回0
-    if pred == "" or pred == "none":
-        return 0.0
+
 
     # 直接字符串比较
     if gold == pred:

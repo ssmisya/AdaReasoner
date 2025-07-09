@@ -94,9 +94,7 @@ def evaluate_function(results,meta_data):
             max_exact_score, max_f1_score = rule_based_verify(gt, prediction)
         exact_score_list.append(max_exact_score)
         f1_score_list.append(max_f1_score)
-        compare_logs.append(
-            f"idx: {idx}, gold: {ground_truth}, pred: {prediction}, exact_score: {max_exact_score}, f1_score: {max_f1_score}"
-        )
+        compare_logs.append({"idx":idx, "gold":ground_truth, "pred":prediction, "exact_score":max_exact_score, "f1_score":max_f1_score})
 
     return {"exact_score":sum(exact_score_list) / len(exact_score_list), "f1_score":sum(f1_score_list) / len(f1_score_list), "compare_logs":compare_logs, "results":results,"meta_data":meta_data}
 

@@ -1,7 +1,7 @@
 
 offline_tool_workers = {
-    "crop":"crop_worker",
-    "drawline":"drawline_worker",
+    "crop_de":"crop_worker",
+    "drawline_de":"drawline_worker",
 }
 
 def get_tool_generate_fn(tool_name):

@@ -146,4 +146,4 @@ def evaluate_function(results,meta_data):
         else:
             question_type_dict[k] = 0.0
     
-    return {"Acc":accuracy, "Score":sum(res_list), "question_type_res":question_type_dict, "compare_logs":compare_logs,"meta_data":meta_data}
+    return {"Acc":accuracy, "Score":sum(res_list), "question_type_res":question_type_dict, "compare_logs":compare_logs,"meta_data":meta_data, "results":results}

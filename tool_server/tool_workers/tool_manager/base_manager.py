@@ -60,9 +60,9 @@ class ToolManager(object):
             if tool not in self.available_online_tools:
                 miss_tool.append(tool)
         if len(miss_tool) == 0:
-            logger.info("All tools are called successfully")
+            logger.info("All tools are prepared successfully")
         else:
-            logger.info(f"Not all tools is called successfully, missing tool {miss_tool}")        
+            logger.info(f"Not all tools is prepared successfully, missing tool {miss_tool}")        
     
     def init_offline_tools(self,):
         self.available_offline_tools = list(offline_tool_workers.keys())
@@ -83,7 +83,7 @@ class ToolManager(object):
             self.online_tool_addr_dict[model_name] = worker_addr
     
     def call_tool(self,tool_name,params):
-        timeout_sec = 60  # timeout per attempt
+        timeout_sec = 6000  # timeout per attempt
         ret_message = {"text": f"Failed to call tool {tool_name} for unknown reason, ", "error_code": 1}
         try:
             signal.alarm(timeout_sec)

@@ -164,6 +164,7 @@ def evaluate_function(results, meta_data):
         classification_res = classification_dict,
         compare_logs = compare_logs,
         meta_data = meta_dict,
+        results = results,
     )
     return res_dict
 

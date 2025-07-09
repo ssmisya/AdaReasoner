@@ -96,6 +96,7 @@ def evaluate_function(results,meta_data):
         qa_type_res = qa_type_dict,
         compare_logs = compare_logs,
         meta_data = meta_dict,
+        results = results,
     )
     return res_dict
 

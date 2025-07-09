@@ -16,7 +16,7 @@ Your output must always begin with your thought process. After the `<think>` blo
 **Case 1: Tool Use is Required**
 <think> Your thoughts and reasoning </think>  
 <tool_call>  
-{"name": "Tool name", "parameters": {"Parameter name": "Parameter content", "…": "…"}}
+{{"name": "Tool name", "parameters": {{"Parameter name": "Parameter content", "…": "…"}}}}
 </tool_call>  
 **Case 2: Ready to Respond to the User**
 <think> Your thoughts and reasoning </think>  

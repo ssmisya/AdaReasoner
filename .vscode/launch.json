@@ -1,0 +1,30 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Attach (Remote Debug)",
+            "type": "python",
+            "request": "attach",
+            "pathMappings": [
+                {
+                "localRoot": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent",
+                "remoteRoot": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent"
+                },
+                {
+                    "localRoot": "/",
+                    "remoteRoot": "/"
+                }
+            ],
+            "localRoot": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent",
+            "remoteRoot": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent",
+            "port": 7119,
+            "program": "/mnt/petrelfs/songmingyang/code/tools/lmms-eval/lmms_eval/models/qwen2_vl.py",
+            //"secret": "my_secret",
+            "host": "SH-IDC1-10-140-37-11",
+            "justMyCode": false
+        }
+    ]
+}

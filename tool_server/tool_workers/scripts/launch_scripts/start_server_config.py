@@ -285,6 +285,10 @@ class ServerManager:
             # 计算型工作器（一般需要更多资源）
             gpus = self.config.default_calculate_gpus
             cpus = self.config.default_calculate_cpus
+        elif config.calculate_type == "heavy_calculate":
+            # 重计算型工作器（可能需要更多资源）
+            gpus = self.config.default_heavy_calculate_gpus
+            cpus = self.config.default_heavy_calculate_cpus
         else:
             raise ValueError("计算类型必须是 'control' 或 'calculate'")
         

@@ -77,7 +77,8 @@ class BaseToolInferencer(object):
         
         # 初始化图像历史字典，用于存储每个项目的图像历史
         self.image_history = {}
-        # remote_breakpoint(port=7119)
+        remote_breakpoint(port=7119)
+        
         
 
     def batch_tool_response_to_next_round_input(self):
@@ -249,8 +250,6 @@ class BaseToolInferencer(object):
                     
                     # 设置默认参数和用户提供的参数
                     api_paras = {
-                        "box_threshold": 0.3,
-                        "text_threshold": 0.25,
                         **api_params,
                     }
                     

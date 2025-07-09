@@ -83,7 +83,7 @@ class ToolManager(object):
             self.online_tool_addr_dict[model_name] = worker_addr
     
     def call_tool(self,tool_name,params):
-        timeout_sec = 6000  # timeout per attempt
+        timeout_sec = 6000000  # timeout per attempt
         ret_message = {"text": f"Failed to call tool {tool_name} for unknown reason, ", "error_code": 1}
         try:
             signal.alarm(timeout_sec)

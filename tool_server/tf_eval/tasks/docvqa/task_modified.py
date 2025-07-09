@@ -7,25 +7,43 @@ import math
 import nltk
 from thefuzz import fuzz
 import numpy as np
-import logging
-import warnings
-from tqdm import tqdm
-
-# 禁用tqdm进度条
-tqdm.pandas = lambda *args, **kwargs: None
-
-# 禁用SentenceTransformer和相关库的日志
-logging.getLogger('sentence_transformers').setLevel(logging.ERROR)
-logging.getLogger('transformers').setLevel(logging.ERROR)
-logging.getLogger('datasets').setLevel(logging.ERROR)
-warnings.filterwarnings('ignore')
-
+from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import collections
+from transformers.data.metrics.squad_metrics import squad_evaluate
 nltk.download("punkt", quiet=True)
 
 try:
     from math_verify import parse, verify
 except ImportError:
     print("math_verify package not found. Please install it to use math verification features.")
+
+'''
+所有可能的question_types:
+Image/Photo
+Yes/No
+figure/diagram
+form
+free_text
+handwritten
+layout
+others
+table/list
+
+每种question_type的数量:
+layout: 1981
+table/list: 1780
+form: 1021
+free_text: 765
+handwritten: 319
+figure/diagram: 265
+others: 236
+Image/Photo: 98
+Yes/No: 28
+
+所有type数量加起来超过了testset，是因为，question_types中，可能同时包含多个类别，所以不计算类别的准确度
+'''
 
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -35,54 +53,73 @@ task_config = get_task_config_from_current_dir(__file__)
 
 
 def load_data_function():
-
-    dataset_path = task_config["dataset_path"]
-    num_sample = task_config.get("num_sample", None)
     
-    testset = load_dataset(dataset_path,split="train")
-    # 只处理testset的前num_sample个样本
-    if num_sample:
-        testset = testset.select(range(min(num_sample, len(testset))))
-    meta_data = []
+    dataset_path = task_config["dataset_path"]
+    num_samples = task_config["num_sample"]
 
-    for idx, item in enumerate(testset):
-        item_id = f"chartgemma_{idx}"
+    dataset = load_dataset(dataset_path, name="DocVQA", split="validation")
+    dataset = dataset.select(range(min(num_samples, len(dataset))))
+
+    meta_data = []
+    for idx,item in enumerate(dataset):
+        item_id = f"docvqa_{idx}"
         image = item["image"]
         text = item["question"]
-        answer = item["label"]
+        answer = item["answers"]
         meta_data.append({"idx":item_id, "image":image, "text":text, "answer":answer})
 
+    ## Show statistics
+    logger.info(f"Total data number: {len(meta_data)}")
     return meta_data
 
 
-def evaluate_function(results,meta_data):
+# 有两种qa_type，一种是recognizing，一种是reasoning，需要分别计算准确率
+def evaluate_function(results, meta_data):
     results_dict = {res["idx"]: res for res in results}
     meta_dict = {meta["idx"]: meta for meta in meta_data}
     res_list = []
     compare_logs = []
-    # breakpoint()
-    comparator_path = task_config.get("answer_comparator_path", None)
-    comparator = LLMAnswerComparator(threshold=0.8, method="bert", model_path=comparator_path)
+    
+    # 使用squad_evaluate方式评估
+    SquadExample = collections.namedtuple("SquadExample", ["qas_id", "answers"])
+    squad_examples = []
+    squad_preds = {}
+    
     for idx, meta in meta_dict.items():
         if idx in results_dict:
             meta["prediction"] = results_dict[idx]["results"]["final_answer"]
         else:
             meta["prediction"] = "None"
+        prediction = meta["prediction"]
+        ground_truth = meta["answer"]
         
-        gold = meta["answer"].replace("\"","").strip().lower()
-        # pred = meta["prediction"].replace("\"","").strip().lower()
-        pred = meta["prediction"]
-        if pred is None:
-            pred = "None"
-        pred = pred.replace("\"","").strip().lower()
+        # 为squad_evaluate准备数据
+        squad_answers = [{"text": gt} for gt in ground_truth]
+        squad_examples.append(SquadExample(qas_id=idx, answers=squad_answers))
+        squad_preds[idx] = prediction
         
-        score = rule_based_verify(gold, pred)
-        res_list.append(score)
-        compare_logs.append({"idx":idx,"gold":gold,"pred":pred,"score":score})
+        # 继续计算原来的分数，作为对比和备份
+        max_score = 0.0
+        for gt in ground_truth:
+            score = rule_based_verify(gt, prediction)
+            max_score = max(max_score, score)
+        res_list.append(max_score)
+        compare_logs.append(
+            f"Ground Truth: {ground_truth}, Prediction: {prediction}, Score: {score}"
+        )
 
-    accuracy = sum(res_list) / len(res_list) if len(res_list) > 0 else 0
+    # 使用squad_evaluate计算分数
+    squad_results = squad_evaluate(squad_examples, squad_preds)
     
-    return {"Acc":accuracy, "compare_logs":compare_logs,  "results":results, "meta_data":meta_data} #
+    return {
+        "Acc": sum(res_list) / len(res_list),
+        "exact": squad_results["exact"],
+        "f1": squad_results["f1"],
+        "compare_logs": compare_logs,
+        "results": results,
+        "meta_data": meta_data
+    }
+
 
 def is_convertible_to_float(s: str) -> bool:
     """辅助函数，检查一个字符串是否可以被转换为浮点数。"""
@@ -91,7 +128,6 @@ def is_convertible_to_float(s: str) -> bool:
         return True
     except (ValueError, TypeError):
         return False   
-
 
 def rule_based_verify(
     gold: str,
@@ -103,7 +139,7 @@ def rule_based_verify(
     Args:
         gold (str): The ground truth answer.
         pred (str): The predicted answer.
-        comparator: The comparator to use.
+        
     Returns:
         bool: True if the prediction is correct, False otherwise.
     """
@@ -111,7 +147,11 @@ def rule_based_verify(
     # 去除双引号，两端的空白并转换成小写
     gold = gold.replace("\"","").strip().lower()
     pred = pred.replace("\"","").strip().lower()
-    
+
+    # 如果pred字符串为空，则返回0
+    if pred == "" or pred == "none":
+        return 0.0
+
     # 直接字符串比较
     if gold == pred:
         return 1.0
@@ -217,5 +257,6 @@ def rule_based_verify(
                 return 1.0
         except Exception:
             pass
+
     
-    return 0
+    return 0.0 

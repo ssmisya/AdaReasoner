@@ -76,6 +76,7 @@ class ServerManager:
             f"-c {cpus}",  # 请求的CPU核心数
             "--kill-on-bad-exit=1",  # 如果任务异常退出，终止整个作业
             "--quotatype=reserved",  # 使用预留配额
+            # "--quotatype=spot",  # 使用spot配额
             f"--output={log_file}",  # 指定输出日志文件
         ]
         
@@ -289,6 +290,9 @@ class ServerManager:
             # 重计算型工作器（可能需要更多资源）
             gpus = self.config.default_heavy_calculate_gpus
             cpus = self.config.default_heavy_calculate_cpus
+        elif job_name == "languagemodel":
+            gpus = 4
+            cpus = 64
         else:
             raise ValueError("计算类型必须是 'control' 或 'calculate'")
         

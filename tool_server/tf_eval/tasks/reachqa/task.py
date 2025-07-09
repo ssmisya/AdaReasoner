@@ -57,9 +57,6 @@ def evaluate_function(results,meta_data):
     compare_logs = []
     chart_type_dict = {item : [] for item in ['Scatter Charts', 'Specific Charts', 'Area Charts', 'Box Charts', 'Node Charts', 'Pie Charts', 'Line Charts', 'Bar Charts', '3D Bar Charts', 'Radar Charts']}
     qa_type_dict = {item : [] for item in ["Recognizing", "Reasoning"]}
-    ########################
-    comparator_path = task_config.get("answer_comparator_path", None)
-    comparator = LLMAnswerComparator(threshold=0.8, method="bert", model_path=comparator_path)
     
     for idx, meta in meta_dict.items():
         if idx in results_dict:
@@ -72,9 +69,7 @@ def evaluate_function(results,meta_data):
         item_qa_type = meta["qa_type"]
         prediction = meta["prediction"]
         ground_truth = meta["answer"]
-        ########################
-        score = rule_based_verify(ground_truth, prediction, comparator)
-        # score = rule_based_verify(ground_truth, prediction)
+        score = rule_based_verify(ground_truth, prediction)
         chart_type_dict[item_chart_type].append(score)
         qa_type_dict[item_qa_type].append(score)
         compare_logs.append(
@@ -100,73 +95,17 @@ def evaluate_function(results,meta_data):
     )
     return res_dict
 
-
-# 使用sentence_transformer
 def is_convertible_to_float(s: str) -> bool:
     """辅助函数，检查一个字符串是否可以被转换为浮点数。"""
     try:
         float(s)
         return True
     except (ValueError, TypeError):
-        return False   
-    
-
-class LLMAnswerComparator:
-    def __init__(self, threshold=0.8, method="ensemble", model_path="paraphrase-MiniLM-L6-v2"):
-        self.threshold = threshold
-        # self.tfidf_vectorizer = TfidfVectorizer()
-        self.tfidf_vectorizer = TfidfVectorizer(
-            analyzer='char_wb',  # 使用字符级分析
-            ngram_range=(1, 2),  # 使用1-2个字符的n-gram
-            min_df=1,  # 不过滤低频词
-            token_pattern=r'(?u)\b\w+\b|[(),]'  # 包括括号和逗号
-        )
-        self.method = method
-        self.bert_model = SentenceTransformer(model_path)
-
-    def tfidf_similarity(self, text1, text2):
-        tfidf_matrix = self.tfidf_vectorizer.fit_transform([text1, text2])
-        return cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
-
-    def bert_similarity(self, text1, text2):
-        embeddings = self.bert_model.encode([text1, text2])
-        return cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]
-
-    def compare(self, response, oracle_response, method=None):
-        """
-        Compare an LLM response with an oracle (reference) response using the specified method.
-
-        Args:
-        response (str): The LLM-generated response to evaluate.
-        oracle_response (str): The reference (correct) response.
-        method (str): The comparison method to use ('tfidf', 'bert', or 'ensemble').
-
-        Returns:
-        tuple: (similarity score, boolean indicating if the response is considered correct)
-        """
-        if method is None:
-            method = self.method
-
-        if method == "tfidf":
-            similarity = self.tfidf_similarity(response, oracle_response)
-        elif method == "bert":
-            similarity = self.bert_similarity(response, oracle_response)
-        elif method == "ensemble":
-            tfidf_sim = self.tfidf_similarity(response, oracle_response)
-            bert_sim = self.bert_similarity(response, oracle_response)
-            similarity = np.mean([tfidf_sim, bert_sim])
-        else:
-            raise ValueError("Invalid method. Choose 'tfidf', 'bert', or 'ensemble'.")
-
-        is_correct = similarity >= self.threshold
-        return similarity, is_correct
-
+        return False
 
 def rule_based_verify(
     gold: str,
-    pred: str,
-    #####################
-    comparator: LLMAnswerComparator
+    pred: str
 ) -> bool:
     """
     A rule-based verification function to check if the prediction matches the gold standard.
@@ -293,10 +232,5 @@ def rule_based_verify(
         except Exception:
             pass
     
-    # 使用LLMAnswerComparator进行比较
-   # print("pred: ", pred, "\n", "gold: ", gold)
-    similarity, is_correct = comparator.compare(pred, gold)
-    
-    return 1.0 if is_correct else 0.0
-    # return float(similarity)
+    return 0.0
 

@@ -98,6 +98,7 @@ class LanguageModelWorker(BaseToolWorker):
             )
             
             # 加载处理器
+            # model_path: /mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-72B-Instruct
             self.processor = AutoProcessor.from_pretrained(self.model_path)
             
             logger.info("模型加载成功")

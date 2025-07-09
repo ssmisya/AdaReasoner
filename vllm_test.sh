@@ -38,10 +38,6 @@ cd $code_base
 # unset SLURM_JOB_ID
 
 
-export API_TYPE=openai
-export OPENAI_API_URL=https://api.datapipe.app/v1/chat/completions
-export OPENAI_API_KEY=sk-B3bRcR0fLubdoSmJ2cE13e57708c439aA14f825eB5Eb25De
-
 
 # config_file=$1
 export NCCL_DEBUG=ERROR

@@ -10,7 +10,7 @@ from vllm import LLM, SamplingParams
 # from .template_instruct import *
 from ..utils.utils import *
 from ..tool_inferencer.dynamic_batch_manager import DynamicBatchItem
-from ..utils.prompts import *
+from ...utils.prompts import *
 
 from ..utils.log_utils import get_logger
 inferencer_id = str(uuid.uuid4())[:6]  # 生成唯一的推理器ID

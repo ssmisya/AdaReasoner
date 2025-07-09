@@ -10,6 +10,8 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import re
+import string
 nltk.download("punkt", quiet=True)
 
 try:
@@ -50,223 +52,319 @@ def load_data_function():
 def evaluate_function(results,meta_data):
     results_dict = {res["idx"]: res for res in results}
     meta_dict = {meta["idx"]: meta for meta in meta_data}
-    res_list = []
+    exact_match_scores = []
+    relaxed_accuracy_scores = []
+    anywhere_accuracy_scores = []
     compare_logs = []
-    comparator_path = task_config.get("answer_comparator_path", None)
-    comparator = LLMAnswerComparator(threshold=0.8, method="bert", model_path=comparator_path)
+    
     for idx, meta in meta_dict.items():
         if idx in results_dict:
             meta["prediction"] = results_dict[idx]["results"]["final_answer"]
         else:
             meta["prediction"] = "None"
         
-        meta["prediction"] = "None" if not meta["prediction"] else meta["prediction"]
-        gold = meta["answer"].strip().lower()
-        pred = meta["prediction"].strip().lower()
+        gold = meta["answer"]
+        pred = meta["prediction"]
 
-        # score = rule_based_verify(gold, pred)
-        score = rule_based_verify(gold, pred, comparator)
-        res_list.append(score)
-        compare_logs.append({"idx":idx,"gold":gold,"pred":pred,"score":score})
-
-    accuracy = sum(res_list) / len(res_list) if len(res_list) > 0 else 0
-    
-    return {"Acc":accuracy, "compare_logs":compare_logs, "results":results,"meta_data":meta_data}
-
-# 使用sentence_transformer
-def is_convertible_to_float(s: str) -> bool:
-    """辅助函数，检查一个字符串是否可以被转换为浮点数。"""
-    try:
-        float(s)
-        return True
-    except (ValueError, TypeError):
-        return False   
-    
-
-class LLMAnswerComparator:
-    def __init__(self, threshold=0.8, method="ensemble", model_path="paraphrase-MiniLM-L6-v2"):
-        self.threshold = threshold
-        # self.tfidf_vectorizer = TfidfVectorizer()
-        self.tfidf_vectorizer = TfidfVectorizer(
-            analyzer='char_wb',  # 使用字符级分析
-            ngram_range=(1, 2),  # 使用1-2个字符的n-gram
-            min_df=1,  # 不过滤低频词
-            token_pattern=r'(?u)\b\w+\b|[(),]'  # 包括括号和逗号
-        )
-        self.method = method
-        self.bert_model = SentenceTransformer(model_path)
-
-    def tfidf_similarity(self, text1, text2):
-        tfidf_matrix = self.tfidf_vectorizer.fit_transform([text1, text2])
-        return cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
-
-    def bert_similarity(self, text1, text2):
-        embeddings = self.bert_model.encode([text1, text2])
-        return cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]
-
-    def compare(self, response, oracle_response, method=None):
-        """
-        Compare an LLM response with an oracle (reference) response using the specified method.
-
-        Args:
-        response (str): The LLM-generated response to evaluate.
-        oracle_response (str): The reference (correct) response.
-        method (str): The comparison method to use ('tfidf', 'bert', or 'ensemble').
-
-        Returns:
-        tuple: (similarity score, boolean indicating if the response is considered correct)
-        """
-        if method is None:
-            method = self.method
-
-        if method == "tfidf":
-            similarity = self.tfidf_similarity(response, oracle_response)
-        elif method == "bert":
-            similarity = self.bert_similarity(response, oracle_response)
-        elif method == "ensemble":
-            tfidf_sim = self.tfidf_similarity(response, oracle_response)
-            bert_sim = self.bert_similarity(response, oracle_response)
-            similarity = np.mean([tfidf_sim, bert_sim])
-        else:
-            raise ValueError("Invalid method. Choose 'tfidf', 'bert', or 'ensemble'.")
-
-        is_correct = similarity >= self.threshold
-        return similarity, is_correct
-
-
-def rule_based_verify(
-    gold: str,
-    pred: str,
-    comparator: LLMAnswerComparator
-) -> bool:
-    """
-    A rule-based verification function to check if the prediction matches the gold standard.
-    
-    Args:
-        gold (str): The ground truth answer.
-        pred (str): The predicted answer.
+        # 计算三个指标，确保gold和pred是列表形式
+        em_score = exact_match([gold], [pred])["exact_match"]
+        ra_score = relaxed_accuracy([gold], [pred])["relaxed_accuracy"]
+        aa_score = anywhere_accuracy([gold], [pred])["anywhere_accuracy"]
         
-    Returns:
-        bool: True if the prediction is correct, False otherwise.
-    """
-    
-    # 去除双引号，两端的空白并转换成小写
-    gold = gold.replace("\"","").strip().lower()
-    pred = pred.replace("\"","").strip().lower()
+        exact_match_scores.append(em_score)
+        relaxed_accuracy_scores.append(ra_score)
+        anywhere_accuracy_scores.append(aa_score)
+        
+        compare_logs.append({
+            "idx": idx,
+            "gold": gold,
+            "pred": pred,
+            "exact_match": em_score,
+            "relaxed_accuracy": ra_score,
+            "anywhere_accuracy": aa_score
+        })
 
-    # 如果pred字符串为空，则返回0
-    if pred == "" or pred == "none":
-        return 0.0
-
-    # 直接字符串比较
-    if gold == pred:
-        return 1.0
+    # 计算平均分数
+    em_accuracy = sum(exact_match_scores) / len(exact_match_scores) if exact_match_scores else 0
+    ra_accuracy = sum(relaxed_accuracy_scores) / len(relaxed_accuracy_scores) if relaxed_accuracy_scores else 0
+    aa_accuracy = sum(anywhere_accuracy_scores) / len(anywhere_accuracy_scores) if anywhere_accuracy_scores else 0
     
-    # 处理时间格式 (如 -72:00, 24:00)，直接进行字符串比较
-    if ':' in gold or ':' in pred:
-        return 1.0 if gold == pred else 0.0
-    # 不是时间格式，则判断是否为数字
-    else:
-        is_gold_numeric = is_convertible_to_float(gold)
-        is_pred_numeric = is_convertible_to_float(pred)
-
-        if is_gold_numeric and is_pred_numeric:
-            gold_value = float(gold)
-            pred_value = float(pred)
-            if math.isclose(gold_value, pred_value, rel_tol=1e-9, abs_tol=1e-9):
-                return 1.0
-            else:
-                # 两个数字不相等，判定为错误，不再继续
-                return 0.0
-    
-    # 添加希腊字母和拉丁字母的映射
-    greek_to_latin = {
-        'α': 'alpha', 'β': 'beta', 'γ': 'gamma', 'δ': 'delta', 
-        'ε': 'epsilon', 'ζ': 'zeta', 'η': 'eta', 'θ': 'theta',
-        'ι': 'iota', 'κ': 'kappa', 'λ': 'lambda', 'μ': 'mu',
-        'ν': 'nu', 'ξ': 'xi', 'ο': 'omicron', 'π': 'pi',
-        'ρ': 'rho', 'σ': 'sigma', 'τ': 'tau', 'υ': 'upsilon',
-        'φ': 'phi', 'χ': 'chi', 'ψ': 'psi', 'ω': 'omega'
+    return {
+        "Exact_Match_Acc": em_accuracy,
+        "Relaxed_Acc": ra_accuracy,
+        "Anywhere_Acc": aa_accuracy,
+        "compare_logs": compare_logs,
+        "results": results,
+        "meta_data": meta_data
     }
-    
-    # 规范化希腊字母
-    normalized_gold = gold
-    normalized_pred = pred
-    
-    for greek, latin in greek_to_latin.items():
-        normalized_gold = normalized_gold.replace(greek, latin)
-        normalized_pred = normalized_pred.replace(greek, latin)
-    
-    # 提取等式两边的值（如果存在）
-    gold_eq_parts = normalized_gold.split('=')
-    pred_eq_parts = normalized_pred.split('=')
-    
-    # 如果两边都是等式，检查是否完全匹配
-    if len(gold_eq_parts) == 2 and len(pred_eq_parts) == 2:
-        gold_var = gold_eq_parts[0].strip()
-        gold_val = gold_eq_parts[1].strip()
-        pred_var = pred_eq_parts[0].strip()
-        pred_val = pred_eq_parts[1].strip()
-        
-        # 严格比较：变量名和值都必须匹配
-        # 如果变量名或值不同，直接返回0
-        if gold_var != pred_var or gold_val != pred_val:
+
+# 从utils.py移植的代码
+def _normalize_string(s):
+    if (s.startswith('"') and s.endswith('"')) or (
+        s.startswith("'") and s.endswith("'")
+    ):
+        return s[1:-1]
+    return s
+
+
+def _remove_end_punctuation(unnormalized_string: str) -> str:
+    while (
+        unnormalized_string
+        and (
+            unnormalized_string[-1] in string.punctuation
+            or unnormalized_string[-1].isspace()
+        )
+        and unnormalized_string[-1] != "%"
+    ):
+        unnormalized_string = unnormalized_string[:-1]
+    return unnormalized_string
+
+
+class RelaxedCorrectness:
+    """Relaxed correctness metrics.
+
+    The correctness tolerates certain error ratio defined by max_relative_change.
+    See https://arxiv.org/pdf/2203.10244.pdf, end of section 5.1:
+    "Following Methani et al. (2020), we use a relaxed accuracy measure for the
+    numeric answers to allow a minor inaccuracy that may result from the automatic
+    data extraction process. We consider an answer to be correct if it is within
+    5% of the gold answer. For non-numeric answers, we still need an exact match
+    to consider an answer to be correct."
+    """
+
+    def _relaxed_correctness(
+        self, prediction: str, targets: list[str], max_relative_change: float = 0.05
+    ) -> float:
+        def _to_float(text: str) -> tuple[float | None, bool]:
+            text = text.strip()
+            is_percent = text.endswith("%")
+            try:
+                value = float(text.rstrip("%"))
+                return value, is_percent
+            except ValueError:
+                return None, False
+
+        def _is_letter(text: str) -> bool:
+            return text.isalpha() and len(text) == 1
+
+        def _preprocess_text(text: str) -> str:
+            if not any(char.isdigit() for char in text):
+                return _normalize_string(text)
+            else:
+                return _remove_end_punctuation(text).replace(",", "").replace("$", "")
+
+        def calculate_relative_change(prediction: float, target: float) -> float:
+            return abs(prediction - target) / max(abs(target), 1e-10)
+
+        def _compare_numeric_values(
+            prediction: float, target: float, max_relative_change: float
+        ) -> float:
+            relative_change = calculate_relative_change(prediction, target)
+            return 1.0 if relative_change <= max_relative_change else 0.0
+
+        def _compare_text_values(prediction: str, target: str) -> float:
+            while prediction and prediction[-1] in string.punctuation:
+                prediction = prediction[:-1]
+            return 1.0 if prediction.lower() == target.lower() else 0.0
+
+        def _to_decimal(value: float, is_percent: bool) -> float:
+            return value / 100 if is_percent else value
+
+        def _compare_numeric_with_percent(
+            prediction: float,
+            prediction_is_percent: bool,
+            target: float,
+            target_is_percent: bool,
+            max_relative_change: float,
+        ) -> float:
+            # Compare as-is
+            value = _compare_numeric_values(prediction, target, max_relative_change)
+
+            # If not equal and one is percent, try other comparisons
+            if value != 1.0 and (prediction_is_percent or target_is_percent):
+                value = max(
+                    value,
+                    _compare_numeric_values(
+                        _to_decimal(prediction, prediction_is_percent),
+                        target,
+                        max_relative_change,
+                    ),
+                    _compare_numeric_values(
+                        prediction,
+                        _to_decimal(target, target_is_percent),
+                        max_relative_change,
+                    ),
+                )
+            return value
+
+        prediction = _preprocess_text(prediction)
+        prediction_float, prediction_is_percent = _to_float(prediction)
+
+        value_list = []
+        for target in targets:
+            target = _preprocess_text(target)
+            target_float, target_is_percent = _to_float(target)
+
+            if prediction_float is not None and target_float is not None:
+                # Compare as numeric values
+                value = _compare_numeric_with_percent(
+                    prediction_float,
+                    prediction_is_percent,
+                    target_float,
+                    target_is_percent,
+                    max_relative_change,
+                )
+            elif _is_letter(target) and len(prediction) > 0:
+                # Compare as multiple choice options: take first letter from prediction
+                value = 1.0 if prediction[0].lower() == target.lower() else 0.0
+            else:
+                # Compare as text values
+                value = _compare_text_values(prediction, target)
+
+            value_list.append(value)
+
+        return max(value_list)
+
+    def score(self, model_answer: str, reference_answer: str | list[str]) -> float:
+        reference_answer = (
+            reference_answer
+            if isinstance(reference_answer, list)
+            else [reference_answer]
+        )
+        return self._relaxed_correctness(model_answer, reference_answer)
+
+
+class ExplicitPromptRelaxedCorrectness(RelaxedCorrectness):
+    """Relaxed correctness for explicit prompt."""
+
+    @property
+    def name(self) -> str:
+        return "explicit_prompt_relaxed_correctness"
+
+    def _get_final_answer(self, generation: str) -> str:
+        def _find_last_occurrence(pattern: str, string: str):
+            return string.rfind(pattern)
+
+        # Strip extraneous markdown around the answer:
+        generation = re.sub(r"([aA]nswer)\**:\**", "\\1:", generation)
+
+        final_answer_index = _find_last_occurrence("answer:", generation.lower())
+
+        if final_answer_index != -1:
+            # Find the start of the answer (after "final answer:")
+            start_index = final_answer_index + len("answer:")
+
+            # Split the remaining text into lines
+            lines = generation[start_index:].split("\n")
+
+            # Find the first non-empty line
+            final_answer = next((line.strip() for line in lines if line.strip()), "")
+
+            # Remove any markdown formatting
+            final_answer = re.sub(r"[*_\[\]\(\)]", "", final_answer)
+
+            return final_answer
+        else:
+            return ""
+
+    def score(self, model_answer: str, reference_answer: str | list[str]) -> float:
+        parsed_model_answer = self._get_final_answer(model_answer)
+        if not parsed_model_answer:
+            # Parsing failed.
             return 0.0
-    
-    # 移除空格和下划线，以便更好地比较变量名
-    normalized_gold = normalized_gold.replace(" ", "").replace("_", "")
-    normalized_pred = normalized_pred.replace(" ", "").replace("_", "")
-    
-    # 使用规范化后的字符串进行比较
-    if normalized_gold == normalized_pred:
-        return 1.0
-    
-    # 安全地使用 LaTeX 解析比较
-    # 由于我们已经处理了等式的情况，这里可以跳过可能导致错误的情况
-    try:
-        gold_latex = parse('${0}$'.format(gold))
-        pred_latex = parse('${0}$'.format(pred))
-        if verify(gold_latex, pred_latex):
-            return 1.0
-    except (TypeError, AttributeError):
-        # 特定错误类型，跳过 LaTeX 比较
-        pass
-    except Exception:
-        pass
-    
-    # 安全地尝试直接使用 verify 函数
-    try:
-        if verify(gold, pred):
-            return 1.0
-    except (TypeError, AttributeError):
-        # 特定错误类型，跳过直接验证
-        pass
-    except Exception:
-        pass
-        
-    # 处理百分比
-    if '%' in pred:
-        pred_no_percent = pred.replace('%','')
-        if '.' in pred_no_percent:
-            pred_no_percent = pred_no_percent.split('.')[0]
-        try:
-            if pred_no_percent == gold:
-                return 1.0
-        except Exception:
-            pass
+        return super().score(parsed_model_answer, reference_answer)
 
-    # 处理小数点
-    elif '.' in pred:
-        pred_no_decimal = pred.split('.')[0]
-        try:
-            if pred_no_decimal == gold:
-                return 1.0
-        except Exception:
-            pass
-    
-    # print("pred: ", pred, "\n", "gold: ", gold)
-    similarity, is_correct = comparator.compare(pred, gold)
-    
-    # return float(similarity)
 
-    return 1.0 if is_correct else 0.0
+class AnywhereInAnswerRelaxedCorrectness(ExplicitPromptRelaxedCorrectness):
+    """Falls back to handle cases where reference answer appears anywhere in generation.
+
+    NOTE: This is an overly generous metric and is likely to falsely inflate scores.
+    """
+
+    @property
+    def name(self) -> str:
+        return "anywhere_in_answer_relaxed_correctness"
+
+    def score(self, model_answer: str, reference_answer: str | list[str]) -> float:
+        reference_answer = (
+            reference_answer
+            if isinstance(reference_answer, list)
+            else [reference_answer]
+        )
+        parsed_model_answer = self._get_final_answer(model_answer)
+        if parsed_model_answer:
+            return self._relaxed_correctness(parsed_model_answer, reference_answer)
+
+        # Fallback: check if reference answer appears anywhere in the model answer.
+        for ref in reference_answer:
+            try:
+                # Try to parse as a float
+                number = float(ref)
+
+                # Revert to int if it is actually an int.
+                if int(number) == number:
+                    number = int(number)
+                # Check if the number is in the model answer with commas (e.g. 1,000)
+                if format(number, ",") in model_answer:
+                    return 1.0
+                # Check if the number is in the model answer without commas (e.g. 1000)
+                elif str(number) in model_answer:
+                    return 1.0
+                elif str(number) + "%" in model_answer:
+                    return 1.0
+            except ValueError:
+                # Reference answer was a text string. We search for typical patterns
+                # in the model answer. Note that directly searching for the reference
+                # is not a good idea for letter-option choice questions, hence we look
+                # for common patterns. This is still heuristic, and might have false
+                # positives as well as false negatives.
+                candidates = []
+                for ref in reference_answer:
+                    candidates.extend(
+                        [
+                            f"is {ref}",
+                            f"was {ref}",
+                            f" {ref}.",
+                            f"are {ref}",
+                            f"\n\n{ref}",
+                        ]
+                    )
+                if any([c.lower() in model_answer.lower() for c in candidates]):
+                    return 1.0
+
+        return 0
+
+
+def exact_match(references, predictions):
+    pred = predictions[0]
+    ref = references[0]
+
+    match = re.search(r"(?:Final Answer|FINAL ANSWER): (.+)$", pred, re.IGNORECASE)
+    if match:
+        extracted_pred = match.group(1).strip()
+        if extracted_pred.lower().removesuffix(".") == ref.strip().lower():
+            return {"exact_match": 1.0}
+        else:
+            return {"exact_match": 0.0}
+    else:
+        return {"exact_match": 0.0}
+
+
+def relaxed_accuracy(references, predictions):
+    pred = predictions[0]
+    ref = references[0]
+    score = ExplicitPromptRelaxedCorrectness().score(pred, ref)
+    if score:
+        if score == 1.0:
+            return {"relaxed_accuracy": 1.0}
+    return {"relaxed_accuracy": 0.0}
+
+
+def anywhere_accuracy(references, predictions):
+    pred = predictions[0]
+    ref = references[0]
+    score = AnywhereInAnswerRelaxedCorrectness().score(pred, ref)
+    if score:
+        if score == 1.0:
+            return {"anywhere_accuracy": 1.0}
+    return {"anywhere_accuracy": 0.0}

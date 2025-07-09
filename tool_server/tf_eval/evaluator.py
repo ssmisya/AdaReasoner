@@ -67,7 +67,6 @@ class TFEvaluator():
             stop_token = stop_token,
             controller_addr = self.script_args.controller_addr,
             if_use_tool = self.if_use_tool,
-
         )
 
     

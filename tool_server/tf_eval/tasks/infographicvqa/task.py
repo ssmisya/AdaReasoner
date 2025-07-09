@@ -77,7 +77,7 @@ def evaluate_function(results,meta_data):
         res_list.append(max_score)
         answer_type_dict[answer_type].append(max_score)
         compare_logs.append(
-            f"Ground Truth: {ground_truth}, Prediction: {prediction}, Score: {max_score}"
+            f"idx: {idx}, gold: {ground_truth}, pred: {prediction}, score: {max_score}"
         )
     for k,v in answer_type_dict.items():
         if len(v) > 0:

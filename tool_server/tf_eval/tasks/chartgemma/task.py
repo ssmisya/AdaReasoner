@@ -79,7 +79,7 @@ def evaluate_function(results,meta_data):
         
         score = rule_based_verify(gold, pred)
         res_list.append(score)
-        compare_logs.append({"idx":idx,"gold":gold,"pred":pred,"score":score})
+        compare_logs.append({"idx":idx,"gold":gold,"pred":pred,"score":score,"question":meta["text"]})
 
     accuracy = sum(res_list) / len(res_list) if len(res_list) > 0 else 0
     
@@ -109,6 +109,9 @@ def rule_based_verify(
         bool: True if the prediction is correct, False otherwise.
     """
     
+    if pred == "None" or pred == "" or pred is None:
+        return 0.0
+
     # 去除双引号，两端的空白并转换成小写
     gold = gold.replace("\"","").strip().lower()
     pred = pred.replace("\"","").strip().lower()

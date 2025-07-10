@@ -137,7 +137,7 @@ def evaluate_function(results, meta_data):
         # 按照分类计算分数
         classification_dict[classification].append(score)
         type_dict[item_type].append(score)
-        compare_logs.append({"idx":idx, "Type":item_type, "Classification":classification, "gold":ground_truth, "pred":prediction, "Score":score})
+        compare_logs.append({"idx":idx, "Type":item_type, "Classification":classification, "gold":ground_truth, "pred":prediction, "Score":score,"question":meta["text"]})
     for k,v in classification_dict.items():
         if len(v) > 0:
             classification_dict[k] = sum(v) / len(v)

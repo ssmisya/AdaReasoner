@@ -39,6 +39,21 @@ VLLM_API_BASE_URL = "http://SH-IDC1-10-140-37-35:16112/v1"
 VLLM_API_KEY = "not-needed"
 VLLM_MODEL_NAME = "/mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-72B-Instruct"
         
+@dataclass
+class GetBarInfoArguments(WorkerArguments):
+    """
+    获取柱状图信息的工作参数
+    """
+    api_key: Optional[str] = field(default=None, metadata={
+        "help": "OpenAI API key for accessing the model."
+    })
+    api_base_url : Optional[str] = field(default=None, metadata={
+        "help": "Base URL for the OpenAI API."
+    })
+    api_model_name: Optional[str] = field(default=None, metadata={
+        "help": "Name of the model to use for processing bar chart information."
+    })
+
 @contextlib.contextmanager
 def no_proxy():
     """一个上下文管理器，可以在其作用域内临时禁用代理环境变量。"""
@@ -69,7 +84,10 @@ class GetSubplotInfoWorker(BaseToolWorker):
         if worker_arguments and worker_arguments.model_name is None:
             worker_arguments.model_name = "GetSubplotInfo"
         super().__init__(worker_arguments)
-            
+        self.api_key = worker_arguments.api_key
+        self.api_base_url = worker_arguments.api_base_url
+        self.api_model_name = worker_arguments.api_model_name
+        
         self.instruction = {
             "type": "function",
             "function": {
@@ -89,13 +107,12 @@ class GetSubplotInfoWorker(BaseToolWorker):
             }
         }
         
-        self.controller_addr = "http://SH-IDC1-10-140-37-6:21112"
         
 
         # 初始化 OpenAI 客户端
         self.client = openai.OpenAI(
-            api_key=VLLM_API_KEY, 
-            base_url=VLLM_API_BASE_URL,
+            api_key=self.api_key, 
+            base_url=self.api_base_url,
         )
                 
     def init_model(self):
@@ -333,7 +350,7 @@ Example format:
             # 只在请求的时候关闭代理
             with no_proxy():
                 chat_completion = self.client.chat.completions.create(
-                    model=VLLM_MODEL_NAME,
+                    model=self.api_model_name,
                     messages=messages,
                     max_tokens=20000,
                     temperature=0.7,
@@ -548,7 +565,7 @@ Example format:
 
 
 if __name__ == "__main__":
-    parser = HfArgumentParser((WorkerArguments,))
+    parser = HfArgumentParser((GetBarInfoArguments,))
     args, = parser.parse_args_into_dataclasses()
     
     logger.info(f"args: {args}")

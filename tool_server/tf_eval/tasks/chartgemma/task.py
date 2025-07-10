@@ -61,8 +61,8 @@ def evaluate_function(results,meta_data):
     res_list = []
     compare_logs = []
     # breakpoint()
-    comparator_path = task_config.get("answer_comparator_path", None)
-    comparator = LLMAnswerComparator(threshold=0.8, method="bert", model_path=comparator_path)
+    # comparator_path = task_config.get("answer_comparator_path", None)
+    # comparator = LLMAnswerComparator(threshold=0.8, method="bert", model_path=comparator_path)
     for idx, meta in meta_dict.items():
         if idx in results_dict:
             meta["prediction"] = results_dict[idx]["results"]["final_answer"]

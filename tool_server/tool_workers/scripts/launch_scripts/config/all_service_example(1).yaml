@@ -25,28 +25,25 @@ controller_config:
 # 比如model-path会转义成model_path
 
 tool_worker_config:
-  - LanguageModel:
-      worker_name: LanguageModel
-      job_name: languagemodel
-      calculate_type: calculate
-      conda_env: "visual"
-      cmd:
-        script-addr: tool_server.tool_workers.online_workers.languagemodel_worker
-        port: 20044
-        host: "0.0.0.0"
-        # model_path: /mnt/petrelfs/sunhaoyu/visual-code/llm_weights/Qwen2.5-VL-7B-Instruct
-        model_path: /mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-72B-Instruct
-        max_tokens: 1024
-        temperature: 0.7
-        tensor_parallel_size: 4
+  # - LanguageModel:
+  #     worker_name: LanguageModel
+  #     job_name: languagemodel
+  #     calculate_type: calculate
+  #     conda_env: "visual"
+  #     cmd:
+  #       script-addr: tool_server.tool_workers.online_workers.languagemodel_worker
+  #       port: 20044
+  #       host: "0.0.0.0"
+  #       # model_path: /mnt/petrelfs/sunhaoyu/visual-code/llm_weights/Qwen2.5-VL-7B-Instruct
+  #       model_path: /mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-72B-Instruct
+  #       max_tokens: 1024
+  #       temperature: 0.7
+  #       tensor_parallel_size: 4
   - Point:
       worker_name: Point
       job_name: point
-      calculate_type: control
+      calculate_type: calculate
       conda_env: "tool-server"
-      srun_kwargs:
-        w: SH-IDC1-10-140-37-103
-      cuda_visible_devices: "0"
       cmd:
         script-addr: tool_server.tool_workers.online_workers.molmo_point_worker
         port: 20027
@@ -56,11 +53,8 @@ tool_worker_config:
   - SegmentRegionAroundPoint:
       worker_name: SegmentRegionAroundPoint
       job_name: sam2
-      calculate_type: control
+      calculate_type: calculate
       conda_env: "tool-server"
-      srun_kwargs:
-        w: SH-IDC1-10-140-37-103
-      cuda_visible_devices: "1"
       cmd:
         script-addr: tool_server.tool_workers.online_workers.sam_worker
         port: 20036
@@ -71,11 +65,8 @@ tool_worker_config:
   - GroundingDINO:
       worker_name: GroundingDINO
       job_name: groundingdino
-      calculate_type: control
+      calculate_type: calculate
       conda_env: "tool-server"
-      srun_kwargs:
-        w: SH-IDC1-10-140-37-103
-      cuda_visible_devices: "2"
       cmd:
         script-addr: tool_server.tool_workers.online_workers.grounding_dino_worker
         port: 20003
@@ -147,6 +138,9 @@ tool_worker_config:
         script-addr: tool_server.tool_workers.online_workers.get_subplot_info_worker
         port: 20045
         host: "0.0.0.0"
+        api_key: not-needed
+        api_base_url: http://SH-IDC1-10-140-37-35:16112/v1
+        api_model_name: /mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-72B-Instruct
 
 
   - GetBarInfo:
@@ -158,3 +152,6 @@ tool_worker_config:
         script-addr: tool_server.tool_workers.online_workers.get_bar_info_worker
         port: 20046
         host: "0.0.0.0"
+        api_key: not-needed
+        api_base_url: http://SH-IDC1-10-140-37-35:16112/v1
+        api_model_name: /mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-72B-Instruct

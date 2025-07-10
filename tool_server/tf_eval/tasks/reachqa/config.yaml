@@ -1,6 +1,5 @@
 task_name: "reachqa"
 dataset_path: hewei2001/ReachQA
-# num_sample: 2000 # testset
 answer_comparator_path: /mnt/petrelfs/share_data/sunhaoyu/weights/paraphrase-MiniLM-L6-v2
 dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv
 generation_config:

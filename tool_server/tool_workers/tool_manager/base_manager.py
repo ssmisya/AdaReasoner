@@ -47,16 +47,14 @@ class ToolManager(object):
             if self.controller_addr is not None and isinstance(self.controller_addr,str):
                 session = requests.Session()
                 session.trust_env = False
-                ret = session.post(self.controller_addr + "/refresh_all_workers",proxies={})
-                if ret.status_code == 200:
-                    ret = session.post(self.controller_addr + "/list_models",proxies={})
-                    models = ret.json()["models"]
-                    logger.info(f"Online Tools: {models}")
-                    self.available_online_tools = models
+                ret = session.post(self.controller_addr + "/list_models",proxies={})
+                models = ret.json()["models"]
+                logger.info(f"Online Tools: {models}")
+                self.available_online_tools = models
             
 
         miss_tool = []
-        for tool in ["GroundingDINO","OCR","SegmentRegionAroundPoint","Point","Crop","DrawLine", "DrawShape", "HighlightBox", "MaskBox", "LanguageModel", "GetSubplotInfo", "GetBarInfo"]:
+        for tool in ["GroundingDINO","OCR","SegmentRegionAroundPoint","Point","Crop","DrawLine", "DrawShape", "HighlightBox", "MaskBox", "GetSubplotInfo", "GetBarInfo"]:
             if tool not in self.available_online_tools:
                 miss_tool.append(tool)
         if len(miss_tool) == 0:

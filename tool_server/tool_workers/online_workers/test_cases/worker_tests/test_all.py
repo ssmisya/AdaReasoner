@@ -31,7 +31,6 @@ AVAILABLE_TOOLS = [
     "DrawShape",  # 添加新工具
     "HighlightBox",  # 添加新工具
     "MaskBox",  # 添加新工具
-    "LanguageModel",  # 添加语言模型工具
     "GetSubplotInfo",  # 添加子图信息提取工具
     "GetBarInfo",  # 添加柱状图信息提取工具
 ]
@@ -1082,8 +1081,7 @@ def main():
     # 确定要测试的工具
     tools_to_test = AVAILABLE_TOOLS if "all" in args.tools else args.tools
 
-    # tools_to_test = ["OCR", "DrawShape","Crop","Point","GroundingDINO","SegmentRegionAroundPoint","DrawLine","HighlightBox","MaskBox"]
-    tools_to_test = ["GetSubplotInfo"]
+
     
     # 为不同工具设置合适的测试图像
     image_dict = {

@@ -1,6 +1,5 @@
 task_name: "ocrbench"
 dataset_path: echo840/OCRBench
-# num_sample: 1000 # 最大1000
 answer_comparator_path: /mnt/petrelfs/share_data/sunhaoyu/weights/paraphrase-MiniLM-L6-v2
 dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv
 generation_config:

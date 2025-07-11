@@ -10,6 +10,14 @@ import numpy as np
 from PIL import Image
 import torch
 import traceback
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi.responses import StreamingResponse, JSONResponse
+from transformers import HfArgumentParser
+from dataclasses import dataclass, field
+from typing import Optional, Dict, List, Any
+
 from tool_server.utils.utils import *
 from tool_server.utils.server_utils import *
 from tool_server.utils.worker_arguments import WorkerArguments
@@ -28,12 +36,31 @@ model_semaphore = None
 
 np.random.seed(3)
 
+@dataclass
+class OCRToolArguments(WorkerArguments):
+    """OCR工具工作器的参数"""
+    max_concurrency: Optional[int] = field(
+        default=10,
+        metadata={"help": "Maximum number of concurrent requests to process."}
+    )
+
 class OCRToolWorker(BaseToolWorker):
-    def __init__(self, worker_arguments: WorkerArguments = None):
-        # 在调用父类初始化前先设置模型名称
+    def __init__(self, worker_arguments: OCRToolArguments = None):
+        # 在调用父类初始化前先设置模型名称和并发数
         if worker_arguments and worker_arguments.model_name is None:
             worker_arguments.model_name = "ocr"
+        
+        # 设置更高的并发处理能力
+        if hasattr(worker_arguments, "max_concurrency"):
+            worker_arguments.limit_model_concurrency = worker_arguments.max_concurrency
+        else:
+            worker_arguments.limit_model_concurrency = 10  # 默认允许10个并发请求
+            
         super().__init__(worker_arguments)
+        
+        # 创建线程池用于并发处理请求
+        self.thread_pool = ThreadPoolExecutor(max_workers=worker_arguments.limit_model_concurrency)
+        
         self.instruction = {
             "type": "function",
             "function": {
@@ -53,13 +80,30 @@ class OCRToolWorker(BaseToolWorker):
         }
         
     def init_model(self):
-        logger.info(f"Initializing model {self.model_name}...")
+        logger.info(f"Initializing model {self.model_name} with concurrency {self.args.limit_model_concurrency}...")
         self.ocr_model = easyocr.Reader(['ch_sim','en'])
         
     def get_tool_instruction(self):
         return self.instruction
         
-    def generate(self, params):
+    def generate_gate(self, params):
+        """覆盖父类方法，使用线程池处理请求"""
+        try:
+            # 使用线程池提交任务
+            future = self.thread_pool.submit(self.generate_impl, params)
+            ret = future.result(timeout=120)  # 设置超时时间
+            return ret
+        except Exception as e:
+            logger.error(f"Error in generate_gate: {e}")
+            return {
+                "tool_response_from": self.model_name,
+                "status": "failed",
+                "message": f"Error in generate_gate: {e}",
+                "error_code": TOOL_RUN_FAILED
+            }
+    
+    def generate_impl(self, params):
+        """实现实际的生成逻辑"""
         tool_reward = 2.0
         # 计算Parameter Name Matching
         param_keys = set(params.keys())
@@ -151,13 +195,60 @@ class OCRToolWorker(BaseToolWorker):
                 "tool_reward": tool_reward+(correct_param_content_num/required_keys_num if required_keys_num > 0 else 0)
             }
             return pred_dict
+    
+    # 使用generate_impl作为generate方法
+    def generate(self, params):
+        """为了与base_tool_worker兼容，提供一个generate方法"""
+        return self.generate_impl(params)
+        
+    def setup_routes(self):
+        """覆盖父类方法，添加新的API端点用于并发处理多个请求"""
+        super().setup_routes()  # 调用父类的路由设置
+        
+        @self.app.post("/worker_generate_batch")
+        async def api_generate_batch(request: Request):
+            """批量处理多个请求的API端点"""
+            batch_params = await request.json()
+            if not isinstance(batch_params, list):
+                return JSONResponse({"status": "failed", "message": "Expected a list of parameter objects"})
+            
+            results = []
+            futures = []
+            
+            # 提交所有任务到线程池
+            for params in batch_params:
+                future = self.thread_pool.submit(self.generate_impl, params)
+                futures.append(future)
+            
+            # 收集所有结果
+            for future in futures:
+                try:
+                    result = future.result(timeout=120)
+                    results.append(result)
+                except Exception as e:
+                    logger.error(f"Error processing batch item: {e}")
+                    results.append({
+                        "tool_response_from": self.model_name,
+                        "status": "failed",
+                        "message": f"Processing error: {str(e)}",
+                        "error_code": TOOL_RUN_FAILED
+                    })
+            
+            return JSONResponse(results)
+
+    def __del__(self):
+        """析构函数，确保线程池正确关闭"""
+        if hasattr(self, 'thread_pool'):
+            self.thread_pool.shutdown(wait=False)
 
 
 if __name__ == "__main__":
     # Use the new argument parser from transformers
     from transformers import HfArgumentParser
+    from dataclasses import dataclass, field
+    from typing import Optional
     
-    parser = HfArgumentParser(WorkerArguments)
+    parser = HfArgumentParser(OCRToolArguments)
     args = parser.parse_args_into_dataclasses()[0]
     
     logger.info(f"args: {args}")

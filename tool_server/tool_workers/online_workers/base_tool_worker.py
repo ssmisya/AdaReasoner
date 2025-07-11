@@ -15,6 +15,7 @@ import requests
 import torch
 import uvicorn
 from functools import partial
+from concurrent.futures import ThreadPoolExecutor
 
 from enum import IntEnum
 
@@ -105,6 +106,10 @@ class BaseToolWorker:
                 target=self.heart_beat_worker, args=(self,))
             self.heart_beat_thread.start()
             
+        # 初始化线程池用于处理并发请求
+        self.thread_pool = ThreadPoolExecutor(max_workers=self.limit_model_concurrency)
+        logger.info(f"Initialized thread pool with {self.limit_model_concurrency} workers")
+            
         # Set up the routes
         self.app = FastAPI()
         self.setup_routes()
@@ -151,7 +156,13 @@ class BaseToolWorker:
             params = await request.json()
             try:
                 await self.acquire_model_semaphore()
-                output = self.generate_gate(params)
+                # 使用线程池执行生成任务，避免阻塞FastAPI的事件循环
+                loop = asyncio.get_event_loop()
+                output = await loop.run_in_executor(
+                    self.thread_pool, 
+                    self.generate_gate, 
+                    params
+                )
                 return JSONResponse(output)
             except TimeoutError:
                 ret = {
@@ -162,9 +173,40 @@ class BaseToolWorker:
                 return JSONResponse(ret, status_code=503)
             finally:
                 # Only release if we actually acquired it
-                if self.model_semaphore._value < self.limit_model_concurrency:
+                if self.model_semaphore and self.model_semaphore._value < self.limit_model_concurrency:
                     self.release_model_semaphore()
         
+        @self.app.post("/worker_generate_batch")
+        async def api_generate_batch(request: Request):
+            """批量处理多个请求的API端点"""
+            batch_params = await request.json()
+            if not isinstance(batch_params, list):
+                return JSONResponse({"status": "failed", "message": "Expected a list of parameter objects"})
+            
+            results = []
+            tasks = []
+            
+            # 创建异步任务来处理每个请求
+            for params in batch_params:
+                task = asyncio.create_task(self._process_single_request(params))
+                tasks.append(task)
+            
+            # 等待所有任务完成
+            completed_tasks = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # 处理结果
+            for result in completed_tasks:
+                if isinstance(result, Exception):
+                    logger.error(f"Error processing batch item: {result}")
+                    results.append({
+                        "tool_response_from": self.model_name,
+                        "status": "failed",
+                        "message": f"Processing error: {str(result)}",
+                    })
+                else:
+                    results.append(result)
+            
+            return JSONResponse(results)
 
         @self.app.post("/worker_get_status")
         async def get_status(request: Request):
@@ -192,6 +234,16 @@ class BaseToolWorker:
                     "error_code": ErrorCode.INTERNAL_ERROR
                 }, status_code=500)
     
+    async def _process_single_request(self, params):
+        """处理单个请求的异步方法"""
+        try:
+            await self.acquire_model_semaphore()
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(self.thread_pool, self.generate_gate, params)
+        finally:
+            if self.model_semaphore and self.model_semaphore._value < self.limit_model_concurrency:
+                self.release_model_semaphore()
+                
     def generate_gate(self, params):
         try:
             ret = {
@@ -247,34 +299,38 @@ class BaseToolWorker:
 
         if not exist:
             self.register_to_controller()
-
-    def get_queue_length(self):
-        if model_semaphore is None:
-            return 0
-        else:
-            return self.limit_model_concurrency - model_semaphore._value + (len(
-                model_semaphore._waiters) if model_semaphore._waiters is not None else 0)
-
+    
     def get_status(self):
         return {
             "model_names": [self.model_name],
             "speed": 1,
             "queue_length": self.get_queue_length(),
         }
-    
-    # Launch method
+
+    def get_queue_length(self):
+        if self.model_semaphore is None:
+            return 0
+        return self.limit_model_concurrency - self.model_semaphore._value
+
     def run(self):
-        uvicorn.run(self.app, host=self.host, port=self.port, log_level="info",log_config=None)
-    
-    # abstract methods
+        uvicorn.run(self.app, host=self.host, port=self.port, log_level="info")
+
     def init_model(self):
-        pass
-    
-    @torch.inference_mode()
-    def generate(self, params):
+        # 在子类中实现
         pass
 
-    def get_tool_instruction(self):
+    @torch.inference_mode()
+    def generate(self, params):
+        # 在子类中实现
         pass
+    
+    def get_tool_instruction(self):
+        # 在子类中实现
+        pass
+
+    def __del__(self):
+        """析构函数，确保线程池正确关闭"""
+        if hasattr(self, 'thread_pool'):
+            self.thread_pool.shutdown(wait=False)
 
     

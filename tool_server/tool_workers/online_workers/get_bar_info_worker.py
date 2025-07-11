@@ -19,11 +19,15 @@ import requests
 import time
 import openai
 import contextlib
-import httpx  # 在文件顶部导入模块
+import httpx
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 from transformers import HfArgumentParser
 from dataclasses import dataclass, field
 from typing import Optional, Dict, List, Any
+from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi.responses import StreamingResponse, JSONResponse
 
 from tool_server.utils.server_utils import build_logger
 from tool_server.utils.utils import load_image, pil_to_base64
@@ -53,6 +57,10 @@ class GetBarInfoArguments(WorkerArguments):
     api_model_name: Optional[str] = field(default=None, metadata={
         "help": "Name of the model to use for processing bar chart information."
     })
+    # 修改并发数量
+    max_concurrency: Optional[int] = field(default=100, metadata={
+        "help": "Maximum number of concurrent requests to process."
+    })
         
 
 @contextlib.contextmanager
@@ -80,13 +88,23 @@ def no_proxy():
 
 class GetBarInfoWorker(BaseToolWorker):
     def __init__(self, worker_arguments: WorkerArguments = None):
-        # 在调用父类初始化前先设置模型名称
+        # 在调用父类初始化前先设置模型名称和并发数
         if worker_arguments and worker_arguments.model_name is None:
             worker_arguments.model_name = "GetBarInfo"
+        
+        # 设置更高的并发处理能力
+        if hasattr(worker_arguments, "max_concurrency"):
+            worker_arguments.limit_model_concurrency = worker_arguments.max_concurrency
+        else:
+            worker_arguments.limit_model_concurrency = 10  # 默认允许10个并发请求
+            
         super().__init__(worker_arguments)
         self.api_key = worker_arguments.api_key
         self.api_base_url = worker_arguments.api_base_url
         self.api_model_name = worker_arguments.api_model_name
+        
+        # 创建一个线程池用于处理并发请求
+        self.thread_pool = ThreadPoolExecutor(max_workers=worker_arguments.limit_model_concurrency)
         
         self.instruction = {
             "type": "function",
@@ -109,12 +127,17 @@ class GetBarInfoWorker(BaseToolWorker):
         
         # 初始化 OpenAI 客户端
         self.client = openai.OpenAI(
-            api_key=self.api_key, 
-            base_url=self.api_base_url,
+            # api_key=VLLM_API_KEY, 
+            # base_url=VLLM_API_BASE_URL,
+            api_key=self.api_key,
+            base_url=self.api_base_url,  # shy_comment：我运行这个配置会报错会采用上面的设置
         )
         
+        # 创建异步客户端用于并行请求
+        self.async_client = httpx.AsyncClient(timeout=60.0)
+        
     def init_model(self):
-        logger.info(f"No need to initialize model {self.model_name}.")
+        logger.info(f"Initializing model {self.model_name} with concurrency {self.args.limit_model_concurrency}.")
         self.model = None
         
     def extract_bars_from_image(self, image):
@@ -190,14 +213,34 @@ class GetBarInfoWorker(BaseToolWorker):
         
         return bar_bboxes
     
+    async def get_worker_address_async(self, controller_addr, model_name):
+        """异步获取特定工具的worker地址"""
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.post(
+                    controller_addr + "/get_worker_address",
+                    headers={"User-Agent": "FastChat Client"},
+                    json={"model": model_name}
+                )
+                if response.status_code == 200:
+                    return response.json()["address"]
+                else:
+                    logger.error(f"获取工具地址失败: {response.text}")
+                    return None
+        except Exception as e:
+            logger.error(f"获取工具地址出错: {str(e)}")
+            return None
+    
     def get_worker_address(self, controller_addr, model_name):
         """获取特定工具的worker地址"""
         try:
-            response = requests.post(
-                controller_addr + "/get_worker_address",
-                headers={"User-Agent": "FastChat Client"},
-                json={"model": model_name}
-            )
+            with no_proxy():
+                response = requests.post(
+                    controller_addr + "/get_worker_address",
+                    headers={"User-Agent": "FastChat Client"},
+                    json={"model": model_name},
+                    timeout=5
+                )
             if response.status_code == 200:
                 return response.json()["address"]
             else:
@@ -205,6 +248,34 @@ class GetBarInfoWorker(BaseToolWorker):
                 return None
         except Exception as e:
             logger.error(f"获取工具地址出错: {str(e)}")
+            return None
+    
+    async def call_ocr_tool_async(self, image_data):
+        """异步调用OCR工具识别图像中的文本"""
+        ocr_worker_addr = await self.get_worker_address_async(self.controller_addr, "OCR")
+        if not ocr_worker_addr:
+            logger.error("无法获取OCR工具地址")
+            return None
+        
+        try:
+            # 准备OCR请求数据
+            datas = {"image": image_data}
+            
+            # 发送异步请求
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    ocr_worker_addr + "/worker_generate",
+                    headers={"User-Agent": "FastChat Client"},
+                    json=datas
+                )
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                logger.error(f"OCR请求失败: {response.text}")
+                return None
+        except Exception as e:
+            logger.error(f"调用OCR工具出错: {str(e)}")
             return None
     
     def call_ocr_tool(self, image_data):
@@ -413,6 +484,22 @@ Example format:
             logger.error(f"调用语言模型工具出错: {str(e)}")
             return None
     
+    def generate_gate(self, params):
+        """覆盖父类方法，使用线程池处理请求"""
+        try:
+            # 使用线程池提交任务
+            future = self.thread_pool.submit(self.generate, params)
+            ret = future.result(timeout=120)  # 设置超时时间
+            return ret
+        except Exception as e:
+            logger.error(f"Error in generate_gate: {e}")
+            return {
+                "tool_response_from": self.model_name,
+                "status": "failed",
+                "message": f"Error in generate_gate: {e}",
+                "error_code": TOOL_RUN_FAILED
+            }
+    
     def generate(self, params):
         tool_reward = 2.0
         # 计算Parameter Name Matching
@@ -521,6 +608,45 @@ Example format:
     def get_tool_instruction(self):
         return self.instruction
 
+    def setup_routes(self):
+        """覆盖父类方法，添加新的API端点用于并发处理多个请求"""
+        super().setup_routes()  # 调用父类的路由设置
+        
+        @self.app.post("/worker_generate_batch")
+        async def api_generate_batch(request: Request):
+            """批量处理多个请求的API端点"""
+            batch_params = await request.json()
+            if not isinstance(batch_params, list):
+                return {"status": "failed", "message": "Expected a list of parameter objects"}
+            
+            results = []
+            futures = []
+            
+            # 提交所有任务到线程池
+            for params in batch_params:
+                future = self.thread_pool.submit(self.generate, params)
+                futures.append(future)
+            
+            # 收集所有结果
+            for future in futures:
+                try:
+                    result = future.result(timeout=120)
+                    results.append(result)
+                except Exception as e:
+                    logger.error(f"Error processing batch item: {e}")
+                    results.append({
+                        "tool_response_from": self.model_name,
+                        "status": "failed",
+                        "message": f"Processing error: {str(e)}",
+                        "error_code": TOOL_RUN_FAILED
+                    })
+            
+            return results
+
+    def __del__(self):
+        """析构函数，确保线程池正确关闭"""
+        if hasattr(self, 'thread_pool'):
+            self.thread_pool.shutdown(wait=False)
 
 
 if __name__ == "__main__":

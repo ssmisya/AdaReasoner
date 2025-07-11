@@ -9,13 +9,14 @@ srun \
   --partition=ai_moe \
   --mpi=pmi2 \
   --job-name=test_eval \
-  -c 16 \
+  -c 4 \
   --gres=gpu:0 \
   --nodes=1 \
   --ntasks-per-node=1 \
   --kill-on-bad-exit=1 \
   --quotatype=spot \
   python /mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/test_all.py --controller_addr http://SH-IDC1-10-140-37-6:21112
+  # python /mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/test_batch_bar_info.py --controller_addr http://SH-IDC1-10-140-37-6:21112
 
 
 

@@ -13,10 +13,12 @@ import re
 from io import BytesIO
 import sys
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 
 from transformers import HfArgumentParser
 from dataclasses import dataclass, field
 from typing import Optional
+from fastapi import Request
 
 from tool_server.utils.server_utils import build_logger
 from tool_server.utils.utils import load_image, pil_to_base64
@@ -30,14 +32,28 @@ logger = build_logger(__file__, f"crop_worker_{worker_id}.log")
 
 @dataclass
 class CropArguments(WorkerArguments):
-    pass
+    max_concurrency: int = field(
+        default=10,
+        metadata={"help": "Maximum number of concurrent requests the model can handle"}
+    )
 
 class CropToolWorker(BaseToolWorker):
     def __init__(self, worker_arguments: CropArguments = None):
         # 在调用父类初始化前先设置模型名称
         if worker_arguments and worker_arguments.model_name is None:
             worker_arguments.model_name = "Crop"
+        
+        # 设置最大并发数
+        if worker_arguments:
+            self.max_concurrency = worker_arguments.max_concurrency
+            # 更新基类中的限制值
+            worker_arguments.limit_model_concurrency = self.max_concurrency
+        
         super().__init__(worker_arguments)
+        
+        # 初始化线程池
+        self.thread_pool = ThreadPoolExecutor(max_workers=self.max_concurrency)
+        logger.info(f"Initialized thread pool with {self.max_concurrency} workers")
             
         self.instruction = {
             "type": "function",
@@ -66,6 +82,11 @@ class CropToolWorker(BaseToolWorker):
         self.model = None
         
     def generate(self, params):
+        """执行裁剪操作并返回结果"""
+        return self._process_crop_request(params)
+        
+    def _process_crop_request(self, params):
+        """分离出实际处理逻辑，方便并发调用"""
         tool_reward = 2.0
         # 计算Parameter Name Matching
         param_keys = set(params.keys())
@@ -211,6 +232,11 @@ class CropToolWorker(BaseToolWorker):
     
     def get_tool_instruction(self):
         return self.instruction
+        
+    def __del__(self):
+        """析构函数，确保线程池正确关闭"""
+        if hasattr(self, 'thread_pool'):
+            self.thread_pool.shutdown(wait=False)
 
 if __name__ == "__main__":
     parser = HfArgumentParser((CropArguments,))

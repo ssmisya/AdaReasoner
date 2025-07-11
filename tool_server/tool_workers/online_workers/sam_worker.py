@@ -19,9 +19,13 @@ from sam2.sam2_image_predictor import SAM2ImagePredictor
 from io import BytesIO
 import base64
 import traceback
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 from dataclasses import dataclass, field
 from transformers import HfArgumentParser
+from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi.responses import StreamingResponse, JSONResponse
 from tool_server.utils.worker_arguments import WorkerArguments
 from tool_server.utils.error_codes import *  # Import error codes
 
@@ -45,6 +49,10 @@ class SAMAroundPointArguments(WorkerArguments):
     sam2_model_cfg: str = field(
         default="sam2_hiera_l.yaml",
         metadata={"help": "Path to the SAM2 model configuration file"}
+    )
+    max_concurrency: Optional[int] = field(
+        default=10,
+        metadata={"help": "Maximum number of concurrent requests to process."}
     )
 
 def extract_points(generate_param, image_w, image_h):
@@ -176,11 +184,20 @@ class SAMAroundPointWorker(BaseToolWorker):
         if worker_arguments and worker_arguments.model_name is None:
             worker_arguments.model_name = "SegmentRegionAroundPoint"
         
+        # 设置更高的并发处理能力
+        if hasattr(worker_arguments, "max_concurrency"):
+            worker_arguments.limit_model_concurrency = worker_arguments.max_concurrency
+        else:
+            worker_arguments.limit_model_concurrency = 10  # 默认允许10个并发请求
+        
         # 将这两行移到super().__init__之前
         self.sam2_checkpoint = worker_arguments.sam2_checkpoint
         self.sam2_model_cfg = worker_arguments.sam2_model_cfg
         
         super().__init__(worker_arguments)
+        
+        # 创建线程池用于并发处理请求
+        self.thread_pool = ThreadPoolExecutor(max_workers=worker_arguments.limit_model_concurrency)
         
         self.instruction = {
             "type": "function",
@@ -207,7 +224,7 @@ class SAMAroundPointWorker(BaseToolWorker):
 
 
     def init_model(self):
-        logger.info(f"Initializing model {self.model_name}...")
+        logger.info(f"Initializing model {self.model_name} with concurrency {self.args.limit_model_concurrency}...")
         logger.info(f"CUDA available: {torch.cuda.is_available()}, GPU count: {torch.cuda.device_count()}")
         
         if torch.cuda.is_available():
@@ -233,9 +250,30 @@ class SAMAroundPointWorker(BaseToolWorker):
 
         self.sam2_model = build_sam2(self.sam2_model_cfg, self.sam2_checkpoint, device=device)
         self.predictor = SAM2ImagePredictor(self.sam2_model)
-
+    
+    def generate_gate(self, params):
+        """覆盖父类方法，使用线程池处理请求"""
+        try:
+            # 使用线程池提交任务
+            future = self.thread_pool.submit(self._generate_with_torch_inference, params)
+            ret = future.result(timeout=120)  # 设置超时时间
+            return ret
+        except Exception as e:
+            logger.error(f"Error in generate_gate: {e}")
+            return {
+                "tool_response_from": self.model_name,
+                "status": "failed",
+                "message": f"Error in generate_gate: {e}",
+                "error_code": TOOL_RUN_FAILED
+            }
+    
     @torch.inference_mode()
-    def generate(self, params):
+    def _generate_with_torch_inference(self, params):
+        """实际的生成函数，包装在torch.inference_mode装饰器中"""
+        return self._generate_impl(params)
+        
+    def _generate_impl(self, params):
+        """实现实际的生成逻辑"""
         tool_reward = 2.0
         # 计算Parameter Name Matching
         param_keys = set(params.keys())
@@ -395,8 +433,53 @@ class SAMAroundPointWorker(BaseToolWorker):
                 "tool_reward": tool_reward + (correct_param_content_num/required_keys_num if required_keys_num > 0 else 0)
             }
     
+    # 使用没有torch.inference_mode装饰器的版本作为generate
+    def generate(self, params):
+        """为了与base_tool_worker兼容，提供一个generate方法"""
+        return self._generate_impl(params)
+    
     def get_tool_instruction(self):
         return self.instruction
+        
+    def setup_routes(self):
+        """覆盖父类方法，添加新的API端点用于并发处理多个请求"""
+        super().setup_routes()  # 调用父类的路由设置
+        
+        @self.app.post("/worker_generate_batch")
+        async def api_generate_batch(request: Request):
+            """批量处理多个请求的API端点"""
+            batch_params = await request.json()
+            if not isinstance(batch_params, list):
+                return JSONResponse({"status": "failed", "message": "Expected a list of parameter objects"})
+            
+            results = []
+            futures = []
+            
+            # 提交所有任务到线程池
+            for params in batch_params:
+                future = self.thread_pool.submit(self._generate_with_torch_inference, params)
+                futures.append(future)
+            
+            # 收集所有结果
+            for future in futures:
+                try:
+                    result = future.result(timeout=120)
+                    results.append(result)
+                except Exception as e:
+                    logger.error(f"Error processing batch item: {e}")
+                    results.append({
+                        "tool_response_from": self.model_name,
+                        "status": "failed",
+                        "message": f"Processing error: {str(e)}",
+                        "error_code": TOOL_RUN_FAILED
+                    })
+            
+            return JSONResponse(results)
+
+    def __del__(self):
+        """析构函数，确保线程池正确关闭"""
+        if hasattr(self, 'thread_pool'):
+            self.thread_pool.shutdown(wait=False)
 
 if __name__ == "__main__":
     parser = HfArgumentParser((SAMAroundPointArguments,))

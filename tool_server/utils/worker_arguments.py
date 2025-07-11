@@ -29,7 +29,7 @@ class WorkerArguments:
         metadata={"help": "Controller address"}
     )
     limit_model_concurrency: int = field(
-        default=5,
+        default=10,
         metadata={"help": "Limit for model concurrency"}
     )
     no_register: bool = field(

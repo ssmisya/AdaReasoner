@@ -74,7 +74,6 @@ def get_worker_address(controller_addr, model_name):
         models.sort()
         print(f"可用模型: {models}")
         
-        # 获取指定模型的地址
         ret = requests.post(
             controller_addr + "/get_worker_address", 
             json={"model": model_name}
@@ -344,12 +343,12 @@ def test_segment_region(args):
     test_cases = [
         {
             "name": "指定点坐标",
-            "description": "x=300, y=100",
+            "coordinates": "x=300, y=100",
             "output_file": "segment_result_with_point.jpg"
         },
         {
             "name": "自动分割全图",
-            "description": "",  # 空字符串表示不提供点坐标，自动分割
+            "coordinates": "",  # 空字符串表示不提供点坐标，自动分割
             "output_file": "segment_result_auto.jpg"
         }
     ]
@@ -363,8 +362,8 @@ def test_segment_region(args):
         }
         
         # 仅当有描述时添加description参数
-        if test_case["description"]:
-            datas["description"] = test_case["description"]
+        if test_case["coordinates"]:
+            datas["coordinates"] = test_case["coordinates"]
         
         tic = time.time()
         response = requests.post(
@@ -1083,7 +1082,7 @@ def main():
     tools_to_test = AVAILABLE_TOOLS if "all" in args.tools else args.tools
 
     # tools_to_test = ["OCR", "DrawShape","Crop","Point","GroundingDINO","SegmentRegionAroundPoint","DrawLine","HighlightBox","MaskBox"]
-    tools_to_test = ["GetSubplotInfo"]
+    tools_to_test = ["SegmentRegionAroundPoint"]
     
     # 为不同工具设置合适的测试图像
     image_dict = {

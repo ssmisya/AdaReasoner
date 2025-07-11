@@ -273,7 +273,7 @@ def test_ocr_batch(args):
     run_batch_test(args, "OCR", datas_template, output_filename_prefix="batch_ocr")
 
 def test_segment_region_around_point_batch(args):
-    datas_template = {"description": "x=300, y=100"}
+    datas_template = {"coordinates": "x=300, y=100"}
     run_batch_test(args, "SegmentRegionAroundPoint", datas_template, output_filename_prefix="batch_segment_region")
 
 def test_grounding_dino_batch(args):

@@ -35,25 +35,11 @@ For example:{{"parameters": {{"image": "img_1", "other_params": "other_values"}}
 
 4. All image coordinates used must be in absolute pixel values, not relative or normalized coordinates. 
 
-5. Please put your final answer inside <response></response>, with no additional explanations or comments.
+5. At the end, provide your final answer by placing it inside \\boxed{{}}, and wrap the entire final output inside <response></response> tags.
 """
 
 # 不使用工具的prompt，一步就要输出response
-tool_planning_model_prompt_no_tool_call = '''
-You are a visual assistant capable of solving visual reasoning problems. You can only rely on your own capabilities in solving. 
-
-Steps for Each Turn 
-1. Think: Recall relevant context and analyze the current user goal.   
-2. Respond Appropriately: If a response is needed, generate one while maintaining consistency across user queries.
-
-Output Format  
-<think> Your thoughts and reasoning </think>  
-<response> Your final response </response>
-
-Important Notes  
-1. You must include the <think> field to outline your reasoning. 
-2. Please put your final answer inside <response></response>, with no additional explanations or comments.
-'''
+tool_planning_model_prompt_no_tool_call = "You are a visual assistant capable of solving visual reasoning problems. Provide your final answer by placing it inside \\boxed{}"
 
 tool_planning_model_prompt = """
 You are a visual assistant capable of solving visual reasoning problems. You can rely on your own capabilities or use external tools to assist in solving. 

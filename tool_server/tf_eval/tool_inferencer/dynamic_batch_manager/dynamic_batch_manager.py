@@ -44,7 +44,14 @@ class DynamicBatchManager():
         if "<response>" in final_response and "</response>" in final_response:
             # 提取<response>标签中的内容
             response_content = final_response.split("<response>")[-1].split("</response>")[0].strip()
-            return response_content
+        else:
+            response_content = final_response.strip()
+        
+        if "\\boxed{" in response_content:
+            # 如果包含\boxed{}，则提取其中的内容
+            response_content = response_content.split("\\boxed{")[-1].split("}")[0].strip()
+        
+        return response_content
     
         
     def pop_qualified_items(self):
@@ -105,9 +112,8 @@ class DynamicBatchManager():
     # Caution: Only model.generate can call this function
     def update_item_status(self):
         for item in self.dynamic_batch:
-            # 检查回答中是否包含<response>....</response>格式内容
             has_response_tag = False
-            # if item.model_response and "<response>" in item.model_response[-1] and "</response>" in item.model_response[-1]:
+
             if item.model_response and "<response>" in item.model_response[-1]:
                 has_response_tag = True
                 

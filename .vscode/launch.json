@@ -5,13 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python 调试程序: 当前文件",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Attach (Remote Debug)",
             "type": "python",
             "request": "attach",
             "pathMappings": [
                 {
-                "localRoot": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent",
-                "remoteRoot": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent"
+                    "localRoot": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent",
+                    "remoteRoot": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent"
                 },
                 {
                     "localRoot": "/",

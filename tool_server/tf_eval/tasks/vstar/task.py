@@ -56,8 +56,6 @@ def evaluate_function(results,meta_data):
     meta_dict = {meta["idx"]: meta for meta in meta_data}
     compare_logs = []
     category_dict = {item : [] for item in ["direct_attributes", "relative_position"]}
-    comparator_path = task_config.get("answer_comparator_path", None)
-    comparator = LLMAnswerComparator(threshold=0.8, method="bert", model_path=comparator_path)
     
     for idx, meta in meta_dict.items():
         if idx in results_dict:

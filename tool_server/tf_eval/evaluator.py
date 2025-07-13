@@ -24,6 +24,7 @@ from .utils.arguments import *
 from .utils.log_utils import get_logger, set_verbosity
 # from .utils.evaluate import evaluate_metric
 from .tool_inferencer import BaseToolInferencer
+from .tool_inferencer import BaseInferencer
 from .tool_inferencer.api import VllmToolInferencer
 import pdb
 import re
@@ -59,15 +60,22 @@ class TFEvaluator():
             log_dir = os.path.dirname(ckpt_path)
             logger.info(f"Tool call statistics will be saved to {log_dir}")
         
-        self.inferencer = BaseToolInferencer(
-            tp_model=self.model,
-            batch_size=self.model_args.batch_size,
-            model_mode=self.model_args.model_mode,
-            max_rounds = max_rounds,
-            stop_token = stop_token,
-            controller_addr = self.script_args.controller_addr,
-            if_use_tool = self.if_use_tool,
-        )
+        if self.if_use_tool:
+            self.inferencer = BaseToolInferencer(
+                tp_model=self.model,
+                batch_size=self.model_args.batch_size,
+                model_mode=self.model_args.model_mode,
+                max_rounds = max_rounds,
+                stop_token = stop_token,
+                controller_addr = self.script_args.controller_addr,
+                if_use_tool = self.if_use_tool,
+            )
+        else:
+            self.inferencer = BaseInferencer(
+                tp_model=self.model,
+                batch_size=self.model_args.batch_size,
+                if_use_tool = self.if_use_tool,
+            )
 
     
     def evaluate(self):

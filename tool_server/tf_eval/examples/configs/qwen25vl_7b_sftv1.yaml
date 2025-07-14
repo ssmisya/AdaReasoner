@@ -1,0 +1,35 @@
+model_args:
+  model: vllm_models
+  model_args: pretrained=/mnt/petrelfs/songmingyang/songmingyang/runs/tool_factory/sft/v1/Qwen2.5-VL-7B-Instruct-ToolSFTv1/checkpoint-100,tensor_parallel=2,limit_mm_per_prompt=10,enable_tool=True
+  batch_size: 50
+  max_rounds: 6
+  model_mode: general
+  
+
+# 对于chartgemma数据集
+task_args:
+  # task_name: chartgemma,chartqa,charxiv,docvqa,ocrbench,reachqa,infographicvqa
+  task_name: chartgemma,chartqa,charxiv,docvqa,ocrbench,reachqa,vstar
+  resume_from_ckpt:
+    chartgemma: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/qwen25vl7b_sftv1/chartgemma.jsonl
+    chartqa: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/qwen25vl7b_sftv1/chartqa.jsonl
+    charxiv: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/qwen25vl7b_sftv1/charxiv.jsonl
+    docvqa: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/qwen25vl7b_sftv1/docvqa.jsonl
+    ocrbench: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/qwen25vl7b_sftv1/ocrbench.jsonl
+    reachqa: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/qwen25vl7b_sftv1/reachqa.jsonl
+    infographicvqa: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/qwen25vl7b_sftv1/infographicvqa.jsonl
+    vstar: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/qwen25vl7b_sftv1/vstar.jsonl
+  save_to_ckpt:
+    chartgemma: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/qwen25vl7b_sftv1/chartgemma.jsonl
+    chartqa: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/qwen25vl7b_sftv1/chartqa.jsonl
+    charxiv: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/qwen25vl7b_sftv1/charxiv.jsonl
+    docvqa: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/qwen25vl7b_sftv1/docvqa.jsonl
+    ocrbench: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/qwen25vl7b_sftv1/ocrbench.jsonl
+    reachqa: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/qwen25vl7b_sftv1/reachqa.jsonl
+    infographicvqa: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/qwen25vl7b_sftv1/infographicvqa.jsonl
+    vstar: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/qwen25vl7b_sftv1/vstar.jsonl
+
+script_args:
+  verbosity: INFO
+  output_path: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/qwen25vl7b_sftv1/qwen25_allres.jsonl
+  if_use_tool: True

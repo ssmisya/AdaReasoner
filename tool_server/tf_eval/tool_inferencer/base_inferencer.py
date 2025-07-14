@@ -142,8 +142,8 @@ class BaseToolInferencer(object):
                     api_name = tool_cfg[0].get("API_name", tool_cfg[0].get("api_name", ""))
 
                     # 根据得到的响应构建新的响应文本
-                    new_response = f"OBSERVATION:\n{api_name} tool outputs: {tool_response_text}\n"
-                    new_round_prompt = f"{new_response}Please summarize the tool outputs and answer my first question."
+                    new_response = f"{tool_response_text}\n"
+                    new_round_prompt = f"{new_response} Please summarize the tool outputs and answer my first question."
                 except:
                     # 异常处理：如果处理工具响应时出错，使用原始提示
                     edited_image = None

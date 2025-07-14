@@ -266,7 +266,7 @@ def rule_based_verify(
     except (TypeError, AttributeError):
         # 特定错误类型，跳过 LaTeX 比较
         pass
-    except Exception:
+    except:
         pass
     
     # 安全地尝试直接使用 verify 函数
@@ -276,7 +276,7 @@ def rule_based_verify(
     except (TypeError, AttributeError):
         # 特定错误类型，跳过直接验证
         pass
-    except Exception:
+    except:
         pass
         
     # 处理百分比

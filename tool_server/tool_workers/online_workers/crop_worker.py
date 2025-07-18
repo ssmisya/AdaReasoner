@@ -117,9 +117,10 @@ class CropToolWorker(BaseToolWorker):
 
             image_data = params["image"]
             if is_coordinates:
-                crop_param = params["coordinates"]
+                crop_param = str(params["coordinates"])
             elif is_bbox:
-                crop_param = params["bbox"]
+                crop_param = str(params["bbox"])
+            print(f"DEBUG 2: crop_param = {crop_param}")
 
             # Load image
             try:

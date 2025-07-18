@@ -90,9 +90,16 @@ class CropToolWorker(BaseToolWorker):
         tool_reward = 2.0
         # 计算Parameter Name Matching
         param_keys = set(params.keys())
+        is_coordinates = False
+        is_bbox = False
         required_keys = set(self.instruction["function"]["parameters"]["required"])
+        if "coordinates" in param_keys:
+            is_coordinates = True
+        if "bbox" in param_keys:
+            is_bbox = True
+            required_keys = set(["image", "bbox"])
         parameter_name_match_reward = len(param_keys & required_keys) / len(required_keys | param_keys)
-        tool_reward = tool_reward + parameter_name_match_reward # 这里已经加过了，后面不用加了
+        tool_reward = tool_reward + parameter_name_match_reward
         # 参数名称没有完全匹配，直接返回
         if parameter_name_match_reward < 1:
             return {
@@ -109,7 +116,10 @@ class CropToolWorker(BaseToolWorker):
         try:
 
             image_data = params["image"]
-            crop_param = params["coordinates"]
+            if is_coordinates:
+                crop_param = params["coordinates"]
+            elif is_bbox:
+                crop_param = params["bbox"]
 
             # Load image
             try:

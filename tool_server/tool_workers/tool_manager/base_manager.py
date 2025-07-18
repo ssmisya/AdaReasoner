@@ -23,7 +23,7 @@ class ToolManager(object):
         self.init_online_tool_addr_dict()
         logger.info(f"ToolManager is initialized.")
         # self.available_tools = self.available_offline_tools + self.available_online_tools
-        self.available_tools = self.available_online_tools
+        self.available_tools = self.available_online_tools + self.available_offline_tools
         print("available_tools",self.available_tools)
         self.headers = {"User-Agent": "LLaVA-Plus Client"}
         
@@ -62,8 +62,16 @@ class ToolManager(object):
         else:
             logger.info(f"Not all tools is prepared successfully, missing tool {miss_tool}")        
     
-    def init_offline_tools(self,):
-        self.available_offline_tools = list(offline_tool_workers.keys())
+
+    def init_offline_tools(self):
+        # 获取离线工具列表
+        from tool_server.tool_workers.offline_workers import offline_tool_instances, offline_tool_workers
+        
+        # 合并新旧工具列表
+        legacy_tools = list(offline_tool_workers.keys())
+        new_tools = list(offline_tool_instances.keys())
+        
+        self.available_offline_tools = legacy_tools + new_tools
         logger.info(f"Offline Tools: {self.available_offline_tools}")
         
     def init_online_tool_addr_dict(self):

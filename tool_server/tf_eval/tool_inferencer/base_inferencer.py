@@ -21,6 +21,9 @@ from ..utils.log_utils import get_logger
 from ...tool_workers.tool_manager.base_manager import ToolManager
 import torch.distributed as dist
 from dataclasses import asdict
+from PIL import Image
+import io
+import base64
 
 logger = get_logger(__name__)
 
@@ -39,8 +42,10 @@ class BaseToolInferencer(object):
         stop_token: str = "<stop>",  # 停止标记
         controller_addr: str = None,  # 控制器地址
         if_use_tool: bool = True,  # 是否使用工具
+        min_image_size: int = 30,  # 最小图像尺寸
     ):
         # 初始化加速器
+        self.min_image_size = min_image_size
         self.accelerator = Accelerator()
         self.tp_model = tp_model
         self.model_mode = model_mode # 模型模式，支持general和llava_plus，但是一般就是general
@@ -105,6 +110,33 @@ class BaseToolInferencer(object):
                     # 如果工具响应包含编辑后的图像，则更新当前图像
                     if "edited_image" in tool_response:
                         edited_image = tool_response.pop("edited_image")
+                        # Ensure edited image isn't too small (minimum dimension of 30px)
+                        try:
+                            pil_edited_image = base64_to_pil(edited_image)
+                            
+                            # Check dimensions and resize if necessary
+                            width, height = pil_edited_image.size
+                            resized = False
+                            
+                            if width < self.min_image_size or height < self.min_image_size:
+                                # Calculate new dimensions while preserving aspect ratio
+                                if width < height:
+                                    new_width = 30
+                                    new_height = int(height * (30 / width))
+                                else:
+                                    new_height = 30
+                                    new_width = int(width * (30 / height))
+                                
+                                # Resize the image
+                                pil_edited_image = pil_edited_image.resize((new_width, new_height), Image.LANCZOS)
+                                resized = True
+                            
+                            # If resized, encode back to base64
+                            if resized:
+                                edited_image = pil_to_base64(pil_edited_image)
+                        except Exception as e:
+                            logger.warning(f"Failed to resize image: {e}")
+                            
                         item.current_image = edited_image
 
                         # 确保该项目有图像历史记录

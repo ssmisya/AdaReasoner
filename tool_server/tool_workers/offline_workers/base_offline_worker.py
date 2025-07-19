@@ -57,32 +57,46 @@ class BaseOfflineWorker(ABC):
         
         try:
             # 参数验证
-            param_keys = set(params.keys())
-            required_keys = set(self.instruction["function"]["parameters"].get("required", []))
+            tool_reward = 2
+            missing_params_res = self.whether_missing_tool_parameter(params)
+            no_missing_params = missing_params_res["no_missing_params"]
+            tool_reward += missing_params_res["params_name_match_reward"]
+            if not no_missing_params:
+                return {
+                    "tool_response_from": self.model_name,
+                    "status": "failed",
+                    "message": f"Missing some required parameters. expected keys: {self.instruction['function']['parameters'].get('required', [])}",
+                    "error_code": MISSING_REQUIRED_PARAMETER,
+                    "tool_reward": tool_reward,
+                    "execution_time": time.time() - start_time
+                }
             
-            if required_keys:
-                parameter_name_match_reward = len(param_keys & required_keys) / len(required_keys | param_keys)
-                tool_reward += parameter_name_match_reward
-                
-                # 参数名称不完全匹配，直接返回错误
-                if parameter_name_match_reward < 1:
-                    return {
-                        "tool_response_from": self.model_name,
-                        "status": "failed",
-                        "message": f"Invalid parameters. Expected: {required_keys}, got: {param_keys}",
-                        "error_code": INVALID_PARAMETERS,
-                        "tool_reward": tool_reward,
-                        "execution_time": time.time() - start_time
-                    }
+            params_qualify_res = self.verify_tool_parameter(params)
+            params_qualified = params_qualify_res["params_qualified"]
+            tool_reward += params_qualify_res["params_qualified_reward"]
+            if not params_qualified:
+                error_message = params_qualify_res.get("error_info", "Invalid parameters.")
+                return {
+                    "tool_response_from": self.model_name,
+                    "status": "failed",
+                    "message": error_message,
+                    "error_code": INVALID_PARAMETERS,
+                    "tool_reward": tool_reward,
+                    "execution_time": time.time() - start_time
+                }
+            else:
+                new_params = params_qualify_res["new_params"] 
             
             # 执行工具核心逻辑
-            result = self._execute(params)
+            result = self._execute(new_params)
             
             # 添加工具标识
             if isinstance(result, dict) and "tool_response_from" not in result:
                 result["tool_response_from"] = self.model_name
             if isinstance(result, dict) and "execution_time" not in result:
                 result["execution_time"] = time.time() - start_time
+            if isinstance(result, dict) and "tool_reward" not in result:
+                result["tool_reward"] = tool_reward
             
             return result
             
@@ -114,3 +128,26 @@ class BaseOfflineWorker(ABC):
     def get_tool_instruction(self):
         """返回工具说明"""
         return self.instruction
+    
+    def whether_missing_tool_parameter(self, params):
+        param_keys = set(params.keys())
+        required_keys = set(self.instruction["function"]["parameters"].get("required", []))
+        parameter_name_match_reward = len(param_keys & required_keys) / len(required_keys)
+        no_missing_params = parameter_name_match_reward >= 1
+        res = {
+            "params_name_match_reward": parameter_name_match_reward,
+            "no_missing_params": no_missing_params
+        }
+        
+        return res
+    
+    def verify_tool_parameter(self, params):
+        res = {
+            "params_qualified_reward":1,
+            "params_qualified": True,
+            "new_params":params
+        }
+        return res
+    
+
+    

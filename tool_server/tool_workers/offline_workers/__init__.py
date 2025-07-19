@@ -1,9 +1,13 @@
 # __init__.py
 from tool_server.tool_workers.offline_workers.astar import AStarWithPixelCoordinate
+from tool_server.tool_workers.offline_workers.draw_path import Draw2DPath
+from tool_server.tool_workers.offline_workers.turn_into_text_map import TurnCoordinateIntoTextMap
 
 # 工具实例注册表
 offline_tool_instances = {
     "AStarWithPixelCoordinate": AStarWithPixelCoordinate(),
+    "Draw2DPath": Draw2DPath(),
+    "TurnCoordinateIntoTextMap": TurnCoordinateIntoTextMap(),
     # 其他工具实例...
 }
 

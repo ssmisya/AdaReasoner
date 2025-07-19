@@ -43,9 +43,13 @@ class BaseToolInferencer(object):
         controller_addr: str = None,  # 控制器地址
         if_use_tool: bool = True,  # 是否使用工具
         min_image_size: int = 30,  # 最小图像尺寸
+        max_image_size: int = 9000,  # 最大图像尺寸（用于调整图像大小时的比例限制）
+        max_ratio = 150,  # 最大比例（用于调整图像大小时的比例限制）
     ):
         # 初始化加速器
         self.min_image_size = min_image_size
+        self.max_image_size = max_image_size
+        self.max_ratio = max_ratio
         self.accelerator = Accelerator()
         self.tp_model = tp_model
         self.model_mode = model_mode # 模型模式，支持general和llava_plus，但是一般就是general
@@ -122,10 +126,16 @@ class BaseToolInferencer(object):
                                 # Calculate new dimensions while preserving aspect ratio
                                 if width < height:
                                     new_width = 30
-                                    new_height = int(height * (30 / width))
+                                    ratio = 30 / width 
+                                    ratio = ratio if ratio < self.max_ratio else self.max_ratio
+                                    new_height = int(height * ratio)
+                                    new_height = new_height if new_height < self.max_image_size else self.max_image_size
                                 else:
                                     new_height = 30
-                                    new_width = int(width * (30 / height))
+                                    ratio = 30 / height
+                                    ratio = ratio if ratio < self.max_ratio else self.max_ratio
+                                    new_width = int(width * ratio)
+                                    new_width = new_width if new_width < self.max_image_size else self.max_image_size
                                 
                                 # Resize the image
                                 pil_edited_image = pil_edited_image.resize((new_width, new_height), Image.LANCZOS)

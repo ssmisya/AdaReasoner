@@ -17,30 +17,47 @@ class AStarWithPixelCoordinate(BaseOfflineWorker):
     def __init__(self):
         super().__init__(model_name="AStarWithPixelCoordinate")
         self.instruction = {
-            "type": "function",
-            "function": {
-                "name": self.model_name,
-                "description": "Find the shortest path from start to goal while avoiding obstacles using A* algorithm",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "start": {
-                            "type": "array",
-                            "description": "Starting point coordinates [x, y] in pixels"
-                        },
-                        "goal": {
-                            "type": "array",
-                            "description": "Goal point coordinates [x, y] in pixels"
-                        },
-                        "obstacles": {
-                            "type": "array",
-                            "description": "Array of obstacle coordinates [[x1, y1], [x2, y2], ...] in pixels"
-                        }
+        "type": "function",
+        "function": {
+            "name": self.model_name,
+            "description": "Find the shortest path from start to goal while avoiding obstacles using A* algorithm",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "start": {
+                        "type": "array",
+                        "description": "Starting point coordinates [x, y] in pixels, e.g., [100, 200]"
                     },
-                    "required": ["start", "goal", "obstacles"]
+                    "goal": {
+                        "type": "array",
+                        "description": "Goal point coordinates [x, y] in pixels, e.g., [300, 400]"
+                    },
+                    "obstacles": {
+                        "type": "array",
+                        "description": "Array of obstacle coordinates [[x1, y1], [x2, y2], ...] in pixels, e.g., [[150, 150], [200, 250], [300, 300]]"
+                    }
+                },
+                "required": ["start", "goal", "obstacles"]
+            },
+            "returns": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "description": "Status of the pathfinding operation ('success' or 'failed')"
+                    },
+                    "path": {
+                        "type": "string",
+                        "description": "Control sequence string where 'l'=left, 'r'=right, 'u'=up, 'd'=down, e.g., 'rruuldd'"
+                    },
+                    "error_code": {
+                        "type": "integer",
+                        "description": "Error code (0 for success)"
+                    }
                 }
             }
         }
+    }
     
     def _execute(self, params):
         """执行A*寻路算法"""
@@ -58,7 +75,6 @@ class AStarWithPixelCoordinate(BaseOfflineWorker):
             result = {
                 "status": "success",
                 "path": path_string,
-                "path_coordinates": path_coords,
                 "error_code": SUCCESS
             }
             
@@ -190,3 +206,88 @@ class AStarWithPixelCoordinate(BaseOfflineWorker):
         path_coords.reverse()
         
         return ''.join(path_chars), path_coords
+    
+    
+    def verify_tool_parameter(self, params):
+        """验证A*算法的输入参数"""
+        try:
+            # 检查必要参数是否存在
+            required_params = ["start", "goal", "obstacles"]
+            for param in required_params:
+                if param not in params:
+                    raise ValueError(f"Missing required parameter: {param}")
+            
+            # 验证并转换 start 参数
+            start = params["start"]
+            if isinstance(start, str):
+                try:
+                    # 尝试解析字符串形式的坐标
+                    import ast
+                    start = ast.literal_eval(start)
+                except:
+                    raise ValueError("start must be a valid coordinate array [x, y]")
+            
+            # 检查start是否为合法的坐标
+            if not isinstance(start, list) or len(start) != 2 or not all(isinstance(x, (int, float)) for x in start):
+                raise ValueError("start must be a valid coordinate array [x, y]")
+                
+            # 验证并转换 goal 参数
+            goal = params["goal"]
+            if isinstance(goal, str):
+                try:
+                    import ast
+                    goal = ast.literal_eval(goal)
+                except:
+                    raise ValueError("goal must be a valid coordinate array [x, y]")
+                    
+            # 检查goal是否为合法的坐标
+            if not isinstance(goal, list) or len(goal) != 2 or not all(isinstance(x, (int, float)) for x in goal):
+                raise ValueError("goal must be a valid coordinate array [x, y]")
+                
+            # 验证并转换 obstacles 参数
+            obstacles = params["obstacles"]
+            if isinstance(obstacles, str):
+                try:
+                    import ast
+                    obstacles = ast.literal_eval(obstacles)
+                except:
+                    raise ValueError("obstacles must be a valid array of coordinates")
+                    
+            # 检查obstacles是否为数组
+            if not isinstance(obstacles, list):
+                raise ValueError("obstacles must be an array")
+                
+            # 检查obstacles中的每个元素是否为合法的坐标
+            for obs in obstacles:
+                if not isinstance(obs, list) or len(obs) != 2 or not all(isinstance(x, (int, float)) for x in obs):
+                    raise ValueError("Each obstacle must be a valid coordinate array [x, y]")
+            
+            # 确保所有坐标为正数
+            for coord in [start, goal] + obstacles:
+                if any(x < 0 for x in coord):
+                    raise ValueError("Coordinates must be non-negative")
+            
+            # 创建新的参数字典，确保所有值的类型正确
+            new_params = {
+                "start": [float(x) for x in start],
+                "goal": [float(x) for x in goal],
+                "obstacles": [[float(x) for x in obs] for obs in obstacles]
+            }
+            
+            # 验证通过，返回成功结果
+            res = {
+                "params_qualified_reward": 1,
+                "params_qualified": True,
+                "new_params": new_params
+            }
+            return res
+            
+        except Exception as e:
+            error_info = str(e)
+            res = {
+                "params_qualified_reward": 0,
+                "params_qualified": False,
+                "error_info": error_info,
+                "new_params": None,
+            }
+            return res

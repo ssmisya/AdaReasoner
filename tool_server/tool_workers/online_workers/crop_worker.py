@@ -36,6 +36,10 @@ class CropArguments(WorkerArguments):
         default=10,
         metadata={"help": "Maximum number of concurrent requests the model can handle"}
     )
+    min_image_height_or_length: int = field(
+        default=32,
+        metadata={"help": "Minimum image size for cropping. Images smaller than this will be resized."}
+    )
 
 class CropToolWorker(BaseToolWorker):
     def __init__(self, worker_arguments: CropArguments = None):
@@ -50,6 +54,7 @@ class CropToolWorker(BaseToolWorker):
             worker_arguments.limit_model_concurrency = self.max_concurrency
         
         super().__init__(worker_arguments)
+        self.min_image_height_or_length = worker_arguments.min_image_height_or_length if worker_arguments else 32
         
         # 初始化线程池
         self.thread_pool = ThreadPoolExecutor(max_workers=self.max_concurrency)
@@ -186,13 +191,26 @@ class CropToolWorker(BaseToolWorker):
                     
                     # Crop image
                     cropped_image = image.crop(pil_crop_coords)
-                    
-                    # Convert cropped image to base64
-                    buffered = BytesIO()
-                    image_format = image.format if image.format else 'PNG'
-                    cropped_image.save(buffered, format=image_format)
-                    img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+                    cropped_height, cropped_width = cropped_image.size
+                    # Check if cropped image meets minimum size requirement
+                    if cropped_height < self.min_image_height_or_length or cropped_width < self.min_image_height_or_length:
+                        # Resize the cropped image if it's too small
+                        logger.info(f"Cropped image is too small ({cropped_width}x{cropped_height}), resizing to meet minimum dimension requirement of {self.min_image_height_or_length}")
+                        if cropped_width < cropped_height:
+                            new_width = self.min_image_height_or_length
+                            new_height = int(cropped_height * (self.min_image_height_or_length / cropped_width))
+                        else:
+                            new_height = self.min_image_height_or_length
+                            new_width = int(cropped_width * (self.min_image_height_or_length / cropped_height))
 
+                        cropped_image = cropped_image.resize((new_width, new_height), Image.LANCZOS)
+                        logger.info(f"Resized image to {new_width}x{new_height}")
+                    # Convert cropped image to base64
+                    # buffered = BytesIO()
+                    # image_format = image.format if image.format else 'PNG'
+                    # cropped_image.save(buffered, format=image_format)
+                    # img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+                    img_str = pil_to_base64(cropped_image)
                     correct_param_content_num += 1
                     
                     pred_dict = {

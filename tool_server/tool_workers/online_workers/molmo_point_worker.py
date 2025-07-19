@@ -322,7 +322,6 @@ class MolmoPointWorker(BaseToolWorker):
                         "tool_response_from": self.model_name,
                         "status": "success",
                         "points": point_data,
-                        "raw_response": response,
                         "message": "No valid points detected in the response.",
                         "image_dimensions_pixels": {
                             "width": image.width,

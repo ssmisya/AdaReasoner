@@ -1,4 +1,4 @@
-tool_planning_model_prompt_one_tool_call = """
+one_tool_call_wo_toollist = """
 You are a visual assistant capable of solving visual reasoning problems. You can rely on your own capabilities or use external tools to assist in solving. 
 
 Available Tools  
@@ -41,7 +41,7 @@ For example:{{"parameters": {{"image": "img_1", "other_params": "other_values"}}
 # 不使用工具的prompt，一步就要输出response
 tool_planning_model_prompt_no_tool_call = "You are a visual assistant capable of solving visual reasoning problems. Provide your final answer by placing it inside \\boxed{}"
 
-tool_planning_model_prompt = """
+multi_tool_call_wo_toollist = """
 You are a visual assistant capable of solving visual reasoning problems. You can rely on your own capabilities or use external tools to assist in solving. 
  
 Available Tools  
@@ -419,5 +419,5 @@ tool_desc_dict = dict(
 
 # 格式化 tool_planning_model_prompt
 # 在vllm_models中被使用
-tool_planning_model_prompt_one_tool_call = tool_planning_model_prompt_one_tool_call.format(tool_list=tool_desc_dict['all'])
+tool_planning_model_prompt_one_tool_call = one_tool_call_wo_toollist.format(tool_list=tool_desc_dict['all'])
 tool_planning_model_prompt_no_tool_call = tool_planning_model_prompt_no_tool_call

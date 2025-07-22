@@ -325,8 +325,7 @@ class BaseToolWorker:
         pass
     
     def get_tool_instruction(self):
-        # 在子类中实现
-        pass
+        return self.instruction
 
     def __del__(self):
         """析构函数，确保线程池正确关闭"""

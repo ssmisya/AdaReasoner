@@ -48,7 +48,7 @@ class AStarWithPixelCoordinate(BaseOfflineWorker):
                     },
                     "path": {
                         "type": "string",
-                        "description": "Control sequence string where 'l'=left, 'r'=right, 'u'=up, 'd'=down, e.g., 'rruuldd'"
+                        "description": "Control sequence as comma-separated uppercase directions (L,R,U,D), e.g., 'R,R,U,L,D,D'"
                     },
                     "error_code": {
                         "type": "integer",
@@ -58,7 +58,18 @@ class AStarWithPixelCoordinate(BaseOfflineWorker):
             }
         }
     }
-    
+    def _format_path_string(self, path_string):
+        """将路径字符串从 'ludr' 格式转换为 'L,R,U,D' 格式"""
+        if not path_string:
+            return ""
+        
+        # 创建映射字典
+        direction_map = {'l': 'L', 'r': 'R', 'u': 'U', 'd': 'D'}
+        
+        # 转换并加入逗号
+        formatted = [direction_map.get(c, c.upper()) for c in path_string]
+        return ",".join(formatted)
+        
     def _execute(self, params):
         """执行A*寻路算法"""
         try:
@@ -72,9 +83,11 @@ class AStarWithPixelCoordinate(BaseOfflineWorker):
                 start, goal, obstacles
             )
             
+            formatted_path = self._format_path_string(path_string)
+        
             result = {
                 "status": "success",
-                "path": path_string,
+                "path": formatted_path,
                 "error_code": SUCCESS
             }
             

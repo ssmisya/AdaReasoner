@@ -11,21 +11,47 @@ offline_tool_instances = {
     # 其他工具实例...
 }
 
-# 向后兼容的工具名称映射
-offline_tool_workers = {
-    "crop_de": "crop_worker",
-    "drawline_de": "drawline_worker",
-}
-
 def get_tool_generate_fn(tool_name):
     """获取工具生成函数"""
-    # 首先检查是否有新式工具实例
     if tool_name in offline_tool_instances:
         return offline_tool_instances[tool_name].generate
     
-    # 向后兼容旧式工具
-    if tool_name not in offline_tool_workers:
-        return None
+    return None
+
+def get_tool_instruction(tool_name):
+    """
+    获取工具的指令说明
     
-    module = __import__(f"tool_server.tool_workers.offline_workers.{offline_tool_workers[tool_name]}", fromlist=["generate"])
-    return getattr(module, "generate")
+    Args:
+        tool_name (str): 工具名称
+        
+    Returns:
+        dict: 工具的instruction字典，如果工具不存在则返回None
+    """
+    if tool_name in offline_tool_instances:
+        return offline_tool_instances[tool_name].get_tool_instruction()
+    
+    return None
+
+def get_all_tool_instructions():
+    """
+    获取所有已注册工具的指令说明
+    
+    Returns:
+        dict: 工具名称到instruction的映射
+    """
+    instructions = {}
+    
+    for tool_name, tool_instance in offline_tool_instances.items():
+        instructions[tool_name] = tool_instance.get_tool_instruction()
+    
+    return instructions
+
+def get_available_tools():
+    """
+    获取所有可用工具的名称列表
+    
+    Returns:
+        list: 工具名称列表
+    """
+    return list(offline_tool_instances.keys())

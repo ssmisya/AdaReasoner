@@ -36,7 +36,7 @@ class Draw2DPath(BaseOfflineWorker):
                         },
                         "directions": {
                             "type": "string",
-                            "description": "Direction sequence string with 'u'=up, 'd'=down, 'l'=left, 'r'=right, e.g. 'rruldd'"
+                            "description": "Direction sequence with 'u'=up, 'd'=down, 'l'=left, 'r'=right. Accepts both 'rruldd' format and comma-separated 'R,R,U,L,D,D' format."
                         },
                         "step": {
                             "type": "integer",
@@ -60,6 +60,35 @@ class Draw2DPath(BaseOfflineWorker):
             }
         }
 
+    def _normalize_directions(self, directions):
+        """
+        将方向序列标准化为内部格式 (小写无逗号)
+        支持两种输入格式:
+        1. "ludr" - 传统格式
+        2. "L,R,U,D" - 新格式，逗号分隔的大写字母
+        """
+        if not directions:
+            return ""
+        
+        # 如果是字符串，尝试处理
+        if isinstance(directions, str):
+            # 移除空格
+            directions = directions.replace(" ", "")
+            
+            # 检查是否为新格式（包含逗号）
+            if "," in directions:
+                # 分割并转换为小写
+                dir_list = directions.lower().split(",")
+                # 仅保留有效字符
+                dir_list = [d for d in dir_list if d in ['l', 'r', 'u', 'd']]
+                return "".join(dir_list)
+            else:
+                # 传统格式，仅保留有效字符
+                return "".join(c for c in directions.lower() if c in "lrud")
+        
+        # 如果不是字符串，返回空字符串
+        return ""
+    
     def _execute(self, params):
         """执行路径绘制"""
         try:
@@ -68,6 +97,9 @@ class Draw2DPath(BaseOfflineWorker):
             image = params["image"]
             start_point = params["start_point"]
             directions = params["directions"]
+            
+            directions = self._normalize_directions(directions)
+        
             
             # 提取可选参数
             step = params.get("step", 64)
@@ -173,10 +205,13 @@ class Draw2DPath(BaseOfflineWorker):
             
             start_point = params["start_point"]
             start_point = ast.literal_eval(start_point) if isinstance(start_point, str) else start_point
-            
+                            
             directions = params["directions"]
             if isinstance(directions, str):
-                directions = re.sub(r"[^udlr]", "", directions.lower())  # 只保留有效方向字符
+                # 统一处理方向格式
+                normalized_directions = self._normalize_directions(directions)
+                if not normalized_directions:
+                    raise ValueError("Invalid directions format. Use 'ludr' or 'L,R,U,D'")
             
             # 提取可选参数
             step = int(params.get("step", 64))

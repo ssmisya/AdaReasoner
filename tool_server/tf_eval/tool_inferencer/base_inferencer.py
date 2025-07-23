@@ -56,7 +56,7 @@ class BaseToolInferencer(object):
         # 获取模型的对话生成函数和追加对话函数
         self.generate_conversation_fn = self.tp_model.generate_conversation_fn
         self.append_conversation_fn = self.tp_model.append_conversation_fn
-
+        # remote_breakpoint(port=7119)
         # 如果启用分布式训练且使用CUDA但不是vllm模型，则将模型移至当前设备并转换为bfloat16格式
         if dist.is_initialized() and self.accelerator.device.type == "cuda" and not 'vllm_models' in str(type(self.tp_model)):
             self.tp_model = self.tp_model.to(self.accelerator.device)

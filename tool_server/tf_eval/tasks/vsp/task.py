@@ -49,11 +49,11 @@ def convert_markdown_table_to_map(table_str):
     for row in map_rows:
         map_row = ""
         for cell in row:
-            if cell == '*':
+            if cell == '@':
                 map_row += 'S'  # 起点
             elif cell == '#':
                 map_row += 'H'  # 障碍物/洞
-            elif cell == '@':
+            elif cell == '*':
                 map_row += 'G'  # 目标
             elif cell == '_':
                 map_row += 'F'  # 安全地板

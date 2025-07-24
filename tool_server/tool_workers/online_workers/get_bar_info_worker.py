@@ -39,7 +39,8 @@ worker_id = str(uuid.uuid4())[:6]
 logger = build_logger(__file__, f"get_bar_info_worker_{worker_id}.log")
 
 # vLLM 模型配置
-VLLM_API_BASE_URL = "http://SH-IDC1-10-140-37-35:16112/v1"
+# VLLM_API_BASE_URL = "http://SH-IDC1-10-140-37-35:16112/v1"
+VLLM_API_BASE_URL = "http://SH-IDC1-10-140-37-23:16112/v1"
 VLLM_API_KEY = "not-needed"
 VLLM_MODEL_NAME = "/mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-72B-Instruct"
 
@@ -58,7 +59,7 @@ class GetBarInfoArguments(WorkerArguments):
         "help": "Name of the model to use for processing bar chart information."
     })
     # 修改并发数量
-    max_concurrency: Optional[int] = field(default=100, metadata={
+    max_concurrency: Optional[int] = field(default=120000, metadata={
         "help": "Maximum number of concurrent requests to process."
     })
         
@@ -134,7 +135,7 @@ class GetBarInfoWorker(BaseToolWorker):
         )
         
         # 创建异步客户端用于并行请求
-        self.async_client = httpx.AsyncClient(timeout=60.0)
+        self.async_client = httpx.AsyncClient(timeout=60000)
         
     def init_model(self):
         logger.info(f"Initializing model {self.model_name} with concurrency {self.args.limit_model_concurrency}.")
@@ -216,7 +217,7 @@ class GetBarInfoWorker(BaseToolWorker):
     async def get_worker_address_async(self, controller_addr, model_name):
         """异步获取特定工具的worker地址"""
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(timeout=5000.0) as client:
                 response = await client.post(
                     controller_addr + "/get_worker_address",
                     headers={"User-Agent": "FastChat Client"},
@@ -239,7 +240,7 @@ class GetBarInfoWorker(BaseToolWorker):
                     controller_addr + "/get_worker_address",
                     headers={"User-Agent": "FastChat Client"},
                     json={"model": model_name},
-                    timeout=5
+                    timeout=5000
                 )
             if response.status_code == 200:
                 return response.json()["address"]
@@ -262,7 +263,7 @@ class GetBarInfoWorker(BaseToolWorker):
             datas = {"image": image_data}
             
             # 发送异步请求
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=60000.0) as client:
                 response = await client.post(
                     ocr_worker_addr + "/worker_generate",
                     headers={"User-Agent": "FastChat Client"},
@@ -489,7 +490,7 @@ Example format:
         try:
             # 使用线程池提交任务
             future = self.thread_pool.submit(self.generate, params)
-            ret = future.result(timeout=120)  # 设置超时时间
+            ret = future.result(timeout=120000)  # 设置超时时间
             return ret
         except Exception as e:
             logger.error(f"Error in generate_gate: {e}")
@@ -522,6 +523,9 @@ Example format:
                 image_data = params["image"]
                 image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
                 image_base64 = image_data
+                # 获取图片尺寸
+                image_width, image_height = image.size
+                image_dimensions = {"width": image_width, "height": image_height}
             except Exception as e:
                 pred_dict = {
                     "tool_response_from": self.model_name,
@@ -576,7 +580,8 @@ Example format:
                     "status": "failed",
                     "message": "No bar regions could be detected after all processing steps",
                     "error_code": TOOL_RUN_FAILED,
-                    "tool_reward": tool_reward
+                    "tool_reward": tool_reward,
+                    "image_dimensions_pixels": image_dimensions
                 }
                 return pred_dict
             
@@ -588,12 +593,14 @@ Example format:
                 "message": "Successfully extracted bar information",
                 "bars": final_result,
                 "error_code": SUCCESS,
-                "tool_reward": tool_reward
+                "tool_reward": tool_reward,
+                "image_dimensions_pixels": image_dimensions
             }
             
             return pred_dict
             
         except Exception as e:
+            # 这里是最外层异常捕获，可能已经没有image_dimensions可用
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "failed",
@@ -601,6 +608,10 @@ Example format:
                 "error_code": TOOL_RUN_FAILED,
                 "tool_reward": tool_reward
             }
+            # 如果之前成功获取了图片尺寸，则添加到结果中
+            if 'image_dimensions' in locals():
+                pred_dict["image_dimensions_pixels"] = image_dimensions
+                
             logger.error(f"柱状图信息提取操作错误: {e}")
             logger.error(traceback.format_exc())
             return pred_dict
@@ -630,7 +641,7 @@ Example format:
             # 收集所有结果
             for future in futures:
                 try:
-                    result = future.result(timeout=120)
+                    result = future.result(timeout=240000)
                     results.append(result)
                 except Exception as e:
                     logger.error(f"Error processing batch item: {e}")

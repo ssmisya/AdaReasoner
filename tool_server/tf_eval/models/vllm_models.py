@@ -5,7 +5,8 @@ from PIL import Image
 from typing import List
 import torch
 from vllm import LLM, SamplingParams
-
+from tool_server.tf_eval.utils.utils import append_jsonl, write_jsonl, merge_jsonl
+import pprint
 
 # from .template_instruct import *
 from ..utils.utils import *
@@ -29,10 +30,32 @@ class VllmModels(tp_model):
       enable_tool: bool = True,          # Whether to enable tools
     ):
         tensor_parallel = eval(tensor_parallel)  # Convert string to numeric value
+        # self.model = LLM(
+        #     model=pretrained,                   # Model path
+        #     # tensor_parallel_size=tensor_parallel,  # Parallel size
+        #     tensor_parallel_size=1,  # Parallel size
+        #     limit_mm_per_prompt={"image": int(limit_mm_per_prompt)},  # Limit number of images per prompt
+        # )
+        # model=/mnt/petrelfs/share_data/songmingyang/runs/tool_factory/sft/v1/Qwen2.5-VL-3B-Instruct-ToolSFTv1/checkpoint-100,skip_tokenizer_init=False,trust_remote_code=False,load_format=dummy,dtype=bfloat16,seed=1,max_model_len=128000,distributed_executor_backend=external_launcher,tensor_parallel_size=1,gpu_memory_utilization=0.9,max_num_batched_tokens=65536,disable_log_stats=True,enforce_eager=False,disable_custom_all_reduce=True,limit_mm_per_prompt={'image': 10},disable_mm_preprocessor_cache=True,enable_chunked_prefill=False,enable_sleep_mode=True
         self.model = LLM(
-            model=pretrained,                   # Model path
-            tensor_parallel_size=tensor_parallel,  # Parallel size
-            limit_mm_per_prompt={"image": int(limit_mm_per_prompt)}  # Limit number of images per prompt
+            model=pretrained,
+            skip_tokenizer_init=False,
+            trust_remote_code=True,
+            # load_format="dummy",
+            dtype="bfloat16",
+            seed=1,
+            max_model_len=128000,
+            # distributed_executor_backend="external_launcher",
+            tensor_parallel_size=1,
+            gpu_memory_utilization=0.9,
+            max_num_batched_tokens=65536,
+            disable_log_stats=True,
+            enforce_eager=False,
+            disable_custom_all_reduce=True, # 这个值设置成True的话，会导致tensor_parallel_size设置为2的时候报错
+            limit_mm_per_prompt={"image": 10},
+            # disable_mm_preprocessor_cache=True, # 目前发现好像是这个参数影响结果，当设置的话，就会使得结果比较差
+            enable_chunked_prefill=False,
+            enable_sleep_mode=True,
         )
         
         if enable_tool.lower() == "true":
@@ -40,7 +63,6 @@ class VllmModels(tp_model):
         else:
             self.enable_tool = False
         
-        # print(f"Initialized enable_tool: {self.enable_tool}, type: {type(self.enable_tool)}")
 
     def generate_conversation_fn(
         self,
@@ -184,11 +206,17 @@ class VllmModels(tp_model):
         if not batch or len(batch) == 0:  # If batch is empty
             return
         max_new_tokens = self.generation_config.get("max_new_tokens", 2048)  # Get maximum token generation count, default 2048
-        sampling_params = SamplingParams(max_tokens=max_new_tokens, temperature=0.6)  # Set sampling parameters
+        sampling_params = SamplingParams(max_tokens=max_new_tokens, temperature=0.0)  # Set sampling parameters
+        print(f"DEBUG 1: sampling_params = {sampling_params}")
         
+        # /mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/toolrleval
         inputs = self.form_input_from_dynamic_batch(batch)  # Extract inputs from batch
+        # 将inputs写入jsonl文件
+        # output_path = "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/toolrleval/input.jsonl"
+        # append_jsonl(inputs, output_path)
         # breakpoint()  # Debug breakpoint
         response = self.model.chat(inputs, sampling_params)  # Call model for parallel response generation, VLLM library's parallel inference
+
 
 
         for item, output_item in zip(batch, response):

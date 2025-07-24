@@ -231,4 +231,3 @@ def rule_based_verify(
             pass
     
     return 0.0
-

@@ -39,7 +39,8 @@ def load_data_function():
     dataset_path = task_config["dataset_path"]
     num_sample = task_config.get("num_sample", None)
     
-    testset = load_dataset(dataset_path,split="train")
+    # 这里的测试应该是validation
+    testset = load_dataset(dataset_path,split="validation")
     # 只处理testset的前num_sample个样本
     if num_sample:
         testset = testset.select(range(min(num_sample, len(testset))))

@@ -33,6 +33,7 @@ def load_json_file(filepath):
     return data
 
 def write_json_file(data, filepath):
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
     '''
         线程安全地写入JSON文件
     '''

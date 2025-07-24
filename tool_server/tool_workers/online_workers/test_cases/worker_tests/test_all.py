@@ -509,11 +509,11 @@ def test_crop(args):
             "coordinates": "[100, 100, 400, 300]",
             "output_file": "crop_result_absolute.jpg"
         },
-        {
-            "name": "归一化坐标",
-            "coordinates": "[0.2, 0.2, 0.8, 0.8]",
-            "output_file": "crop_result_normalized.jpg"
-        }
+        # {
+        #     "name": "归一化坐标",
+        #     "coordinates": "[0.2, 0.2, 0.8, 0.8]",
+        #     "output_file": "crop_result_normalized.jpg"
+        # }
     ]
     
     for test_case in test_cases:
@@ -522,7 +522,7 @@ def test_crop(args):
         
         datas = {
             "image": img_arg,
-            "coordinates": crop_coordinates
+            "bbox": crop_coordinates # 可以是bbox，可以是coordinates
         }
         
         tic = time.time()
@@ -1060,7 +1060,7 @@ def main():
         help="控制器地址"
     )
     parser.add_argument(
-        "--image-path", type=str, default="./input_cases/subplot_0.png",
+        "--image-path", type=str, default="/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
         help="测试图像路径"
     )
     parser.add_argument(
@@ -1081,7 +1081,7 @@ def main():
     tools_to_test = AVAILABLE_TOOLS if "all" in args.tools else args.tools
 
     # tools_to_test = ["OCR", "DrawShape","Crop","Point","GroundingDINO","SegmentRegionAroundPoint","DrawLine","HighlightBox","MaskBox"]
-    tools_to_test = ["SegmentRegionAroundPoint"]
+    tools_to_test = ["Crop"]
     
     # 为不同工具设置合适的测试图像
     image_dict = {

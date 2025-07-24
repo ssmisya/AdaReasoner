@@ -4,6 +4,9 @@
 session_name="tool-factory-$(date +%Y%m%d_%H%M%S)"
 tmux new-session -d -s $session_name
 
+export LD_LIBRARY_PATH=/mnt/petrelfs/share/cuda-12.4/lib64:${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+export PATH=/mnt/petrelfs/share/cuda-12.4/bin:$PATH
+
 # 在tmux会话中运行环境设置和服务
 tmux send-keys -t $session_name "cd $(pwd)" C-m
 tmux send-keys -t $session_name "conda activate tool-server" C-m

@@ -33,7 +33,7 @@ logger = build_logger(__file__, f"DrawLine_worker_{worker_id}.log")
 @dataclass
 class DrawLineArguments(WorkerArguments):
     max_concurrency: int = field(
-        default=10,
+        default=120000,
         metadata={"help": "Maximum number of concurrent requests the model can handle"}
     )
 
@@ -234,6 +234,12 @@ class DrawLineToolWorker(BaseToolWorker):
             # 加载图像
             try:
                 img = base64_to_pil(image_data).convert("RGB")
+                # 获取图像尺寸
+                width, height = img.size
+                image_dimensions = {
+                    "width": int(width),
+                    "height": int(height)
+                }
             except Exception as e:
                 if encounter_error:
                     message = message + f"Cannot load image: {str(e)}"
@@ -259,7 +265,8 @@ class DrawLineToolWorker(BaseToolWorker):
                     "status": "failed",
                     "message": str(e),
                     "error_code": INVALID_PARAMETERS,
-                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num # 添加合规的参数个数
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num, # 添加合规的参数个数
+                    "image_dimensions_pixels": image_dimensions
                 }
                 return pred_dict
             
@@ -269,7 +276,8 @@ class DrawLineToolWorker(BaseToolWorker):
                     "status": "failed",
                     "message": "No valid points extracted from parameters.",
                     "error_code": INVALID_PARAMETERS,
-                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num # 添加合规的参数个数
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num, # 添加合规的参数个数
+                    "image_dimensions_pixels": image_dimensions
                 }
                 return pred_dict
 
@@ -299,12 +307,23 @@ class DrawLineToolWorker(BaseToolWorker):
             return pred_dict
                 
         except Exception as e:
+            # 检查是否有图像尺寸信息可用
+            image_dims_dict = {}
+            if 'img' in locals() and img is not None:
+                image_dims_dict = {
+                    "image_dimensions_pixels": {
+                        "width": int(img.width),
+                        "height": int(img.height)
+                    }
+                }
+                
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "failed",
                 "message": f"Error: {str(e)}\nTraceback:{traceback.format_exc()}\n",
                 "error_code": TOOL_RUN_FAILED,
                 "tool_reward": tool_reward+correct_param_content_num/required_keys_num,
+                **image_dims_dict
             }
             logger.error(f"Error during drawing operation: {e}")
             logger.error(traceback.format_exc())

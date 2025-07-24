@@ -32,7 +32,7 @@ logger = build_logger(__file__, f"highlight_box_worker_{worker_id}.log")
 @dataclass
 class HighlightBoxArguments(WorkerArguments):
     max_concurrency: int = field(
-        default=10,
+        default=120000,
         metadata={"help": "Maximum number of concurrent requests the model can handle"}
     )
 
@@ -122,6 +122,12 @@ class HighlightBoxWorker(BaseToolWorker):
             try:
                 image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGBA")
                 correct_param_content_num += 1
+                # 获取图像尺寸
+                image_width, image_height = image.size
+                image_dimensions = {
+                    "width": image_width,
+                    "height": image_height
+                }
             except Exception as e:
                 pred_dict = {
                     "tool_response_from": self.model_name,
@@ -141,7 +147,8 @@ class HighlightBoxWorker(BaseToolWorker):
                         "status": "failed",
                         "message": f"Invalid bbox format: {bbox}. Expected 4 values [x_min, y_min, x_max, y_max].",
                         "error_code": INVALID_PARAMETERS,
-                        "tool_reward": tool_reward+correct_param_content_num/required_keys_num
+                        "tool_reward": tool_reward+correct_param_content_num/required_keys_num,
+                        "image_dimensions_pixels": image_dimensions
                     }
                     return pred_dict
                 
@@ -154,7 +161,8 @@ class HighlightBoxWorker(BaseToolWorker):
                         "status": "failed",
                         "message": f"Bounding box coordinates {bbox} are outside of image dimensions ({image_width}x{image_height}).",
                         "error_code": INVALID_PARAMETERS,
-                        "tool_reward": tool_reward+correct_param_content_num/required_keys_num
+                        "tool_reward": tool_reward+correct_param_content_num/required_keys_num,
+                        "image_dimensions_pixels": image_dimensions
                     }
                     return pred_dict
             
@@ -222,6 +230,17 @@ class HighlightBoxWorker(BaseToolWorker):
                 "error_code": TOOL_RUN_FAILED,
                 "tool_reward": tool_reward+(correct_param_content_num/required_keys_num if required_keys_num > 0 else 0)
             }
+            
+            # 如果已经成功加载了图像，添加图像尺寸
+            if 'image' in locals() and image is not None:
+                try:
+                    pred_dict["image_dimensions_pixels"] = {
+                        "width": image.width,
+                        "height": image.height
+                    }
+                except:
+                    pass
+                
             logger.error(f"Error during highlight box operation: {e}")
             logger.error(traceback.format_exc())
             return pred_dict

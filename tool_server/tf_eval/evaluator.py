@@ -42,6 +42,7 @@ class TFEvaluator():
         self.task_args = task_args
         self.script_args = script_args
         self.tasks = self.task_args.task_name
+            
         self.model = get_model(self.model_args.model)(**self.model_args.model_args)
         self.if_use_tool = self.script_args.if_use_tool
         # print("self.model_args.model_args['enable_tool']: ", self.model_args.model_args["enable_tool"])

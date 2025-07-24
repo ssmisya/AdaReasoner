@@ -3,6 +3,7 @@ task_name: "toolrleval"
 dataset_path: /mnt/petrelfs/sunhaoyu/visual-code/datasets/tool_rlset_v1_refined
 # num_sample: 1984 # 最大1984
 dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv
+# num_sample: 100
 generation_config:
   max_length: 2048
 

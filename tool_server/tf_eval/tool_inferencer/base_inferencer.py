@@ -21,6 +21,9 @@ from ..utils.log_utils import get_logger
 from ...tool_workers.tool_manager.base_manager import ToolManager
 import torch.distributed as dist
 from dataclasses import asdict
+from PIL import Image
+import io
+import base64
 
 logger = get_logger(__name__)
 
@@ -39,15 +42,21 @@ class BaseToolInferencer(object):
         stop_token: str = "<stop>",  # 停止标记
         controller_addr: str = None,  # 控制器地址
         if_use_tool: bool = True,  # 是否使用工具
+        min_image_size: int = 30,  # 最小图像尺寸
+        max_image_size: int = 9000,  # 最大图像尺寸（用于调整图像大小时的比例限制）
+        max_ratio = 150,  # 最大比例（用于调整图像大小时的比例限制）
     ):
         # 初始化加速器
+        self.min_image_size = min_image_size
+        self.max_image_size = max_image_size
+        self.max_ratio = max_ratio
         self.accelerator = Accelerator()
         self.tp_model = tp_model
         self.model_mode = model_mode # 模型模式，支持general和llava_plus，但是一般就是general
         # 获取模型的对话生成函数和追加对话函数
         self.generate_conversation_fn = self.tp_model.generate_conversation_fn
         self.append_conversation_fn = self.tp_model.append_conversation_fn
-
+        # remote_breakpoint(port=7119)
         # 如果启用分布式训练且使用CUDA但不是vllm模型，则将模型移至当前设备并转换为bfloat16格式
         if dist.is_initialized() and self.accelerator.device.type == "cuda" and not 'vllm_models' in str(type(self.tp_model)):
             self.tp_model = self.tp_model.to(self.accelerator.device)
@@ -105,6 +114,39 @@ class BaseToolInferencer(object):
                     # 如果工具响应包含编辑后的图像，则更新当前图像
                     if "edited_image" in tool_response:
                         edited_image = tool_response.pop("edited_image")
+                        # Ensure edited image isn't too small (minimum dimension of 30px)
+                        try:
+                            pil_edited_image = base64_to_pil(edited_image)
+                            
+                            # Check dimensions and resize if necessary
+                            width, height = pil_edited_image.size
+                            resized = False
+                            
+                            if width < self.min_image_size or height < self.min_image_size:
+                                # Calculate new dimensions while preserving aspect ratio
+                                if width < height:
+                                    new_width = 30
+                                    ratio = 30 / width 
+                                    ratio = ratio if ratio < self.max_ratio else self.max_ratio
+                                    new_height = int(height * ratio)
+                                    new_height = new_height if new_height < self.max_image_size else self.max_image_size
+                                else:
+                                    new_height = 30
+                                    ratio = 30 / height
+                                    ratio = ratio if ratio < self.max_ratio else self.max_ratio
+                                    new_width = int(width * ratio)
+                                    new_width = new_width if new_width < self.max_image_size else self.max_image_size
+                                
+                                # Resize the image
+                                pil_edited_image = pil_edited_image.resize((new_width, new_height), Image.LANCZOS)
+                                resized = True
+                            
+                            # If resized, encode back to base64
+                            if resized:
+                                edited_image = pil_to_base64(pil_edited_image)
+                        except Exception as e:
+                            logger.warning(f"Failed to resize image: {e}")
+                            
                         item.current_image = edited_image
 
                         # 确保该项目有图像历史记录

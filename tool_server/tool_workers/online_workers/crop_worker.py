@@ -40,6 +40,10 @@ class CropArguments(WorkerArguments):
         default=32,
         metadata={"help": "Minimum image size for cropping. Images smaller than this will be resized."}
     )
+    min_image_height_or_length: int = field(
+        default=32,
+        metadata={"help": "Minimum image size for cropping. Images smaller than this will be resized."}
+    )
 
 class CropToolWorker(BaseToolWorker):
     def __init__(self, worker_arguments: CropArguments = None):
@@ -54,6 +58,7 @@ class CropToolWorker(BaseToolWorker):
             worker_arguments.limit_model_concurrency = self.max_concurrency
         
         super().__init__(worker_arguments)
+        self.min_image_height_or_length = worker_arguments.min_image_height_or_length if worker_arguments else 32
         self.min_image_height_or_length = worker_arguments.min_image_height_or_length if worker_arguments else 32
         
         # 初始化线程池
@@ -246,6 +251,11 @@ class CropToolWorker(BaseToolWorker):
                         cropped_width, cropped_height = cropped_image.size
                         logger.info(f"Cropped image to {cropped_width}x{cropped_height} after aspect ratio adjustment")
                     # Convert cropped image to base64
+                    # buffered = BytesIO()
+                    # image_format = image.format if image.format else 'PNG'
+                    # cropped_image.save(buffered, format=image_format)
+                    # img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+                    img_str = pil_to_base64(cropped_image)
                     # buffered = BytesIO()
                     # image_format = image.format if image.format else 'PNG'
                     # cropped_image.save(buffered, format=image_format)

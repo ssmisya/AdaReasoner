@@ -14,6 +14,7 @@ from ..tool_inferencer.dynamic_batch_manager import DynamicBatchItem
 from ...utils.prompts import *
 
 from ..utils.log_utils import get_logger
+from tool_server.tool_workers.tool_manager.base_manager import ToolManager
 inferencer_id = str(uuid.uuid4())[:6]  # Generate unique inferencer ID
 logger = get_logger("vllm_models",)    # Get logger
 
@@ -57,7 +58,9 @@ class VllmModels(tp_model):
             enable_chunked_prefill=False,
             enable_sleep_mode=True,
         )
-        
+        self.tool_manager = ToolManager(tools=["AStarWithPixelCoordinate", "Draw2DPath",
+                                                "TurnCoordinateIntoTextMap", "Point"])  # Initialize tool manager
+        self.system_prompt = self.tool_manager.get_tool_prompt(prompt_type="one_tool_call")  # Get system prompt for tool calls
         if enable_tool.lower() == "true":
             self.enable_tool = True
         else:
@@ -97,7 +100,7 @@ class VllmModels(tp_model):
                 "content": [
                     {
                         "type": "text",
-                        "text": system_prompt,  # Evaluation prompt defined in prompt.py
+                        "text": self.system_prompt,  # Evaluation prompt defined in prompt.py
                     },
                 ],
             },

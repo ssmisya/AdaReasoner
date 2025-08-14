@@ -33,45 +33,31 @@ class ModelArguments:
 @dataclass
 class TaskArguments:
     task_name: Optional[str] = field(default="charxiv")
-    tool_selection: Optional[str] = field(default=None,)
     
     resume_from_ckpt: Optional[Dict[str, str]] = field(default=None,)
-    def __post_init__(self):
-        # 如果传入的是一个字典，将其包装成 Box；否则默认生成空 Box
-        if self.resume_from_ckpt is None:
-            self.resume_from_ckpt = Box()
-        elif isinstance(self.resume_from_ckpt, dict):
-            self.resume_from_ckpt = Box(self.resume_from_ckpt)
-        else:
-            raise ValueError("resume_from_ckpt should be a dictionary.")
-    
     save_to_ckpt: Optional[Dict[str, str]] = field(default=None,)
-    def __post_init__(self):
-        # 如果传入的是一个字典，将其包装成 Box；否则默认生成空 Box
-        if self.save_to_ckpt is None:
-            self.save_to_ckpt = Box()
-        elif isinstance(self.save_to_ckpt, dict):
-            self.save_to_ckpt = Box(self.save_to_ckpt)
-        else:
-            raise ValueError("save_to_ckpt should be a dictionary.")
     middle_images_save_dir: Optional[str] = field(default=None)
-    def __post_init__(self):
-        # 如果传入的是一个字典，将其包装成 Box；否则默认生成空 Box
-        if self.middle_images_save_dir is None:
-            self.middle_images_save_dir = Box()
-        elif isinstance(self.middle_images_save_dir, dict):
-            self.middle_images_save_dir = Box(self.middle_images_save_dir)
-        else:
-            raise ValueError("middle_images_save_dir should be a dictionary.")
+    tool_selection: Optional[str] = field(default=None,)
     tool_selection_dict: Optional[str] = field(default=None)
+                            
     def __post_init__(self):
-        # 如果传入的是一个字典，将其包装成 Box；否则默认生成空 Box
-        if self.tool_selection is None:
-            self.tool_selection = Box()
-        elif isinstance(self.tool_selection, dict):
-            self.tool_selection = Box(self.tool_selection)
-        else:
-            raise ValueError("tool_selection should be a dictionary.")
+        """初始化后处理所有需要转换为Box的字段"""
+        box_fields = [
+            "resume_from_ckpt", 
+            "save_to_ckpt", 
+            "middle_images_save_dir", 
+            "tool_selection_dict"
+        ]
+        
+        for field_name in box_fields:
+            field_value = getattr(self, field_name)
+            
+            if field_value is None:
+                setattr(self, field_name, Box())
+            elif isinstance(field_value, dict):
+                setattr(self, field_name, Box(field_value))
+            else:
+                raise ValueError(f"{field_name} should be a dictionary.")
 
 
 # Define and parse arguments.

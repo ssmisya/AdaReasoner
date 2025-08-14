@@ -20,6 +20,7 @@ from ..utils.log_utils import get_logger
 from ...tool_workers.tool_manager.base_manager import ToolManager
 import torch.distributed as dist
 from dataclasses import asdict
+from ...utils.prompts import tool_planning_model_prompt_no_tool_call
 
 logger = get_logger(__name__)
 
@@ -162,3 +163,6 @@ class BaseInferencer(object):
         # If not using vLLM model, wait for all processes to complete
         if not 'vllm_models' in str(type(self.tp_model)):
             self.accelerator.wait_for_everyone()
+            
+    def set_tool_selection(self, tool_selection):
+        self.tp_model.set_system_prompt(tool_planning_model_prompt_no_tool_call)

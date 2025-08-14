@@ -93,7 +93,7 @@ class TFEvaluator():
             # 设置任务名称，用于保存工具调用统计
             dataset.task_name = task_name
             # 设置可用工具
-            self.model.set_system_prompt(dataset.tool_selection)
+            self.inferencer.set_tool_selection(dataset.tool_selection)
             
             self.inferencer.batch_inference(dataset)
 

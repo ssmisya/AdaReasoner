@@ -18,8 +18,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 logger = get_logger(__name__)
 task_config = get_task_config_from_current_dir(__file__)
-PATH_VERIFY_TASK_INSTRUCTION_SHORT = """
 
+# 路径验证任务说明
+PATH_VERIFY_TASK_INSTRUCTION = """
 You are a maze solver. Your goal is to guide a player from the start to the goal on a grid map while avoiding holes, using the fewest moves. The player can move one square at a time in the directions left (L), right (R), up (U), or down (D). Moving off the edge has no effect, and falling into a hole results in failure. Reaching the goal means success. 
 
 Now please determine if the action sequence is safe for the given maze. Your final answer should be formatted as \\boxed{Yes} or \\boxed{No}.
@@ -27,6 +28,13 @@ Now please determine if the action sequence is safe for the given maze. Your fin
 The action sequence is:
 
 <ACTION-SEQ>
+"""
+
+# 路径导航任务说明
+PATH_NAVIGATION_INSTRUCTION = """
+You are a maze solver. Your goal is to guide a player from the start to the goal on a grid map while avoiding holes, using the fewest moves. The player can move one square at a time in the directions left (L), right (R), up (U), or down (D). Moving off the edge has no effect, and falling into a hole results in failure. Reaching the goal means success. Your final answer should be formatted as \\boxed{L,R,U,D}.
+
+Please generate action plan for the input maze image.
 """
 
 def convert_markdown_table_to_map(table_str):
@@ -127,7 +135,7 @@ def load_path_validation_data(task_dir, task_type, num_samples=None):
     # 读取提示文本
     # with open(os.path.join(task_dir,"prompt-text", "prompt-text.txt"), "r") as f:
     #     prompt_text = f.read()
-    prompt_text = PATH_VERIFY_TASK_INSTRUCTION_SHORT
+    prompt_text = PATH_VERIFY_TASK_INSTRUCTION
     # 获取视觉提示图像
     prompt_visual_images = []
     visual_dir = os.path.join(task_dir, "prompt-visual-images")
@@ -385,10 +393,7 @@ def load_planning_data(task_dir, task_type, num_samples=None):
     """加载路径规划任务数据"""
     meta_data = []
     
-    # 读取提示文本
-    with open(os.path.join(task_dir, "prompt-text" ,"prompt-text.txt"), "r") as f:
-        prompt_text = f.read()
-    
+    prompt_text = PATH_NAVIGATION_INSTRUCTION
     # 获取视觉提示图像
     prompt_visual_images = []
     visual_dir = os.path.join(task_dir, "prompt-visual-images")

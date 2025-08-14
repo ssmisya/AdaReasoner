@@ -78,7 +78,7 @@ class BaseEvalDataset(Dataset):
         if task_args.tool_selection_dict and self.task_name in self.task_args.tool_selection_dict:
             logger.info(f"tool selection dict: {self.task_args.tool_selection_dict}")
             self.tool_selection = self.task_args.tool_selection_dict[self.task_name]
-        elif "tool_selection" in task_args and self.task_args.tool_selection is not None:
+        elif self.task_args.tool_selection:
             self.tool_selection = task_args.tool_selection
         else:
             self.tool_selection = None

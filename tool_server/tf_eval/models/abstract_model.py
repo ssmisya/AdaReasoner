@@ -94,16 +94,5 @@ class tp_model(abc.ABC):
         else:
             logger.info("Tool usage is disabled.")
             
-    def set_system_prompt(self, tool_selection: Union[List, str]) -> None:
-        if isinstance(tool_selection, List):
-            self.tool_selection = tool_selection
-        elif isinstance(tool_selection, str):
-            self.tool_selection = tool_selection.split(",")
-        else:
-            raise ValueError("tool_selection should be a dictionary or a string.")
-        
-        if self.enable_tool:
-            self.tool_manager = ToolManager(tools=self.tool_selection)  # Initialize tool manager
-            self.system_prompt = self.tool_manager.get_tool_prompt(prompt_type="one_tool_call")  # Get system prompt for tool calls
-        else:
-            self.system_prompt = tool_planning_model_prompt_no_tool_call
+    def set_system_prompt(self, system_prompt: str = None) -> None:
+        self.system_prompt = system_prompt

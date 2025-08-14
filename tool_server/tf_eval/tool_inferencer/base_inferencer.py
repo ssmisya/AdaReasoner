@@ -220,15 +220,12 @@ class BaseToolInferencer(object):
             assert len(item.tool_cfg) == item.current_round
 
             # 确保该项目有图像历史记录
-            item_id = item.meta_data.get("idx", str(id(item)))
+            item_id = item.meta_data["idx"]
             if item_id not in self.image_history:
                 # 初始化图像历史，原始图像为img_1
                 self.image_history[item_id] = {
                     "img_1": item.meta_data.get("image", None)
                 }
-                # 如果有current_image，也将其添加到历史
-                if item.current_image is not None and "img_2" not in self.image_history[item_id]:
-                    self.image_history[item_id]["img_2"] = item.current_image
 
             # 如果存在工具配置，调用相应的工具
             if tool_cfg is not None and len(tool_cfg) > 0:
@@ -260,19 +257,20 @@ class BaseToolInferencer(object):
                         if img_key in self.image_history[item_id]:
                             image = self.image_history[item_id][img_key]
                             # 如果是需要图像的工具，确保图像格式正确
-                            if api_name in ["Point","SegmentRegionAroundPoint","Crop","GroundingDINO","DrawLine","OCR","GetSubplotInfo","GetBarInfo", "DrawShape", "HighlightBox", "MaskBox", "LanguageModel"]:
-                                if image is not None:
-                                    image = load_image(image)
-                                    image = pil_to_base64(image)
-                                    # 更新参数中的图像
-                                    api_params["image"] = image
+                            # if api_name in ["Point","SegmentRegionAroundPoint","Crop","GroundingDINO","DrawLine","OCR","GetSubplotInfo","GetBarInfo", "DrawShape", "HighlightBox", "MaskBox", "LanguageModel"]:
+                            if image is not None:
+                                image = load_image(image)
+                                image = pil_to_base64(image)
+                                # 更新参数中的图像
+                                api_params["image"] = image
                         else:
                             # 如果找不到请求的图像，记录错误
                             logger.error(f"Image {img_key} not found in history for item {item_id}")
                             item.tool_response.append(dict(text=f"Image {img_key} not found in history.",status="failed"))
                             continue
                     # 如果没有指定图像或不是img_n格式，使用当前图像或元数据中的图像
-                    elif api_name in ["Point","SegmentRegionAroundPoint","Crop","GroundingDINO","DrawLine","OCR","GetSubplotInfo","GetBarInfo", "DrawShape", "HighlightBox", "MaskBox", "LanguageModel"]:
+                    # elif api_name in ["Point","SegmentRegionAroundPoint","Crop","GroundingDINO","DrawLine","OCR","GetSubplotInfo","GetBarInfo", "DrawShape", "HighlightBox", "MaskBox", "LanguageModel"]:
+                    elif "image" in api_params:    
                         # 确定当前使用的图像：优先使用当前图像，否则使用元数据中的图像
                         if item.current_image is not None:
                             image = item.current_image
@@ -443,13 +441,14 @@ class BaseToolInferencer(object):
                 item_dict = asdict(item)
                 item_dict = remove_pil_objects(item_dict)
                 item_dict = remove_non_serializable(item_dict)
+                item_id = item_dict["meta_data"].get("idx", str(id(item)))
                 
                 final_model_output = item_dict["model_response"][-1]
                 final_answer = self.manager.extract_final_answer(final_model_output)
                 item_dict["final_answer"] = final_answer
-                
+                item_dict["image_history"] = self.image_history.get(item_id, {})
                 # 记录要移除的item_id
-                item_id = item_dict["meta_data"].get("idx", str(id(item)))
+                
                 removed_item_ids.append(item_id)
                 
                 res.append(item_dict)
@@ -458,8 +457,9 @@ class BaseToolInferencer(object):
         
         # 清理已完成项目的image_history
         for item_id in removed_item_ids:
-            if item_id in self.image_history:
-                del self.image_history[item_id]
+            self.image_history.pop(item_id, None)  # 使用pop避免KeyError
+            # if item_id in self.image_history:
+            #     del self.image_history[item_id]
                 # logger.info(f"Cleaned up image history for item {item_id}")
         
         self.manager.dynamic_batch = new_batch

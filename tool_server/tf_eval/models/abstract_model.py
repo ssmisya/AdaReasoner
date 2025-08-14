@@ -8,6 +8,8 @@ from ...utils.utils import *
 from ...utils.server_utils import *
 from ..tool_inferencer.dynamic_batch_manager import DynamicBatchItem
 from PIL import Image as PILImage
+from tool_server.tool_workers.tool_manager.base_manager import ToolManager
+from ...utils.prompts import tool_planning_model_prompt_no_tool_call
 
 import uuid
 
@@ -78,3 +80,30 @@ class tp_model(abc.ABC):
             self.generation_config = generation_configs
         else:
             self.generation_config = {}
+            
+    def set_enable_tool(self, enable_tool: bool = True) -> None:
+        """
+        Set whether the model should use tools.
+        
+        Parameters:
+            enable_tool (bool): Whether to enable tool usage.
+        """
+        self.enable_tool = enable_tool
+        if self.enable_tool:
+            logger.info("Tool usage is enabled.")
+        else:
+            logger.info("Tool usage is disabled.")
+            
+    def set_system_prompt(self, tool_selection: Union[List, str]) -> None:
+        if isinstance(tool_selection, List):
+            self.tool_selection = tool_selection
+        elif isinstance(tool_selection, str):
+            self.tool_selection = tool_selection.split(",")
+        else:
+            raise ValueError("tool_selection should be a dictionary or a string.")
+        
+        if self.enable_tool:
+            self.tool_manager = ToolManager(tools=self.tool_selection)  # Initialize tool manager
+            self.system_prompt = self.tool_manager.get_tool_prompt(prompt_type="one_tool_call")  # Get system prompt for tool calls
+        else:
+            self.system_prompt = tool_planning_model_prompt_no_tool_call

@@ -33,6 +33,8 @@ class ModelArguments:
 @dataclass
 class TaskArguments:
     task_name: Optional[str] = field(default="charxiv")
+    tool_selection: Optional[str] = field(default=None,)
+    
     resume_from_ckpt: Optional[Dict[str, str]] = field(default=None,)
     def __post_init__(self):
         # 如果传入的是一个字典，将其包装成 Box；否则默认生成空 Box
@@ -52,6 +54,24 @@ class TaskArguments:
             self.save_to_ckpt = Box(self.save_to_ckpt)
         else:
             raise ValueError("save_to_ckpt should be a dictionary.")
+    middle_images_save_dir: Optional[str] = field(default=None)
+    def __post_init__(self):
+        # 如果传入的是一个字典，将其包装成 Box；否则默认生成空 Box
+        if self.middle_images_save_dir is None:
+            self.middle_images_save_dir = Box()
+        elif isinstance(self.middle_images_save_dir, dict):
+            self.middle_images_save_dir = Box(self.middle_images_save_dir)
+        else:
+            raise ValueError("middle_images_save_dir should be a dictionary.")
+    tool_selection_dict: Optional[str] = field(default=None)
+    def __post_init__(self):
+        # 如果传入的是一个字典，将其包装成 Box；否则默认生成空 Box
+        if self.tool_selection is None:
+            self.tool_selection = Box()
+        elif isinstance(self.tool_selection, dict):
+            self.tool_selection = Box(self.tool_selection)
+        else:
+            raise ValueError("tool_selection should be a dictionary.")
 
 
 # Define and parse arguments.

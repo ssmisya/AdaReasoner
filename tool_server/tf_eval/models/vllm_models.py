@@ -35,15 +35,13 @@ class VllmModels(tp_model):
             tensor_parallel_size=tensor_parallel,  # Parallel size
             limit_mm_per_prompt={"image": int(limit_mm_per_prompt)}  # Limit number of images per prompt
         )
-        self.tool_manager = ToolManager(tools=["AStarWithPixelCoordinate", "Draw2DPath",
-                                                "TurnCoordinateIntoTextMap", "Point"])  # Initialize tool manager
-        self.system_prompt = self.tool_manager.get_tool_prompt(prompt_type="one_tool_call")  # Get system prompt for tool calls
+        
         if enable_tool.lower() == "true":
             self.enable_tool = True
         else:
             self.enable_tool = False
         
-        # print(f"Initialized enable_tool: {self.enable_tool}, type: {type(self.enable_tool)}")
+        self.system_prompt = None
 
     def generate_conversation_fn(
         self,
@@ -64,13 +62,8 @@ class VllmModels(tp_model):
         """
         text = "Question: " + text  # Add "Question:" prefix to the text
 
-        # print(f"DEBUG 1: self.enable_tool = {self.enable_tool}, type = {type(self.enable_tool)}")
+        assert self.system_prompt, "System prompt must be set before generating conversation."  # Ensure system prompt is set
 
-        if self.enable_tool == True:  # Explicit comparison
-            system_prompt = tool_planning_model_prompt_one_tool_call
-        else:
-            system_prompt = tool_planning_model_prompt_no_tool_call
-        
         image = pil_to_base64(image)  # Convert PIL image to base64 encoding
         messages = [
             {

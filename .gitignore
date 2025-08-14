@@ -185,7 +185,7 @@ output/
 
 **/controller.log.*
 r1_v/scripts/** 
-tool_server/tf_eval/scripts
+
 r1_v/wandb
 r1_v/scripts
 tool_server/notebooks
@@ -199,7 +199,10 @@ tool_server/tool_workers/online_workers/controller_addr
 
 /mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/start_service.sh
 
-!tool_server/tf_eval/scripts/notebooks
+
+tool_server/tf_eval/scripts/*
+
+
 !tool_server/tf_eval/scripts/notebooks/form_tool_statistics.ipynb
 !tool_server/tf_eval/scripts/notebooks/form_res.ipynb
 !tool_server/tf_eval/scripts/notebooks/form_llm_judge_res.ipynb

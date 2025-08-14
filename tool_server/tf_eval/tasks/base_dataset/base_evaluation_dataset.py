@@ -17,6 +17,8 @@ import torch.distributed as dist
 from ...utils.utils import gather_dict_lists, append_jsonl, process_jsonl, is_vllm_environment
 from ...utils.log_utils import get_logger
 
+from tool_server.utils.utils import *
+
 logger = get_logger(__name__)
 class BaseEvalDataset(Dataset):
     '''
@@ -56,6 +58,8 @@ class BaseEvalDataset(Dataset):
         self.meta_data = deepcopy(self.full_data)
         self.load_ckpt_path = None
         self.save_ckpt_path = None
+        self.middle_images_save_dir = None
+        self.tool_selection_dict = None
         
         if task_args.resume_from_ckpt and self.task_name in self.task_args.resume_from_ckpt:
             self.load_ckpt_path = self.task_args.resume_from_ckpt[self.task_name]
@@ -64,6 +68,24 @@ class BaseEvalDataset(Dataset):
         if task_args.save_to_ckpt and self.task_name in self.task_args.save_to_ckpt:
             logger.info(f"save to ckpt path: {self.task_args.save_to_ckpt}")
             self.save_ckpt_path = self.task_args.save_to_ckpt[self.task_name]
+        
+        if task_args.middle_images_save_dir and self.task_name in self.task_args.middle_images_save_dir:
+            logger.info(f"middle images save dir: {self.task_args.middle_images_save_dir}")
+            self.middle_images_save_dir = self.task_args.middle_images_save_dir[self.task_name]
+            if not os.path.exists(self.middle_images_save_dir):
+                os.makedirs(self.middle_images_save_dir, exist_ok=True)
+        
+        if task_args.tool_selection_dict and self.task_name in self.task_args.tool_selection_dict:
+            logger.info(f"tool selection dict: {self.task_args.tool_selection_dict}")
+            self.tool_selection = self.task_args.tool_selection_dict[self.task_name]
+        elif "tool_selection" in task_args and self.task_args.tool_selection is not None:
+            self.tool_selection = task_args.tool_selection
+        else:
+            self.tool_selection = None
+        
+        if isinstance(self.tool_selection, str):
+            self.tool_selection = self.tool_selection.split(",")
+                
         
         if self.model_name in ["qwen_qwq"]:
             logger.info("Generation model detected, setting padding side to left")
@@ -82,7 +104,20 @@ class BaseEvalDataset(Dataset):
         return len(self.meta_data)
     
     def store_results(self,result):
+        image_history = result["results"].pop("image_history", {})
         self.results.append(result)
+        
+        if self.middle_images_save_dir:
+            item_id  = result["idx"]
+            sub_save_dir = os.path.join(self.middle_images_save_dir, str(item_id))
+            if not os.path.exists(sub_save_dir):
+                os.makedirs(sub_save_dir, exist_ok=True)
+                
+            for image_key, image_value in image_history.items():
+                image = load_image(image_value)
+                assert isinstance(image, Image.Image), f"Image value for {image_key} should be a PIL Image, but got {type(image_value)}"
+                image.save(os.path.join(sub_save_dir, f"{image_key}.png"))
+            
         if self.save_ckpt_path:
             self.save_item_into_ckpt_file(result)
         

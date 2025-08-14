@@ -11,30 +11,38 @@ The `tf_eval` is the main logic for tool planning model inference. It is based o
 You can organize your config as a list of dict or a single dict. It's recommend to use a yaml file. 
 
 ```yaml
-- model_args:
+    - model_args:
     # The model series you want to test, must be the same with the file name under tf_eval/models
-    model: qwen2vl
-    # The arguments that you want to pass to the models, split by a comma.
-    model_args: pretrained=/mnt/petrelfs/share_data/mmtool/weights/qwen-cogcom-base
-    # The batch size if you want to use batch inference. Caution for OOM.
-    batch_size: 2
-    # The max rounds you want tool planning model to inference.
-    max_rounds: 3
-    # When to stop one single round inference, the model will stop when the output contains the stop token.
-    stop_token: <stop>
+    model: vllm_models
+    # The arguments to pass to the model, specify model path, tensor parallel size, and other parameters
+    model_args: pretrained=/mnt/petrelfs/songmingyang/songmingyang/runs/tool_factory/sft/v1/Qwen2.5-VL-7B-Instruct-pathverify_v0,tensor_parallel=2,limit_mm_per_prompt=10
+    # Batch size for inference. Adjust according to your GPU memory.
+    batch_size: 50
+    # Maximum number of rounds for tool-model interaction
+    max_rounds: 6
+    # Model operation mode
+    model_mode: general
   task_args:
-    # The task names you want to evaluate, split by a comma.
-    task_name: charxiv
-    # checkpoint settings, organize them as a dict
-    # taskname: ckpt_file path
+    # The task to evaluate (options include: chartgemma,chartqa,charxiv,docvqa,ocrbench,reachqa,vstar)
+    task_name: vsp
+    # Specific tools to use for evaluation, don't set this if you want all tools available.
+    tool_selection: Point,Draw2DPath
+    # Checkpoint to resume from, organized as task_name: path
     resume_from_ckpt:
-        charxiv: ./tool_server/tf_eval/scripts/logs/ckpt/charxiv/qwen2vl.jsonl
-  save_to_ckpt:
-        charxiv: ./tool_server/tf_eval/scripts/logs/ckpt/charxiv/qwen2vl.jsonl
-    script_args:
+      vsp: ./tool_server/tf_eval/scripts/logs/ckpt/frozen_lake/pathverify_v0_qwen25_7b/vsp.jsonl
+    # Path to save checkpoint, organized as task_name: path
+    save_to_ckpt:
+      vsp: ./tool_server/tf_eval/scripts/logs/ckpt/frozen_lake/pathverify_v0_qwen25_7b/vsp.jsonl
+    # Directory to save intermediate images generated during evaluation
+    middle_images_save_dir:
+      vsp: ./tool_server/tf_eval/scripts/logs/ckpt/frozen_lake/pathverify_v0_qwen25_7b/middle_images
+  script_args:
+    # Logging verbosity level
     verbosity: INFO
-    # final result output path
-    output_path: ./tool_server/tf_eval/scripts/logs/results/charxiv/qwen2vl.jsonl
+    # Path to save final evaluation results
+    output_path: ./tool_server/tf_eval/scripts/logs/results/frozen_lake/pathverify_v0_qwen25_7b/qwen25_allres.jsonl
+    # Whether to use tools during inference
+    if_use_tool: True
 ```
 After setting down the config, please run TF EVAL as:
 
@@ -67,6 +75,7 @@ use_cpu: false
 
 But notice that when testing api modes (e.g. gemini and openai series models), the batch size must be set at 1 and do not use multi-process parallel.
 
+You can check `tool_server/tf_eval/utils/arguments.py` for all detailed information about the arguments you can set in the config file.
 
 ### 2. How to run a tool planning model through VLLM?
 We offer a VLLM model implementation in `tool_server/tf_eval/models/vllm_models.py`. This allows you to seamlessly run the model using VLLM by simply replacing the model entry in the configuration file with vllm_models and specifying your model checkpoint using the `pretrained=xxx` parameter in model_args. To enable tensor parallelism, you can configure the tensor parallel size by adding `tensor_parallel=x` to model_args.

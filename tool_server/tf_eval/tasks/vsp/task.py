@@ -19,6 +19,24 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 logger = get_logger(__name__)
 task_config = get_task_config_from_current_dir(__file__)
 
+# 路径验证任务说明
+PATH_VERIFY_TASK_INSTRUCTION = """
+You are a maze solver. Your goal is to guide a player from the start to the goal on a grid map while avoiding holes, using the fewest moves. The player can move one square at a time in the directions left (L), right (R), up (U), or down (D). Moving off the edge has no effect, and falling into a hole results in failure. Reaching the goal means success. 
+
+Now please determine if the action sequence is safe for the given maze. Your final answer should be formatted as \\boxed{Yes} or \\boxed{No}.
+
+The action sequence is:
+
+<ACTION-SEQ>
+"""
+
+# 路径导航任务说明
+PATH_NAVIGATION_INSTRUCTION = """
+You are a maze solver. Your goal is to guide a player from the start to the goal on a grid map while avoiding holes, using the fewest moves. The player can move one square at a time in the directions left (L), right (R), up (U), or down (D). Moving off the edge has no effect, and falling into a hole results in failure. Reaching the goal means success. Your final answer should be formatted as \\boxed{L,R,U,D}.
+
+Please generate action plan for the input maze image.
+"""
+
 def convert_markdown_table_to_map(table_str):
     """
     将Markdown格式的表格转换为FrozenLake风格的地图表示
@@ -115,9 +133,9 @@ def load_path_validation_data(task_dir, task_type, num_samples=None):
     meta_data = []
     
     # 读取提示文本
-    with open(os.path.join(task_dir,"prompt-text", "prompt-text.txt"), "r") as f:
-        prompt_text = f.read()
-    
+    # with open(os.path.join(task_dir,"prompt-text", "prompt-text.txt"), "r") as f:
+    #     prompt_text = f.read()
+    prompt_text = PATH_VERIFY_TASK_INSTRUCTION
     # 获取视觉提示图像
     prompt_visual_images = []
     visual_dir = os.path.join(task_dir, "prompt-visual-images")
@@ -375,10 +393,7 @@ def load_planning_data(task_dir, task_type, num_samples=None):
     """加载路径规划任务数据"""
     meta_data = []
     
-    # 读取提示文本
-    with open(os.path.join(task_dir, "prompt-text" ,"prompt-text.txt"), "r") as f:
-        prompt_text = f.read()
-    
+    prompt_text = PATH_NAVIGATION_INSTRUCTION
     # 获取视觉提示图像
     prompt_visual_images = []
     visual_dir = os.path.join(task_dir, "prompt-visual-images")
@@ -470,11 +485,14 @@ def analyze_spatial_relation(map_text):
 
 
 def evaluate_function(results, meta_data):
-    """评估函数，根据任务类型对结果进行评估"""
+    """评估函数，根据任务类型和级别对结果进行评估"""
     results_dict = {res["idx"]: res for res in results}
     meta_dict = {meta["idx"]: meta for meta in meta_data}
     
+    # 按任务类型统计结果
     task_results = {}
+    # 按任务类型和级别统计结果
+    level_results = {}
     overall_correct = 0
     overall_total = 0
     
@@ -482,9 +500,16 @@ def evaluate_function(results, meta_data):
     
     for idx, meta in meta_dict.items():
         task_type = meta["task_type"]
+        level = meta.get("level", "unknown")
         
+        # 初始化任务类型统计
         if task_type not in task_results:
             task_results[task_type] = {"correct": 0, "total": 0}
+        
+        # 初始化任务类型+级别统计
+        task_level_key = f"{task_type}_level{level}"
+        if task_level_key not in level_results:
+            level_results[task_level_key] = {"correct": 0, "total": 0, "task_type": task_type, "level": level}
         
         if idx in results_dict:
             prediction = results_dict[idx]["results"]["final_answer"]
@@ -507,9 +532,15 @@ def evaluate_function(results, meta_data):
         else:
             score, message = 0, "Unknown task type"
         
-        # 记录结果
+        # 记录任务类型结果
         task_results[task_type]["correct"] += score
         task_results[task_type]["total"] += 1
+        
+        # 记录任务类型+级别结果
+        level_results[task_level_key]["correct"] += score
+        level_results[task_level_key]["total"] += 1
+        
+        # 记录总体结果
         overall_correct += score
         overall_total += 1
         
@@ -517,30 +548,72 @@ def evaluate_function(results, meta_data):
         compare_logs.append({
             "idx": idx,
             "task_type": task_type,
-            "level": meta.get("level", "unknown"),
+            "level": level,
             "gold": meta["answer"],
             "pred": prediction,
             "score": score,
             "message": message
         })
     
-    # 计算每个任务的准确率
+    # 计算每个任务类型的准确率
     for task_type in task_results:
         if task_results[task_type]["total"] > 0:
             task_results[task_type]["accuracy"] = task_results[task_type]["correct"] / task_results[task_type]["total"]
         else:
             task_results[task_type]["accuracy"] = 0
     
+    # 计算每个任务类型+级别的准确率
+    for key in level_results:
+        if level_results[key]["total"] > 0:
+            level_results[key]["accuracy"] = level_results[key]["correct"] / level_results[key]["total"]
+        else:
+            level_results[key]["accuracy"] = 0
+    
+    # 将level_results转换为列表，便于按任务类型和级别排序
+    level_results_list = list(level_results.values())
+    level_results_list.sort(key=lambda x: (x["task_type"], x["level"]))
+    
     # 计算总体准确率
     overall_accuracy = overall_correct / overall_total if overall_total > 0 else 0
+    
+    # 按任务类型计算每个级别的平均准确率
+    level_summary = {}
+    for item in level_results_list:
+        task_type = item["task_type"]
+        level = item["level"]
+        
+        if task_type not in level_summary:
+            level_summary[task_type] = {}
+        
+        level_summary[task_type][level] = item["accuracy"]
     
     result = {
         "overall_accuracy": overall_accuracy,
         "task_results": task_results,
+        "level_results": level_results_list,  # 每个任务类型+级别的详细结果
+        "level_summary": level_summary,       # 按任务类型汇总的级别结果
         "compare_logs": compare_logs,
         "meta_data": meta_data,
         "results": results
     }
+    
+    # 打印结果摘要
+    logger.info(f"Overall accuracy: {overall_accuracy:.4f}")
+    
+    for task_type in task_results:
+        logger.info(f"Task type {task_type}: {task_results[task_type]['accuracy']:.4f} "
+                   f"({task_results[task_type]['correct']}/{task_results[task_type]['total']})")
+    
+    logger.info("Level breakdown:")
+    for task_type in sorted(level_summary.keys()):
+        logger.info(f"  {task_type}:")
+        for level in sorted(level_summary[task_type].keys()):
+            accuracy = level_summary[task_type][level]
+            # 查找对应的正确数和总数
+            key = f"{task_type}_level{level}"
+            correct = level_results[key]["correct"] if key in level_results else 0
+            total = level_results[key]["total"] if key in level_results else 0
+            logger.info(f"    Level {level}: {accuracy:.4f} ({correct}/{total})")
     
     return result
 

@@ -28,7 +28,7 @@ class Draw2DPath(BaseOfflineWorker):
                     "properties": {
                         "image": {
                             "type": "string",
-                            "description": "The image to draw on (base64 or path)"
+                            "description": "The image to draw on (image identifier)"
                         },
                         "start_point": {
                             "type": "array",
@@ -108,7 +108,7 @@ class Draw2DPath(BaseOfflineWorker):
             line_color = params.get("line_color", "red")
             
             # 加载图片
-            img = load_image(image)
+            img = image
             
             # 处理起始点
             if isinstance(start_point, list) and len(start_point) == 2:
@@ -151,7 +151,7 @@ class Draw2DPath(BaseOfflineWorker):
     
     def draw_direction_sequence(self, image, start, directions, step=64, line_width=3, line_color="red"):
         """
-        在图片上从起点沿方向序列画线段。
+        在图片上从起点沿方向序列画带箭头的线段。
         
         Args:
             image: PIL.Image对象或图片路径
@@ -193,6 +193,42 @@ class Draw2DPath(BaseOfflineWorker):
             
             # 画从(old_x, old_y)到(x, y)的线
             draw.line([(old_x, old_y), (x, y)], fill=line_color, width=line_width)
+            
+            # 添加箭头头部
+            arrow_size = line_width * 2
+            
+            # 根据方向计算箭头头部的点
+            if dir == 'u':
+                # 箭头指向上方
+                arrow_points = [
+                    (x, y),
+                    (x - arrow_size, y + arrow_size * 2),
+                    (x + arrow_size, y + arrow_size * 2)
+                ]
+            elif dir == 'd':
+                # 箭头指向下方
+                arrow_points = [
+                    (x, y),
+                    (x - arrow_size, y - arrow_size * 2),
+                    (x + arrow_size, y - arrow_size * 2)
+                ]
+            elif dir == 'l':
+                # 箭头指向左方
+                arrow_points = [
+                    (x, y),
+                    (x + arrow_size * 2, y - arrow_size),
+                    (x + arrow_size * 2, y + arrow_size)
+                ]
+            elif dir == 'r':
+                # 箭头指向右方
+                arrow_points = [
+                    (x, y),
+                    (x - arrow_size * 2, y - arrow_size),
+                    (x - arrow_size * 2, y + arrow_size)
+                ]
+            
+            # 绘制箭头头部
+            draw.polygon(arrow_points, fill=line_color)
 
         return img
     

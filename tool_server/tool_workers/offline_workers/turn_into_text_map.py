@@ -2,6 +2,7 @@
 import numpy as np
 from tool_server.utils.server_utils import build_logger
 from tool_server.tool_workers.offline_workers.base_offline_worker import BaseOfflineWorker
+from tool_server.utils.error_codes import *
 
 logger = build_logger("text_map_worker")
 
@@ -68,14 +69,16 @@ class TurnCoordinateIntoTextMap(BaseOfflineWorker):
                 "text_map": text_map,
                 "grid_width": grid_size[0],
                 "grid_height": grid_size[1],
-                "message": "Text map generated successfully"
+                "message": "Text map generated successfully",
+                "error_code": SUCCESS,
             }
             
         except Exception as e:
             logger.error(f"Error generating text map: {str(e)}")
             return {
                 "status": "failed",
-                "message": f"Error generating text map: {str(e)}"
+                "message": f"Error generating text map: {str(e)}",
+                "error_code": TOOL_RUN_FAILED,
             }
     
     def pixel_to_grid(self, pixel_coord, cell_size):

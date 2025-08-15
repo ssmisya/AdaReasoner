@@ -1,18 +1,4 @@
-import itertools
-import json
-import logging
-import random
-import time
-import os
-from collections import defaultdict
-from typing import TYPE_CHECKING, List, Optional, Union
 
-import numpy as np
-import torch, gc
-import yaml
-import argparse
-from torch.utils.data import DataLoader
-import torch.distributed as dist
 
 from .models import get_model
 from .tasks import get_task_object, get_task_functions
@@ -22,12 +8,10 @@ from .utils.utils import *
 from .utils.arguments import *
 
 from .utils.log_utils import get_logger, set_verbosity
-# from .utils.evaluate import evaluate_metric
 from .tool_inferencer import BaseToolInferencer
 from .tool_inferencer import BaseInferencer
-from .tool_inferencer.api import VllmToolInferencer
-import pdb
-import re
+from pathlib import Path
+
 try:
     from math_verify import parse, verify
 except ImportError:
@@ -42,10 +26,11 @@ class TFEvaluator():
         self.task_args = task_args
         self.script_args = script_args
         self.tasks = self.task_args.task_name
-            
+        
         self.model = get_model(self.model_args.model)(**self.model_args.model_args)
         self.if_use_tool = self.script_args.if_use_tool
-        # print("self.model_args.model_args['enable_tool']: ", self.model_args.model_args["enable_tool"])
+        self.model.set_enable_tool(self.if_use_tool)
+        
         max_rounds = self.model_args.max_rounds
         stop_token = self.model_args.stop_token
         
@@ -57,19 +42,35 @@ class TFEvaluator():
             # 获取第一个任务的保存路径
             first_task = list(self.task_args.save_to_ckpt.keys())[0]
             ckpt_path = self.task_args.save_to_ckpt[first_task]
+            
+            # 指定文件路径
+            ckpt_file_path = Path(ckpt_path)
+            ckpt_file_path.parent.mkdir(parents=True, exist_ok=True)
+            
             # 提取目录路径
             log_dir = os.path.dirname(ckpt_path)
             logger.info(f"Tool call statistics will be saved to {log_dir}")
         
-        self.inferencer = BaseToolInferencer(
-            tp_model=self.model,
-            batch_size=self.model_args.batch_size,
-            model_mode=self.model_args.model_mode,
-            max_rounds = max_rounds,
-            stop_token = stop_token,
-            controller_addr = self.script_args.controller_addr,
-            if_use_tool = self.if_use_tool
-        )
+        # 不存在就创建
+        output_file_path = Path(self.script_args.output_path)
+        output_file_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        if self.if_use_tool:
+            self.inferencer = BaseToolInferencer(
+                tp_model=self.model,
+                batch_size=self.model_args.batch_size,
+                model_mode=self.model_args.model_mode,
+                max_rounds = max_rounds,
+                stop_token = stop_token,
+                controller_addr = self.script_args.controller_addr,
+                if_use_tool = self.if_use_tool,
+            )
+        else:
+            self.inferencer = BaseInferencer(
+                tp_model=self.model,
+                batch_size=self.model_args.batch_size,
+                if_use_tool = self.if_use_tool,
+            )
 
     
     def evaluate(self):
@@ -79,8 +80,8 @@ class TFEvaluator():
             task_dict = get_task_functions(task_name)
             load_data_function, evaluate_function, task_config = task_dict["load_data_function"], task_dict["evaluate_function"], task_dict["task_config"]
             self.model.set_generation_config(task_config.generation_config)
-            # Generate the first batch
             
+            # Generate the first batch
             dataset = BaseEvalDataset(
                 load_data_function=load_data_function,
                 getitem_function=self.model.getitem_fn,
@@ -91,7 +92,9 @@ class TFEvaluator():
             )
             # 设置任务名称，用于保存工具调用统计
             dataset.task_name = task_name
-
+            # 设置可用工具
+            self.inferencer.set_tool_selection(dataset.tool_selection)
+            
             self.inferencer.batch_inference(dataset)
 
             res_log = dataset.evaluate()

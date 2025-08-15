@@ -256,21 +256,38 @@ accelerate launch  --config_file  ${accelerate_config} \
 #### Config file example:
 
 ```yaml
-- model_args:
-    model: qwen2vl
-    model_args: pretrained=Qwen/Qwen2-VL-7B-Instruct
-    batch_size: 2
-    max_rounds: 3
-    stop_token: <stop>
+    - model_args:
+    # The model series you want to test, must be the same with the file name under tf_eval/models
+    model: vllm_models
+    # The arguments to pass to the model, specify model path, tensor parallel size, and other parameters
+    model_args: pretrained=/mnt/petrelfs/songmingyang/songmingyang/runs/tool_factory/sft/v1/Qwen2.5-VL-7B-Instruct-pathverify_v0,tensor_parallel=2,limit_mm_per_prompt=10
+    # Batch size for inference. Adjust according to your GPU memory.
+    batch_size: 50
+    # Maximum number of rounds for tool-model interaction
+    max_rounds: 6
+    # Model operation mode
+    model_mode: general
   task_args:
-    task_name: chartgemma
+    # The task to evaluate (options include: chartgemma,chartqa,charxiv,docvqa,ocrbench,reachqa,vstar)
+    task_name: vsp
+    # Specific tools to use for evaluation, don't set this if you want all tools available.
+    tool_selection: Point,Draw2DPath
+    # Checkpoint to resume from, organized as task_name: path
     resume_from_ckpt:
-      chartgemma: ./tool_server/tf_eval/scripts/logs/ckpt/chartgemma/qwen2vl.jsonl
+      vsp: ./tool_server/tf_eval/scripts/logs/ckpt/frozen_lake/pathverify_v0_qwen25_7b/vsp.jsonl
+    # Path to save checkpoint, organized as task_name: path
     save_to_ckpt:
-      chartgemma: ./tool_server/tf_eval/scripts/logs/ckpt/chartgemma/qwen2vl.jsonl
+      vsp: ./tool_server/tf_eval/scripts/logs/ckpt/frozen_lake/pathverify_v0_qwen25_7b/vsp.jsonl
+    # Directory to save intermediate images generated during evaluation
+    middle_images_save_dir:
+      vsp: ./tool_server/tf_eval/scripts/logs/ckpt/frozen_lake/pathverify_v0_qwen25_7b/middle_images
   script_args:
+    # Logging verbosity level
     verbosity: INFO
-    output_path: ./tool_server/tf_eval/scripts/logs/results/chartgemma/qwen2vl.jsonl
+    # Path to save final evaluation results
+    output_path: ./tool_server/tf_eval/scripts/logs/results/frozen_lake/pathverify_v0_qwen25_7b/qwen25_allres.jsonl
+    # Whether to use tools during inference
+    if_use_tool: True
 ```
 
 For detailed information and config setting please refer to our [documentation](docs/README.md).

@@ -33,25 +33,31 @@ class ModelArguments:
 @dataclass
 class TaskArguments:
     task_name: Optional[str] = field(default="charxiv")
-    resume_from_ckpt: Optional[Dict[str, str]] = field(default=None,)
-    def __post_init__(self):
-        # 如果传入的是一个字典，将其包装成 Box；否则默认生成空 Box
-        if self.resume_from_ckpt is None:
-            self.resume_from_ckpt = Box()
-        elif isinstance(self.resume_from_ckpt, dict):
-            self.resume_from_ckpt = Box(self.resume_from_ckpt)
-        else:
-            raise ValueError("resume_from_ckpt should be a dictionary.")
     
+    resume_from_ckpt: Optional[Dict[str, str]] = field(default=None,)
     save_to_ckpt: Optional[Dict[str, str]] = field(default=None,)
+    middle_images_save_dir: Optional[str] = field(default=None)
+    tool_selection: Optional[str] = field(default=None,)
+    tool_selection_dict: Optional[str] = field(default=None)
+                            
     def __post_init__(self):
-        # 如果传入的是一个字典，将其包装成 Box；否则默认生成空 Box
-        if self.save_to_ckpt is None:
-            self.save_to_ckpt = Box()
-        elif isinstance(self.save_to_ckpt, dict):
-            self.save_to_ckpt = Box(self.save_to_ckpt)
-        else:
-            raise ValueError("save_to_ckpt should be a dictionary.")
+        """初始化后处理所有需要转换为Box的字段"""
+        box_fields = [
+            "resume_from_ckpt", 
+            "save_to_ckpt", 
+            "middle_images_save_dir", 
+            "tool_selection_dict"
+        ]
+        
+        for field_name in box_fields:
+            field_value = getattr(self, field_name)
+            
+            if field_value is None:
+                setattr(self, field_name, Box())
+            elif isinstance(field_value, dict):
+                setattr(self, field_name, Box(field_value))
+            else:
+                raise ValueError(f"{field_name} should be a dictionary.")
 
 
 # Define and parse arguments.

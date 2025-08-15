@@ -97,6 +97,8 @@ class BaseOfflineWorker(ABC):
                 result["execution_time"] = time.time() - start_time
             if isinstance(result, dict) and "tool_reward" not in result:
                 result["tool_reward"] = tool_reward
+            if isinstance(result, dict) and "error_code" not in result:
+                result["error_code"] = SUCCESS
             
             return result
             

@@ -40,7 +40,7 @@ logger = build_logger(__file__, f"get_subplot_info_worker_{worker_id}.log")
 
 # vLLM 模型配置
 # VLLM_API_BASE_URL = "http://SH-IDC1-10-140-37-35:16112/v1"
-VLLM_API_BASE_URL = "http://SH-IDC1-10-140-37-23:16112/v1"
+VLLM_API_BASE_URL = "http://SH-IDC1-10-140-37-138:16112/v1"
 VLLM_API_KEY = "not-needed"
 VLLM_MODEL_NAME = "/mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-72B-Instruct"
         

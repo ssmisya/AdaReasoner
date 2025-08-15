@@ -220,8 +220,6 @@ class VllmModels(tp_model):
         # breakpoint()  # Debug breakpoint
         response = self.model.chat(inputs, sampling_params)  # Call model for parallel response generation, VLLM library's parallel inference
 
-
-
         for item, output_item in zip(batch, response):
             output_text = output_item.outputs[0].text  # Get generated text
             item.model_response.append(output_text)  # Add response to model response list

@@ -147,7 +147,7 @@ tool_worker_config:
         port: 30012
         host: "0.0.0.0"
         api_key: not-needed
-        api_base_url: http://SH-IDC1-10-140-37-23:16112/v1
+        api_base_url: http://SH-IDC1-10-140-37-138:16112/v1
         api_model_name: /mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-72B-Instruct
 
 
@@ -161,5 +161,5 @@ tool_worker_config:
         port: 30013
         host: "0.0.0.0"
         api_key: not-needed
-        api_base_url: http://SH-IDC1-10-140-37-23:16112/v1
+        api_base_url: http://SH-IDC1-10-140-37-138:16112/v1
         api_model_name: /mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-72B-Instruct

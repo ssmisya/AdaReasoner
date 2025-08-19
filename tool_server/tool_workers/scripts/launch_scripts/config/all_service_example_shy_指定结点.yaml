@@ -25,32 +25,32 @@ controller_config:
 # 比如model-path会转义成model_path
 
 tool_worker_config:
-  # - Point:
-  #     worker_name: Point
-  #     job_name: point
+  - Point:
+      worker_name: Point
+      job_name: point
+      calculate_type: calculate
+      conda_env: "tool-server"
+      node_list: "SH-IDC1-10-140-37-21"
+      cuda_visible_devices: "6"
+      cmd:
+        script-addr: tool_server.tool_workers.online_workers.molmo_point_worker
+        port: 20027
+        host: "0.0.0.0"
+        model_path: "/mnt/petrelfs/share_data/songmingyang/model/mm/tools/Molmo-7B-D-0924"
+
+  # - SegmentRegionAroundPoint:
+  #     worker_name: SegmentRegionAroundPoint
+  #     job_name: sam2
   #     calculate_type: calculate
   #     conda_env: "tool-server"
   #     node_list: "SH-IDC1-10-140-37-79"
-  #     cuda_visible_devices: "4"
+  #     cuda_visible_devices: "5"
   #     cmd:
-  #       script-addr: tool_server.tool_workers.online_workers.molmo_point_worker
-  #       port: 20027
+  #       script-addr: tool_server.tool_workers.online_workers.sam_worker
+  #       port: 20036
   #       host: "0.0.0.0"
-  #       model_path: "/mnt/petrelfs/share_data/songmingyang/model/mm/tools/Molmo-7B-D-0924"
-
-  - SegmentRegionAroundPoint:
-      worker_name: SegmentRegionAroundPoint
-      job_name: sam2
-      calculate_type: calculate
-      conda_env: "tool-server"
-      node_list: "SH-IDC1-10-140-37-79"
-      cuda_visible_devices: "5"
-      cmd:
-        script-addr: tool_server.tool_workers.online_workers.sam_worker
-        port: 20036
-        host: "0.0.0.0"
-        sam2_checkpoint: /mnt/petrelfs/sunhaoyu/visual-code/weights/sam2-hiera-large/sam2_hiera_large.pt
-        sam2_model_cfg: sam2_hiera_l.yaml
+  #       sam2_checkpoint: /mnt/petrelfs/sunhaoyu/visual-code/weights/sam2-hiera-large/sam2_hiera_large.pt
+  #       sam2_model_cfg: sam2_hiera_l.yaml
 
   # - GroundingDINO:
   #     worker_name: GroundingDINO

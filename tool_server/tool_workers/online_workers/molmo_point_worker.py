@@ -35,7 +35,7 @@ class MolmoPointArguments(WorkerArguments):
         metadata={"help": "Maximum length for token generation"}
     )
     max_concurrency: Optional[int] = field(
-        default=2010,
+        default=80,
         metadata={"help": "Maximum number of concurrent requests to process."}
     )
 

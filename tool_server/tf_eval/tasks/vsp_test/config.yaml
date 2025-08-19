@@ -1,9 +1,14 @@
-task_name: "vsp"
+task_name: "vsp_test"
 dataset_path: "/mnt/petrelfs/songmingyang/code/reasoning/tool_util_code/frozen_lake/data_curation/frozen_lake_metadata_v2"
-data_dir: "./data_split"  # 分割后的数据目录位置
+data_dir: "./metadata_split"  # 分割后的数据目录位置
+image_dir: /mnt/petrelfs/songmingyang/code/reasoning/tool_util_code/frozen_lake/data_curation
 dataset_type: "unique"  # 自定义数据加载逻辑
 tasks:
-  - "task-main"  # 路径规划任务
-  - "task4"      # 路径验证任务
+  - "navigation-sft" 
+  # - "navigation-rl" 
+  - "navigation-test"  
+  - "verify-sft" 
+  # - "verify-rl" 
+  - "verify-test" 
 generation_config:
   max_length: 2048

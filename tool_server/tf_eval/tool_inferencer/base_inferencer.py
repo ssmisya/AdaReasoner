@@ -556,11 +556,13 @@ class BaseToolInferencer(object):
         if not 'vllm_models' in str(type(self.tp_model)):
             self.accelerator.wait_for_everyone()
     
-    def set_tool_selection(self, tool_selection: Union[List, str]) -> None:
+    def set_tool_selection(self, tool_selection: Union[List, str, None]) -> None:
         if isinstance(tool_selection, List):
             self.tool_selection = tool_selection
         elif isinstance(tool_selection, str):
             self.tool_selection = tool_selection.split(",")
+        # elif tool_selection is None:
+        #     self.tool_selection = None
         else:
             raise ValueError("tool_selection should be a dictionary or a string.")
         self.tool_manager = ToolManager(controller_url_location=self.controlller_addr, tools=self.tool_selection)

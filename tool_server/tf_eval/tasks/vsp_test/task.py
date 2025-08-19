@@ -41,11 +41,12 @@ Please generate action plan for the input maze image.
 def load_data_function():
     """加载自定义数据集的函数"""
     dataset_path = task_config.get("dataset_path")
-    tasks = task_config.get("tasks", ["task-main", "task4"])
+    tasks = task_config.get("tasks", ["navigation-test", "verify-test"])
     
     # 从配置文件获取数据路径
     data_dir = task_config.get("data_dir", "./metadata_split")
     data_dir = os.path.join(dataset_path, data_dir) if dataset_path else data_dir
+    img_dir = task_config.get("image_dir", "./images")
     
     verify_dir = os.path.join(data_dir, "path_verify")
     navigation_dir = os.path.join(data_dir, "path_navigation")
@@ -54,21 +55,18 @@ def load_data_function():
     
     # 加载不同任务的数据
     for task in tasks:
-        if task == "task4":  # 路径验证任务
+        task_prefix, task_suffix = task.split("-")
+        if task_prefix == "verify":  # 路径验证任务
             # 加载验证数据
-            if os.path.exists(verify_dir):
-                for split in ["sft", "rl", "test"]:
-                    data_path = os.path.join(verify_dir, f"{split}.jsonl")
-                    if os.path.exists(data_path):
-                        meta_data.extend(load_path_verify_data(data_path, task, split))
+            data_path = os.path.join(verify_dir, f"{task_suffix}.jsonl")
+            if os.path.exists(data_path):
+                meta_data.extend(load_path_verify_data(data_path, task_prefix, task_suffix, img_dir))
         
-        elif task == "task-main":  # 路径导航任务
-            # 加载导航数据
-            if os.path.exists(navigation_dir):
-                for split in ["sft", "rl", "test"]:
-                    data_path = os.path.join(navigation_dir, f"{split}.jsonl")
-                    if os.path.exists(data_path):
-                        meta_data.extend(load_path_navigation_data(data_path, task, split))
+        elif task_prefix == "navigation":  # 路径导航任务
+            data_path = os.path.join(navigation_dir, f"{task_suffix}.jsonl")
+            if os.path.exists(data_path):
+                meta_data.extend(load_path_navigation_data(data_path, task_prefix, task_suffix, img_dir))
+                    
     
     # 数据集统计信息
     logger.info(f"Total data loaded: {len(meta_data)}")
@@ -167,7 +165,7 @@ def convert_to_gym_map(item):
     
     return map_data
 
-def load_path_verify_data(data_path, task_type, split):
+def load_path_verify_data(data_path, task_type, split, img_dir):
     """加载路径验证任务数据"""
     meta_data = []
     
@@ -176,13 +174,13 @@ def load_path_verify_data(data_path, task_type, split):
     
     for item in data:
         # 检查item是否包含必要的字段
-        if not all(key in item for key in ["id", "image_path", "path_drawings", "random"]):
-            continue
+        if not all(key in item for key in ["id", "image_path", "path_drawings",]):
+            raise ValueError(f"Missing required keys in item: {item.keys()}")
         
         # 获取随机路径数据
         random_path = item["path_drawings"]["random"]
         if "path" not in random_path or "is_safe" not in random_path:
-            continue
+            raise ValueError(f"Missing 'path' or 'is_safe' in random path: {random_path}")
         
         path_string = random_path["path"]
         is_safe = random_path["is_safe"]
@@ -193,10 +191,11 @@ def load_path_verify_data(data_path, task_type, split):
         # 转换gym地图
         gym_map = convert_to_gym_map(item)
         
+        image_path = os.path.join(img_dir, item["image_path"]) if img_dir else item["image_path"]
         meta_data.append({
             "idx": f"{item['id']}_verify_{split}",
             "original_id": item["id"],
-            "image_path": item["image_path"],
+            "image_path": image_path,
             "text": text_prompt,
             "answer": "Yes" if is_safe else "No",
             "task_type": task_type,
@@ -210,7 +209,7 @@ def load_path_verify_data(data_path, task_type, split):
     logger.info(f"Loaded {len(meta_data)} records for {task_type} from {data_path}")
     return meta_data
 
-def load_path_navigation_data(data_path, task_type, split):
+def load_path_navigation_data(data_path, task_type, split, img_dir):
     """加载路径导航任务数据"""
     meta_data = []
     
@@ -220,7 +219,7 @@ def load_path_navigation_data(data_path, task_type, split):
     for item in data:
         # 检查item是否包含必要的字段
         if not all(key in item for key in ["id", "image_path", "start_coords", "goal_coords", "obstacle_coords"]):
-            continue
+            raise ValueError(f"Missing required keys in item: {item.keys()}")
         
         # 构建提示
         text_prompt = PATH_NAVIGATION_INSTRUCTION
@@ -231,10 +230,11 @@ def load_path_navigation_data(data_path, task_type, split):
         # 转换gym地图
         gym_map = convert_to_gym_map(item)
         
+        image_path = os.path.join(img_dir, item["image_path"]) if img_dir else item["image_path"]
         meta_data.append({
             "idx": f"{item['id']}_navigation_{split}",
             "original_id": item["id"],
-            "image_path": item["image_path"],
+            "image_path": image_path,
             "text": text_prompt,
             "answer": "DYNAMIC_EVAL",  # 这个任务需要动态评估
             "task_type": task_type,
@@ -282,7 +282,7 @@ def evaluate_function(results, meta_data):
             size_results[task_size_key] = {"correct": 0, "total": 0, "task_type": task_type, "size": size}
         
         # 初始化任务类型+尺寸+路径长度统计
-        if task_type == "task4":  # 只为路径验证任务统计路径长度
+        if task_type == "verify":  # 只为路径验证任务统计路径长度
             task_size_length_key = f"{task_type}_size{size}_length{path_length}"
             if task_size_length_key not in path_length_results:
                 path_length_results[task_size_length_key] = {
@@ -297,9 +297,9 @@ def evaluate_function(results, meta_data):
             meta["prediction"] = None
         
         # 根据任务类型评估结果
-        if task_type == "task4":
+        if task_type == "verify":
             score, message = evaluate_path_validation(prediction, meta)
-        elif task_type == "task-main":
+        elif task_type == "navigation":
             score, message = evaluate_path_navigation(prediction, meta)
         else:
             score, message = 0, "Unknown task type"
@@ -313,7 +313,7 @@ def evaluate_function(results, meta_data):
         size_results[task_size_key]["total"] += 1
         
         # 记录任务类型+尺寸+路径长度结果
-        if task_type == "task4" and task_size_length_key in path_length_results:
+        if task_type == "verify" and task_size_length_key in path_length_results:
             path_length_results[task_size_length_key]["correct"] += score
             path_length_results[task_size_length_key]["total"] += 1
         
@@ -326,7 +326,7 @@ def evaluate_function(results, meta_data):
             "idx": idx,
             "task_type": task_type,
             "size": size,
-            "path_length": path_length if task_type == "task4" else None,
+            "path_length": path_length if task_type == "verify" else None,
             "gold": meta["answer"],
             "pred": prediction,
             "score": score,
@@ -398,7 +398,6 @@ def evaluate_function(results, meta_data):
         "size_summary": size_summary,           
         "length_summary": length_summary,       
         "compare_logs": compare_logs,
-        "meta_data": meta_data,
         "results": results
     }
     
@@ -422,13 +421,13 @@ def evaluate_function(results, meta_data):
             logger.info(f"    Size {size}: {accuracy:.4f} ({correct}/{total})")
     
     # 打印按路径长度的结果（只对路径验证任务）
-    if "task4" in length_summary:
+    if "verify" in length_summary:
         logger.info("Path length breakdown for path verification task:")
-        for size in sorted(length_summary["task4"].keys()):
+        for size in sorted(length_summary["verify"].keys()):
             logger.info(f"  Size {size}:")
-            for path_length in sorted(length_summary["task4"][size].keys()):
-                accuracy = length_summary["task4"][size][path_length]
-                key = f"task4_size{size}_length{path_length}"
+            for path_length in sorted(length_summary["verify"][size].keys()):
+                accuracy = length_summary["verify"][size][path_length]
+                key = f"verify_size{size}_length{path_length}"
                 correct = path_length_results[key]["correct"] if key in path_length_results else 0
                 total = path_length_results[key]["total"] if key in path_length_results else 0
                 logger.info(f"    Length {path_length}: {accuracy:.4f} ({correct}/{total})")
@@ -441,13 +440,13 @@ def evaluate_path_validation(prediction, meta):
         return 0, "No prediction"
     
     # 预处理预测结果
-    prediction = prediction.lower().strip()
-    
-    # 提取Yes/No答案
     yes_pattern = r'\\boxed\s*{\s*yes\s*}|boxed\s*{\s*yes\s*}|boxed{yes}|boxed\(\s*yes\s*\)|yes'
     no_pattern = r'\\boxed\s*{\s*no\s*}|boxed\s*{\s*no\s*}|boxed{no}|boxed\(\s*no\s*\)|no'
     
-    if re.search(yes_pattern, prediction, re.IGNORECASE) and not re.search(no_pattern, prediction, re.IGNORECASE):
+    prediction = prediction.lower().strip()
+    if prediction in ["yes", "no"]:
+        pred_answer = prediction
+    elif re.search(yes_pattern, prediction, re.IGNORECASE) and not re.search(no_pattern, prediction, re.IGNORECASE):
         pred_answer = "yes"
     elif re.search(no_pattern, prediction, re.IGNORECASE) and not re.search(yes_pattern, prediction, re.IGNORECASE):
         pred_answer = "no"

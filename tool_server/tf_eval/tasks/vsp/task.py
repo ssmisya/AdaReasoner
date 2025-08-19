@@ -593,7 +593,6 @@ def evaluate_function(results, meta_data):
         "level_results": level_results_list,  # 每个任务类型+级别的详细结果
         "level_summary": level_summary,       # 按任务类型汇总的级别结果
         "compare_logs": compare_logs,
-        "meta_data": meta_data,
         "results": results
     }
     

@@ -61,6 +61,7 @@ class BaseInferencer(object):
             generate_conversation_fn = self.tp_model.generate_conversation_fn,
             if_use_tool = False,  # Pass if_use_tool parameter to DynamicBatchManager
         )
+        # remote_breakpoint(port=7119)
   
             
     def pop_qualified_items(self):

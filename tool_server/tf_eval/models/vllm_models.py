@@ -5,6 +5,7 @@ from PIL import Image
 from typing import List
 import torch
 from vllm import LLM, SamplingParams
+from tool_server.utils.debug import remote_breakpoint
 
 
 # from .template_instruct import *
@@ -34,7 +35,7 @@ class VllmModels(tp_model):
             tensor_parallel_size=tensor_parallel,  # Parallel size
             limit_mm_per_prompt={"image": int(limit_mm_per_prompt)}  # Limit number of images per prompt
         )
-        
+        self.limit_mm_per_prompt = int(limit_mm_per_prompt)  # Set limit on number of images per prompt
         self.system_prompt = None
 
     def generate_conversation_fn(
@@ -140,9 +141,59 @@ class VllmModels(tp_model):
             ]
         
         conversation.extend(new_messages)  # Add new messages to conversation history
-
-        return conversation
+        # Check and limit the number of images in conversation to limit_mm_per_prompt
+        
+        conversation = self.check_limit_mm_per_prompt(conversation)
+        
+        return conversation  # Return updated conversation history
     
+    def check_limit_mm_per_prompt(self, conversation: List[dict]):
+    # Count current images in conversation
+        image_count = 0
+        for msg in conversation:
+            if msg["role"] != "system":  # Skip system messages
+                content = msg["content"]
+                for item in content:
+                    if item.get("type") == "image_url":
+                        image_count += 1
+        
+        # If we have more images than allowed, remove excess images starting from oldest non-first
+        if image_count > self.limit_mm_per_prompt:
+            # remote_breakpoint(port=7119)
+            # Keep track of the first image we've seen
+            first_image_found = False
+            images_to_keep = self.limit_mm_per_prompt
+            
+            # Process conversation from beginning to end
+            for msg_idx, msg in enumerate(conversation):
+                if msg["role"] != "system":
+                    content = msg["content"]
+                    image_indices = []
+                    
+                    # Find all image indices in this message
+                    for i, item in enumerate(content):
+                        if item.get("type") == "image_url":
+                            if not first_image_found:
+                                first_image_found = True  # Keep the first image
+                            else:
+                                image_indices.append(i)
+                        
+                    # Remove excess images from oldest to newest, but keep first image
+                    if image_indices and images_to_keep < image_count:
+                        # Calculate how many images to remove from this message
+                        to_remove = min(len(image_indices), image_count - images_to_keep)
+                    
+                        # Remove images starting from oldest (excluding first image overall)
+                        for i in range(to_remove):
+                            idx_to_remove = image_indices[i]
+                            # Adjust for already removed items
+                            actual_idx = idx_to_remove - i
+                            content.pop(actual_idx)
+                            image_count -= 1
+                        
+                        # Update message content
+                        conversation[msg_idx]["content"] = content
+        return conversation
     
     def form_input_from_dynamic_batch(self, batch: List[DynamicBatchItem]):
         """

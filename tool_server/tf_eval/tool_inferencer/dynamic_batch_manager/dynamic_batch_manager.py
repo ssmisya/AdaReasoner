@@ -40,7 +40,7 @@ class DynamicBatchManager():
     
     def extract_final_answer(self, final_response: str):
         # 根据新的prompt格式，最终答案在<response>标签中
-        response_content = None
+        response_content = final_response
         if "<response>" in final_response and "</response>" in final_response:
             # 提取<response>标签中的内容
             response_content = final_response.split("<response>")[-1].split("</response>")[0].strip()
@@ -96,7 +96,6 @@ class DynamicBatchManager():
     def append_item_to_full(self, dataloader, progress_bar=None):
         while len(self.dynamic_batch) < self.batch_size:
             try:
-                # breakpoint()
                 self.append_item(next(dataloader))
                 if progress_bar:
                     progress_bar.update(1)

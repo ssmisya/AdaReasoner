@@ -56,6 +56,7 @@ def merge_jsonl(input_file_dir, output_filepath):
             output_file.write(json.dumps(data) + '\n')
 
 def append_jsonl(data, filename):
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
     # 处理数据中的PIL图像对象
     cleaned_data = remove_pil_objects(data)
     

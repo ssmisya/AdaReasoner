@@ -32,7 +32,7 @@ logger = build_logger(__file__, f"draw_shape_worker_{worker_id}.log")
 @dataclass
 class DrawShapeArguments(WorkerArguments):
     max_concurrency: int = field(
-        default=10,
+        default=120000,
         metadata={"help": "Maximum number of concurrent requests the model can handle"}
     )
 
@@ -145,6 +145,8 @@ class DrawShapeWorker(BaseToolWorker):
             # 加载图像
             try:
                 image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")  # 图像加载成功，参数合规+1
+                # 更新图像尺寸
+                image_dimensions = {"width": image.width, "height": image.height}
             except Exception as e:
                 pred_dict = {
                     "tool_response_from": self.model_name,
@@ -181,7 +183,8 @@ class DrawShapeWorker(BaseToolWorker):
                             "status": "failed",
                             "message": message,
                             "error_code": INVALID_PARAMETERS,
-                            "tool_reward": tool_reward+correct_param_content_num/required_keys_num
+                            "tool_reward": tool_reward+correct_param_content_num/required_keys_num,
+                            "image_dimensions_pixels": image_dimensions
                         }
                         return pred_dict
                     
@@ -195,7 +198,8 @@ class DrawShapeWorker(BaseToolWorker):
                             "status": "failed",
                             "message": message,
                             "error_code": INVALID_PARAMETERS,
-                            "tool_reward": tool_reward+correct_param_content_num/required_keys_num
+                            "tool_reward": tool_reward+correct_param_content_num/required_keys_num,
+                            "image_dimensions_pixels": image_dimensions
                         }
                         return pred_dict
                     
@@ -219,7 +223,8 @@ class DrawShapeWorker(BaseToolWorker):
                         "status": "failed",
                         "message": f"Error drawing shape: {str(e)}",
                         "error_code": INVALID_PARAMETERS,
-                        "tool_reward": tool_reward+correct_param_content_num/required_keys_num
+                        "tool_reward": tool_reward+correct_param_content_num/required_keys_num,
+                        "image_dimensions_pixels": image_dimensions
                     }
                     return pred_dict
             
@@ -236,10 +241,7 @@ class DrawShapeWorker(BaseToolWorker):
                 "status": "success",
                 "edited_image": img_str,
                 "message": f"Successfully drew {len(bboxes)} shapes on the image.",
-                "image_dimensions_pixels": {
-                    "width": image.width,
-                    "height": image.height
-                },
+                "image_dimensions_pixels": image_dimensions,
                 "error_code": SUCCESS,
                 "tool_reward": tool_reward+correct_param_content_num/required_keys_num
             }

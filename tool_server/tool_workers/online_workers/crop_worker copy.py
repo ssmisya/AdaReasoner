@@ -40,10 +40,6 @@ class CropArguments(WorkerArguments):
         default=32,
         metadata={"help": "Minimum image size for cropping. Images smaller than this will be resized."}
     )
-    min_image_height_or_length: int = field(
-        default=32,
-        metadata={"help": "Minimum image size for cropping. Images smaller than this will be resized."}
-    )
 
 class CropToolWorker(BaseToolWorker):
     def __init__(self, worker_arguments: CropArguments = None):
@@ -58,7 +54,6 @@ class CropToolWorker(BaseToolWorker):
             worker_arguments.limit_model_concurrency = self.max_concurrency
         
         super().__init__(worker_arguments)
-        self.min_image_height_or_length = worker_arguments.min_image_height_or_length if worker_arguments else 32
         self.min_image_height_or_length = worker_arguments.min_image_height_or_length if worker_arguments else 32
         
         # 初始化线程池
@@ -212,50 +207,19 @@ class CropToolWorker(BaseToolWorker):
                     cropped_width, cropped_height = cropped_image.size
                     # Check if cropped image meets minimum size requirement
                     if cropped_height < self.min_image_height_or_length or cropped_width < self.min_image_height_or_length:
-                        # 对较小的边进行填充
-                        logger.info(f"Cropped image is too small ({cropped_width}x{cropped_height}), padding to meet minimum dimension requirement of {self.min_image_height_or_length}")
-                        
-                        # 创建一个新的白色背景图像
-                        new_width = max(cropped_width, self.min_image_height_or_length)
-                        new_height = max(cropped_height, self.min_image_height_or_length)
-                        padded_image = Image.new("RGB", (new_width, new_height), (255, 255, 255))
-                        
-                        # 计算粘贴位置（居中）
-                        paste_x = (new_width - cropped_width) // 2
-                        paste_y = (new_height - cropped_height) // 2
-                        
-                        # 将裁剪的图像粘贴到新图像上
-                        padded_image.paste(cropped_image, (paste_x, paste_y))
-                        cropped_image = padded_image
-                        logger.info(f"Padded image to {new_width}x{new_height}")
-                        cropped_width, cropped_height = new_width, new_height
-                    
-                    # 填充后检查是否有极端的宽高比
-                    aspect_ratio = max(cropped_width, cropped_height) / min(cropped_width, cropped_height)
-                    if aspect_ratio > 200:
-                        logger.info(f"Extreme aspect ratio detected ({aspect_ratio}), cropping from the middle of the longer dimension")
-                        if cropped_width > cropped_height:
-                            # 宽度过长，从中间裁剪
-                            center = cropped_width // 2
-                            crop_width = cropped_height * 200
-                            left = max(0, center - crop_width // 2)
-                            right = min(cropped_width, center + crop_width // 2)
-                            cropped_image = cropped_image.crop((left, 0, right, cropped_height))
+                        # Resize the cropped image if it's too small
+                        logger.info(f"Cropped image is too small ({cropped_width}x{cropped_height}), resizing to meet minimum dimension requirement of {self.min_image_height_or_length}")
+                        if cropped_width < cropped_height:
+                            new_width = self.min_image_height_or_length
+                            new_height = int(cropped_height * (self.min_image_height_or_length / cropped_width))
                         else:
-                            # 高度过长，从中间裁剪
-                            center = cropped_height // 2
-                            crop_height = cropped_width * 200
-                            top = max(0, center - crop_height // 2)
-                            bottom = min(cropped_height, center + crop_height // 2)
-                            cropped_image = cropped_image.crop((0, top, cropped_width, bottom))
-                        cropped_width, cropped_height = cropped_image.size
-                        logger.info(f"Cropped image to {cropped_width}x{cropped_height} after aspect ratio adjustment")
+                            new_height = self.min_image_height_or_length
+                            new_width = int(cropped_width * (self.min_image_height_or_length / cropped_height))
+
+                        cropped_image = cropped_image.resize((new_width, new_height), Image.LANCZOS)
+                        logger.info(f"Resized image to {new_width}x{new_height}")
+                        cropped_width, cropped_height = new_width, new_height
                     # Convert cropped image to base64
-                    # buffered = BytesIO()
-                    # image_format = image.format if image.format else 'PNG'
-                    # cropped_image.save(buffered, format=image_format)
-                    # img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
-                    img_str = pil_to_base64(cropped_image)
                     # buffered = BytesIO()
                     # image_format = image.format if image.format else 'PNG'
                     # cropped_image.save(buffered, format=image_format)

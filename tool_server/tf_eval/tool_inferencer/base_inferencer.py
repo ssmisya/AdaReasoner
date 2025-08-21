@@ -487,7 +487,7 @@ class BaseToolInferencer(object):
             
         # 将数据加载器转换为迭代器并设置模型为评估模式
         self.dataloader_iter = iter(self.dataloader)
-        self.tp_model.eval()
+        # self.tp_model.eval()
         # 创建进度条
         progress_bar = tqdm_rank0(len(self.dataloader), desc="Model Responding")
 

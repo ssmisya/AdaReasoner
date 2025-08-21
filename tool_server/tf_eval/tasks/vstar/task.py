@@ -138,4 +138,3 @@ def rule_based_verify(
         return 1.0
     else:
         return 0.0
-

@@ -32,7 +32,7 @@ logger = build_logger(__file__, f"mask_box_worker_{worker_id}.log")
 @dataclass
 class MaskBoxArguments(WorkerArguments):
     max_concurrency: int = field(
-        default=10,
+        default=120000,
         metadata={"help": "Maximum number of concurrent requests the model can handle"}
     )
 
@@ -122,6 +122,14 @@ class MaskBoxWorker(BaseToolWorker):
             try:
                 image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
                 correct_param_content_num += 1
+                
+                # 获取图像尺寸
+                image_width, image_height = image.size
+                image_dimensions = {
+                    "width": image_width,
+                    "height": image_height
+                }
+                
             except Exception as e:
                 pred_dict = {
                     "tool_response_from": self.model_name,
@@ -133,7 +141,6 @@ class MaskBoxWorker(BaseToolWorker):
                 return pred_dict
             
             # 验证所有边界框坐标是否在图像范围内
-            image_width, image_height = image.size
             for bbox in bboxes:
                 if len(bbox) != 4:
                     pred_dict = {
@@ -141,7 +148,8 @@ class MaskBoxWorker(BaseToolWorker):
                         "status": "failed",
                         "message": f"Invalid bbox format: {bbox}. Expected 4 values [x_min, y_min, x_max, y_max].",
                         "error_code": INVALID_PARAMETERS,
-                        "tool_reward": tool_reward+correct_param_content_num/required_keys_num
+                        "tool_reward": tool_reward+correct_param_content_num/required_keys_num,
+                        "image_dimensions_pixels": image_dimensions
                     }
                     return pred_dict
                 
@@ -154,7 +162,8 @@ class MaskBoxWorker(BaseToolWorker):
                         "status": "failed",
                         "message": f"Bounding box coordinates {bbox} are outside of image dimensions ({image_width}x{image_height}).",
                         "error_code": INVALID_PARAMETERS,
-                        "tool_reward": tool_reward+correct_param_content_num/required_keys_num
+                        "tool_reward": tool_reward+correct_param_content_num/required_keys_num,
+                        "image_dimensions_pixels": image_dimensions
                     }
                     return pred_dict
             
@@ -188,10 +197,7 @@ class MaskBoxWorker(BaseToolWorker):
                     "status": "success",
                     "edited_image": img_str,
                     "message": f"Successfully masked {len(bboxes)} regions in the image.",
-                    "image_dimensions_pixels": {
-                        "width": draw_image.width,
-                        "height": draw_image.height
-                    },
+                    "image_dimensions_pixels": image_dimensions,
                     "error_code": SUCCESS,
                     "tool_reward": tool_reward+correct_param_content_num/required_keys_num
                 }
@@ -204,7 +210,8 @@ class MaskBoxWorker(BaseToolWorker):
                     "status": "failed",
                     "message": f"Error processing bounding boxes: {str(e)}",
                     "error_code": TOOL_RUN_FAILED,
-                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num,
+                    "image_dimensions_pixels": image_dimensions
                 }
                 return pred_dict
                 

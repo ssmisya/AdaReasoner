@@ -63,7 +63,7 @@ class ToolManager(object):
                 session = requests.Session()
                 session.trust_env = False
                 try:
-                    ret = session.post(self.controller_addr + "/list_models", proxies={})
+                    ret = session.post(self.controller_addr + "/list_models", proxies={},timeout=(6000,60000))
                     online_tools = ret.json()["models"]
                     
                     # 如果指定了工具列表，只保留指定的在线工具

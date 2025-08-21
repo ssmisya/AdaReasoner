@@ -40,7 +40,7 @@ np.random.seed(3)
 class OCRToolArguments(WorkerArguments):
     """OCR工具工作器的参数"""
     max_concurrency: Optional[int] = field(
-        default=10,
+        default=120000,
         metadata={"help": "Maximum number of concurrent requests to process."}
     )
 
@@ -91,7 +91,7 @@ class OCRToolWorker(BaseToolWorker):
         try:
             # 使用线程池提交任务
             future = self.thread_pool.submit(self.generate_impl, params)
-            ret = future.result(timeout=120)  # 设置超时时间
+            ret = future.result(timeout=12000)  # 设置超时时间
             return ret
         except Exception as e:
             logger.error(f"Error in generate_gate: {e}")
@@ -223,7 +223,7 @@ class OCRToolWorker(BaseToolWorker):
             # 收集所有结果
             for future in futures:
                 try:
-                    result = future.result(timeout=120)
+                    result = future.result(timeout=12000)
                     results.append(result)
                 except Exception as e:
                     logger.error(f"Error processing batch item: {e}")

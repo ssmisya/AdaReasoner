@@ -61,10 +61,10 @@ class WorkerArguments:
         metadata={"help": "Device to use for model (cuda, cpu, etc.)"}
     )
     task_timeout: int = field(
-        default=120,
+        default=120000,
         metadata={"help": "Timeout for tasks in seconds"}
     )
     wait_timeout: int = field(
-        default=60,
+        default=120000,
         metadata={"help": "Timeout for semaphore waiting in seconds"}
     )

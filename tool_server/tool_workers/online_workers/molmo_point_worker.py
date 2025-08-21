@@ -31,11 +31,11 @@ logger = build_logger(__file__, f"molmo_point_worker_{worker_id}.log")
 @dataclass
 class MolmoPointArguments(WorkerArguments):
     max_length: Optional[int] = field(
-        default=2048,
+        default=120000,
         metadata={"help": "Maximum length for token generation"}
     )
     max_concurrency: Optional[int] = field(
-        default=10,
+        default=80,
         metadata={"help": "Maximum number of concurrent requests to process."}
     )
 
@@ -177,7 +177,7 @@ class MolmoPointWorker(BaseToolWorker):
         try:
             # 使用线程池提交任务
             future = self.thread_pool.submit(self._generate_with_torch_inference, params)
-            ret = future.result(timeout=120)  # 设置超时时间
+            ret = future.result(timeout=12000)  # 设置超时时间
             return ret
         except Exception as e:
             logger.error(f"Error in generate_gate: {e}")
@@ -224,6 +224,12 @@ class MolmoPointWorker(BaseToolWorker):
             try:
                 image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
                 correct_param_content_num += 1
+                
+                # 成功加载图像后，创建图像尺寸信息
+                image_dimensions = {
+                    "width": image.width,
+                    "height": image.height
+                }
             except Exception as e:
                 pred_dict = {
                     "tool_response_from": self.model_name,
@@ -243,7 +249,8 @@ class MolmoPointWorker(BaseToolWorker):
                     "status": "failed",
                     "message": "Invalid parameters: expected keys: image, description.",
                     "error_code": INVALID_PARAMETERS,
-                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num,
+                    "image_dimensions_pixels": image_dimensions
                 }
                 return pred_dict
             
@@ -275,7 +282,8 @@ class MolmoPointWorker(BaseToolWorker):
                     "status": "failed",
                     "message": f"Model inference failed: {str(e)}",
                     "error_code": TOOL_RUN_FAILED,
-                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num,
+                    "image_dimensions_pixels": image_dimensions
                 }
                 return pred_dict
             
@@ -310,10 +318,7 @@ class MolmoPointWorker(BaseToolWorker):
                         "status": "success",
                         "points": point_data,
                         "edited_image": img_str,
-                        "image_dimensions_pixels": {
-                            "width": image.width,
-                            "height": image.height
-                        },
+                        "image_dimensions_pixels": image_dimensions,
                         "error_code": SUCCESS,
                         "tool_reward": tool_reward+correct_param_content_num/required_keys_num
                     }
@@ -323,10 +328,7 @@ class MolmoPointWorker(BaseToolWorker):
                         "status": "success",
                         "points": point_data,
                         "message": "No valid points detected in the response.",
-                        "image_dimensions_pixels": {
-                            "width": image.width,
-                            "height": image.height
-                        },
+                        "image_dimensions_pixels": image_dimensions,
                         "error_code": SUCCESS,
                         "tool_reward": tool_reward+correct_param_content_num/required_keys_num
                     }
@@ -338,11 +340,13 @@ class MolmoPointWorker(BaseToolWorker):
                     "status": "failed",
                     "message": "Model did not generate any response.",
                     "error_code": TOOL_RUN_FAILED,
-                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num,
+                    "image_dimensions_pixels": image_dimensions
                 }
                 return pred_dict
                 
         except Exception as e:
+            # 这里不添加image_dimensions_pixels，因为可能在处理图像前就发生了异常
             pred_dict = {
                 "tool_response_from": self.model_name,
                 "status": "failed",
@@ -384,7 +388,7 @@ class MolmoPointWorker(BaseToolWorker):
             # 收集所有结果
             for future in futures:
                 try:
-                    result = future.result(timeout=120)
+                    result = future.result(timeout=12000)
                     results.append(result)
                 except Exception as e:
                     logger.error(f"Error processing batch item: {e}")

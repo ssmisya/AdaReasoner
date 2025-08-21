@@ -70,7 +70,7 @@ class ServerManager:
             f"--partition={self.config.partition}",  # 指定SLURM分区
             f"--job-name={job_name}",  # 设置作业名称
             "--mpi=pmi2",  # 设置MPI实现
-            f"--gres=gpu:{gpus}",  # 请求GPU资源
+            f"--gres=gpu:0",  # 请求GPU资源
             "-n1",  # 任务数量为1
             "--ntasks-per-node=1",  # 每个节点任务数为1
             f"-c {cpus}",  # 请求的CPU核心数
@@ -80,6 +80,7 @@ class ServerManager:
             f"--output={log_file}",  # 指定输出日志文件
         ]
         
+        # 如果需要激活conda环境
         if conda_env:
             srun_cmd.insert(0, f"source ~/miniconda3/bin/activate {conda_env} &&")
             
@@ -286,13 +287,6 @@ class ServerManager:
             # 计算型工作器（一般需要更多资源）
             gpus = self.config.default_calculate_gpus
             cpus = self.config.default_calculate_cpus
-        elif config.calculate_type == "heavy_calculate":
-            # 重计算型工作器（可能需要更多资源）
-            gpus = self.config.default_heavy_calculate_gpus
-            cpus = self.config.default_heavy_calculate_cpus
-        elif job_name == "languagemodel":
-            gpus = 4
-            cpus = 64
         else:
             raise ValueError("计算类型必须是 'control' 或 'calculate'")
         

@@ -1,0 +1,165 @@
+base_dir: /mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers
+log_folder: /mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/logs/server_log
+partition: "ai_moe"
+default_calculate_gpus: 1
+default_calculate_cpus: 16
+default_control_cpus: 16
+default_control_gpus: 0
+default_heavy_calculate_gpus: 4
+default_heavy_calculate_cpus: 32
+retry_interval: 1
+request_timeout: 10
+
+controller_config:
+  worker_name: controller
+  job_name: controller
+  calculate_type: control
+  conda_env: "tool-server"
+  srun_kwargs:
+    w: "SH-IDC1-10-140-37-6"  # 指定固定节点
+  cmd:
+    script-addr: ./online_workers/controller.py
+    port: 21112
+    host: "0.0.0.0"
+
+# 所有的参数名称都会转义成下划线的形式
+# 比如model-path会转义成model_path
+
+tool_worker_config:
+  - Point:
+      worker_name: Point
+      job_name: point
+      calculate_type: calculate
+      conda_env: "tool-server"
+      cmd:
+        script-addr: tool_server.tool_workers.online_workers.molmo_point_worker
+        port: 30002
+        host: "0.0.0.0"
+        model_path: "/mnt/petrelfs/share_data/songmingyang/model/mm/tools/Molmo-7B-D-0924"
+
+  # - SegmentRegionAroundPoint:
+  #     worker_name: SegmentRegionAroundPoint
+  #     job_name: sam2
+  #     calculate_type: calculate
+  #     conda_env: "tool-server"
+  #     cmd:
+  #       script-addr: tool_server.tool_workers.online_workers.sam_worker
+  #       port: 30003
+  #       host: "0.0.0.0"
+  #       sam2_checkpoint: /mnt/petrelfs/share_data/songmingyang/model/mm/tools/sam2-hiera-large/sam2_hiera_large.pt
+  #       sam2_model_cfg: sam2_hiera_l.yaml
+
+  # - GroundingDINO:
+  #     worker_name: GroundingDINO
+  #     job_name: groundingdino
+  #     calculate_type: calculate
+  #     conda_env: "tool-server"
+  #     cmd:
+  #       script-addr: tool_server.tool_workers.online_workers.grounding_dino_worker
+  #       port: 30004
+  #       host: "0.0.0.0"
+  #       model-path: /mnt/petrelfs/sunhaoyu/visual-code/weights/groundingdino_swint_ogc.pth
+  #       model-config: /mnt/petrelfs/sunhaoyu/visual-code/weights/GroundingDINO_SwinT_OGC.py
+
+  # # 新的DrawLine工具配置
+  # - DrawLine:
+  #     worker_name: DrawLine
+  #     job_name: drawline
+  #     calculate_type: control
+  #     conda_env: "tool-server"
+  #     cmd:
+  #       script-addr: tool_server.tool_workers.online_workers.drawline_worker
+  #       port: 30005
+  #       host: "0.0.0.0"
+
+  # - Crop:
+  #     worker_name: Crop
+  #     job_name: crop
+  #     calculate_type: control
+  #     conda_env: "tool-server"
+  #     cmd:
+  #       script-addr: tool_server.tool_workers.online_workers.crop_worker
+  #       port: 30006
+  #       host: "0.0.0.0"
+
+  # - OCR:
+  #     worker_name: OCR
+  #     job_name: ocr
+  #     calculate_type: calculate
+  #     conda_env: "tool-server"
+  #     cmd:
+  #       script-addr: tool_server.tool_workers.online_workers.ocr_worker
+  #       port: 30007
+  #       host: "0.0.0.0"
+
+  # - DrawShape:
+  #     worker_name: DrawShape
+  #     job_name: draw_shape
+  #     calculate_type: control
+  #     conda_env: "tool-server"
+  #     cmd:
+  #       script-addr: tool_server.tool_workers.online_workers.draw_shape_worker
+  #       port: 30008
+  #       host: "0.0.0.0"
+
+  # - HighlightBox:
+  #     worker_name: HighlightBox
+  #     job_name: highlight_box
+  #     calculate_type: control
+  #     conda_env: "tool-server"
+  #     cmd:
+  #       script-addr: tool_server.tool_workers.online_workers.highlight_box_worker
+  #       port: 30009
+  #       host: "0.0.0.0"
+
+  # - MaskBox:
+  #     worker_name: MaskBox
+  #     job_name: mask_box
+  #     calculate_type: control
+  #     conda_env: "tool-server"
+  #     cmd:
+  #       script-addr: tool_server.tool_workers.online_workers.mask_box_worker
+  #       port: 30010
+  #       host: "0.0.0.0"
+
+  # # - LanguageModel:
+  # #     worker_name: LanguageModel
+  # #     job_name: languagemodel
+  # #     calculate_type: heavy_calculate
+  # #     conda_env: "tool-server"
+  # #     cmd:
+  # #       script-addr: tool_server.tool_workers.online_workers.languagemodel_worker
+  # #       port: 30011
+  # #       host: "0.0.0.0"
+  # #       # model_path: /mnt/petrelfs/share_data/songmingyang/model/mm/Qwen2.5-VL-7B-Instruct
+  # #       model_path: /mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-72B-Instruct
+  # #       max_tokens: 1024
+  # #       temperature: 0.7
+  # #       tensor_parallel_size: 4
+
+  # - GetSubplotInfo:
+  #     worker_name: GetSubplotInfo
+  #     job_name: get_subplot_info
+  #     calculate_type: control
+  #     conda_env: "tool-server"
+  #     cmd:
+  #       script-addr: tool_server.tool_workers.online_workers.get_subplot_info_worker
+  #       port: 30012
+  #       host: "0.0.0.0"
+  #       api_key: not-needed
+  #       api_base_url: http://SH-IDC1-10-140-37-138:16112/v1
+  #       api_model_name: /mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-72B-Instruct
+
+
+  # - GetBarInfo:
+  #     worker_name: GetBarInfo
+  #     job_name: get_bar_info
+  #     calculate_type: control
+  #     conda_env: "tool-server"
+  #     cmd:
+  #       script-addr: tool_server.tool_workers.online_workers.get_bar_info_worker
+  #       port: 30013
+  #       host: "0.0.0.0"
+  #       api_key: not-needed
+  #       api_base_url: http://SH-IDC1-10-140-37-138:16112/v1
+  #       api_model_name: /mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-72B-Instruct

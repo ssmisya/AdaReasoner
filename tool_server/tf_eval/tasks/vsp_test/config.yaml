@@ -4,10 +4,10 @@ data_dir: "./metadata_split"  # 分割后的数据目录位置
 image_dir: /mnt/petrelfs/songmingyang/code/reasoning/tool_util_code/frozen_lake/data_curation
 dataset_type: "unique"  # 自定义数据加载逻辑
 tasks:
-  - "navigation-sft" 
+  # - "navigation-sft" 
   # - "navigation-rl" 
   - "navigation-test"  
-  - "verify-sft" 
+  # - "verify-sft" 
   # - "verify-rl" 
   - "verify-test" 
 generation_config:

@@ -27,13 +27,17 @@ class VllmModels(tp_model):
       self,  
       pretrained : str = None,        # Pretrained model path
       tensor_parallel: str = "1",     # Number of tensor parallel
-      limit_mm_per_prompt: str = "1",  # Limit on number of images per single message, not the total in conversation history    
+      limit_mm_per_prompt: str = "1",  # Limit on number of images per single message, not the total in conversation history   
+      data_parallel_size: str = "1",  # Data parallel size, default is 1 
+      **kwargs  # Additional keyword arguments
     ):
         tensor_parallel = eval(tensor_parallel)  # Convert string to numeric value
         self.model = LLM(
             model=pretrained,                   # Model path
-            tensor_parallel_size=tensor_parallel,  # Parallel size
-            limit_mm_per_prompt={"image": int(limit_mm_per_prompt)}  # Limit number of images per prompt
+            tensor_parallel_size=int(tensor_parallel),  # Parallel size
+            limit_mm_per_prompt={"image": int(limit_mm_per_prompt)},  # Limit number of images per prompt
+            # data_parallel_size=int(data_parallel_size),  # Data parallel size
+            **kwargs  # Additional parameters
         )
         self.limit_mm_per_prompt = int(limit_mm_per_prompt)  # Set limit on number of images per prompt
         self.system_prompt = None

@@ -137,7 +137,7 @@ def test_point(args):
                 worker_addr + "/worker_generate",
                 headers={"User-Agent": "FastChat Client"},
                 json=datas,
-                timeout=60  # 添加超时设置
+                timeout=60000  # 添加超时设置
             )
             toc = time.time()
             
@@ -1056,7 +1056,7 @@ def main():
     
     # 通用参数
     parser.add_argument(
-        "--controller_addr", type=str, default="http://SH-IDC1-10-140-37-6:21112",
+        "--controller_addr", type=str, default="http://SH-IDC1-10-140-37-118:50001",
         help="控制器地址"
     )
     parser.add_argument(
@@ -1081,17 +1081,17 @@ def main():
     tools_to_test = AVAILABLE_TOOLS if "all" in args.tools else args.tools
 
     # tools_to_test = ["OCR", "DrawShape","Crop","Point","GroundingDINO","SegmentRegionAroundPoint","DrawLine","HighlightBox","MaskBox"]
-    tools_to_test = ["Crop"]
+    tools_to_test = ["Point"]
     
     # 为不同工具设置合适的测试图像
     image_dict = {
-        "default":"./input_cases/subplot_0.png",
-        "GroundingDINO": "./input_cases/truck.jpg",
-        "SegmentRegionAroundPoint": "./input_cases/zebra.jpg",
-        "Point": "./input_cases/zebra.jpg",
-        "LanguageModel": "./input_cases/subplots1.jpg",
-        "GetSubplotInfo": "./input_cases/subplots2.jpg",
-        "GetBarInfo": "./input_cases/bars1.jpg"
+        "default":"/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
+        "GroundingDINO": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/truck.jpg",
+        "SegmentRegionAroundPoint": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/zebra.jpg",
+        "Point": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/zebra.jpg",
+        "LanguageModel": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots1.jpg",
+        "GetSubplotInfo": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots2.jpg",
+        "GetBarInfo": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/bars1.jpg"
     }
     
     # 运行测试

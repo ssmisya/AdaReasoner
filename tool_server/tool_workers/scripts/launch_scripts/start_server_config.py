@@ -81,7 +81,10 @@ class ServerManager:
         ]
         
         if conda_env:
-            srun_cmd.insert(0, f"source ~/miniconda3/bin/activate {conda_env} &&")
+            # 如果发现了问题，就尝试解决它
+            conda_exe = os.environ.get('CONDA_EXE', '')
+            conda_prefix = "anaconda3" if "anaconda" in conda_exe else "miniconda3"
+            srun_cmd.insert(0, f"source ~/{conda_prefix}/bin/activate {conda_env} &&")
             
         # 如果需要设置CUDA可见设备
         if cuda_visible_devices:

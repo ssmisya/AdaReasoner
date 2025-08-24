@@ -85,6 +85,10 @@ class PointWorkerController(BaseToolWorker):
             self.gpu_ids = [int(id.strip()) for id in args.gpu_ids.split(",")]
         elif args.gpu_count:
             self.gpu_ids = list(range(min(args.gpu_count, torch.cuda.device_count())))
+        elif os.environ.get('CUDA_VISIBLE_DEVICES'):
+            # 从环境变量中获取可见GPU
+            visible_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
+            self.gpu_ids = [int(id.strip()) for id in visible_gpus if id.strip().isdigit()]
         else:
             # 自动检测所有可用GPU
             self.gpu_ids = list(range(torch.cuda.device_count()))
@@ -112,8 +116,11 @@ class PointWorkerController(BaseToolWorker):
         
         # 监控worker健康状态
         self.worker_health = [True] * self.worker_count
-        self.health_check_interval = 10  # 秒
+        self.health_check_interval = 60  # 秒
         self.health_check_thread = None
+        self.health_check_failed_times = [0] * self.worker_count
+        self.health_check_max_failed_times = 5  # 最大连续失败次数
+        
         
         super().__init__(args)
          # 存储worker进程和URL
@@ -221,18 +228,24 @@ class PointWorkerController(BaseToolWorker):
             try:
                 response = requests.post(
                     f"{url}/worker_get_status",
-                    timeout=2
+                    timeout=30
                 )
                 if response.status_code == 200:
                     if not self.worker_health[i]:
                         logger.info(f"Worker {i} is back online")
+                    self.health_check_failed_times[i] = 0
                     self.worker_health[i] = True
                 else:
-                    logger.warning(f"Worker {i} health check failed: HTTP {response.status_code}")
-                    self.worker_health[i] = False
+                    # logger.warning(f"Worker {i} health check failed: HTTP {response.status_code}")
+                    self.health_check_failed_times[i] += 1
+                    if self.health_check_failed_times[i] >= self.health_check_max_failed_times:
+                        logger.error(f"Worker {i} marked as unhealthy after {self.health_check_failed_times[i]} failures")
+                        self.worker_health[i] = False
             except Exception as e:
-                logger.warning(f"Worker {i} health check failed: {str(e)}")
-                self.worker_health[i] = False
+                self.health_check_failed_times[i] += 1
+                if self.health_check_failed_times[i] >= self.health_check_max_failed_times:
+                    logger.error(f"Worker {i} marked as unhealthy after {self.health_check_failed_times[i]} failures")
+                    self.worker_health[i] = False
     
     def get_next_healthy_worker(self):
         """获取下一个健康的worker索引"""
@@ -327,7 +340,7 @@ class PointWorkerController(BaseToolWorker):
             status_tasks = []
             async with aiohttp.ClientSession() as session:
                 for worker_url in self.worker_urls:
-                    status_tasks.append(session.post(f"{worker_url}/worker_get_status", timeout=2))
+                    status_tasks.append(session.post(f"{worker_url}/worker_get_status", timeout=30))
                 
                 status_responses = await asyncio.gather(*status_tasks, return_exceptions=True)
             

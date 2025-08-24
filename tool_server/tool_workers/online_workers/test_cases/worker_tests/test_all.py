@@ -1056,7 +1056,7 @@ def main():
     
     # 通用参数
     parser.add_argument(
-        "--controller_addr", type=str, default="http://SH-IDC1-10-140-37-118:50001",
+        "--controller_addr", type=str, default="http://SH-IDC1-10-140-37-82:30001",
         help="控制器地址"
     )
     parser.add_argument(

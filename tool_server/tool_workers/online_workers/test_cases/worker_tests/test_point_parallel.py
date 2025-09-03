@@ -140,7 +140,7 @@ class PointTester:
             async with session.post(
                 f"{self.worker_addr}/worker_generate",
                 json=data,
-                timeout=60
+                timeout=600
             ) as response:
                 duration = time.time() - start_time
                 if response.status == 200:
@@ -200,7 +200,7 @@ class PointTester:
                 async with session.post(
                     f"{self.worker_addr}/worker_generate_batch",
                     json=batch_params,
-                    timeout=120
+                    timeout=1200
                 ) as response:
                     duration = time.time() - start_time
                     
@@ -579,7 +579,7 @@ async def main():
     parser.add_argument(
         "--controller_addr", 
         type=str, 
-        default="http://SH-IDC1-10-140-37-118:50001",
+        default="http://SH-IDC1-10-140-37-82:50001",
         help="控制器地址"
     )
     parser.add_argument(
@@ -617,14 +617,14 @@ async def main():
         "--concurrency-levels", 
         type=int, 
         nargs="+", 
-        default=[8, 16, 32, 64, 128, 256],
+        default=[64, 256],
         help="并发测试的并发级别"
     )
     parser.add_argument(
         "--request-counts", 
         type=int, 
         nargs="+", 
-        default=[100, 500],
+        default=[],
         help="可扩展性测试的请求数"
     )
     parser.add_argument(

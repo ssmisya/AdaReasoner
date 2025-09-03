@@ -31,11 +31,11 @@ logger = build_logger(__file__, f"molmo_point_worker_{worker_id}.log")
 @dataclass
 class MolmoPointArguments(WorkerArguments):
     max_length: Optional[int] = field(
-        default=120000,
+        default=200,
         metadata={"help": "Maximum length for token generation"}
     )
     max_concurrency: Optional[int] = field(
-        default=80,
+        default=100,
         metadata={"help": "Maximum number of concurrent requests to process."}
     )
 
@@ -405,9 +405,6 @@ class MolmoPointWorker(BaseToolWorker):
         """析构函数，确保线程池正确关闭"""
         if hasattr(self, 'thread_pool'):
             self.thread_pool.shutdown(wait=False)
-
-
-
 
 if __name__ == "__main__":
     parser = HfArgumentParser((MolmoPointArguments,))

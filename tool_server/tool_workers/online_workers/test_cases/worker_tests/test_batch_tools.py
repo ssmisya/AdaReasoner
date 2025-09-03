@@ -39,16 +39,17 @@ AVAILABLE_TOOLS = [
 
 def load_image(image_path):
     """加载并适当调整图像大小"""
+    ### 不要调整图片大小
     img = Image.open(image_path).convert('RGB')
-    w, h = img.size
-    if max(h, w) > 800:
-        if h > w:
-            new_h = 800
-            new_w = int(w * 800 / h)
-        else:
-            new_w = 800
-            new_h = int(h * 800 / w)
-        img = img.resize((new_w, new_h))
+    # w, h = img.size
+    # if max(h, w) > 800:
+    #     if h > w:
+    #         new_h = 800
+    #         new_w = int(w * 800 / h)
+    #     else:
+    #         new_w = 800
+    #         new_h = int(h * 800 / w)
+    #     img = img.resize((new_w, new_h))
     return img
 
 def encode(image: Image):
@@ -93,7 +94,7 @@ def get_worker_address(controller_addr, model_name):
 
 def send_single_request(worker_addr, data, request_id, tool_name):
     """发送单个请求并处理响应"""
-    print(f"\n------ [{tool_name}] 发送请求 {request_id+1}/5 ------")
+    print(f"\n------ [{tool_name}] 发送请求 {request_id+1} ------")
     
     start_time = time.time()
     result = {
@@ -110,7 +111,7 @@ def send_single_request(worker_addr, data, request_id, tool_name):
             worker_addr + "/worker_generate",
             headers={"User-Agent": "FastChat Client"},
             json=data,
-            timeout=120 # 设置超时时间，对于LLM等可能需要更长
+            timeout=1200 # 设置超时时间，对于LLM等可能需要更长
         )
         end_time = time.time()
         duration = end_time - start_time
@@ -127,8 +128,10 @@ def send_single_request(worker_addr, data, request_id, tool_name):
             
             # 根据工具类型提取关键信息
             if tool_name == "OCR" and "detections" in res:
+                ###
                 result["response_summary"]["detection_count"] = len(res["detections"])
-                result["response_summary"]["first_detection"] = res["detections"][0]["label"] if res["detections"] else None
+                # result["response_summary"]["first_detection"] = res["detections"][0]["label"] if res["detections"] else None
+                # result["response_summary"]["content"] = [res["detections"][i]["label"] for i in range(len(res["detections"]))]
             elif tool_name == "GetBarInfo" and "bars" in res:
                 result["response_summary"]["bars_count"] = len(res["bars"])
                 result["response_summary"]["first_bar_label"] = list(res["bars"].keys())[0] if res["bars"] else None
@@ -158,7 +161,8 @@ def send_single_request(worker_addr, data, request_id, tool_name):
     
     return result
 
-def run_batch_test(args, tool_name, datas_template, num_requests=5, output_filename_prefix="batch_test_results"):
+###
+def run_batch_test(args, tool_name, datas_template, num_requests=500, output_filename_prefix="batch_test_results"):
     """
     通用批量测试函数
     :param args: argparse的参数对象
@@ -187,14 +191,15 @@ def run_batch_test(args, tool_name, datas_template, num_requests=5, output_filen
 
     # 开始批量请求的计时
     batch_start_time = time.time()
-    print(f"开始发送批量请求，共 {num_requests} 个请求，每个请求间隔1秒发送...")
+    print(f"开始发送批量请求，共 {num_requests} 个请求")
     
     results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_requests) as executor:
         future_to_id = {}
         for i in range(num_requests):
-            if i > 0:
-                time.sleep(1) # 每个请求间隔1秒发送
+            ### 不间隔发送
+            # if i > 0:
+            #     time.sleep(1) # 每个请求间隔1秒发送
             future = executor.submit(send_single_request, worker_addr, datas, i, tool_name)
             future_to_id[future] = i
             print(f"已提交请求 {i+1} for {tool_name}")
@@ -349,7 +354,7 @@ def main():
         "LanguageModel": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots4.jpg",
         "GetSubplotInfo": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots2.jpg",
         "GetBarInfo": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/bars3.jpg",
-        "OCR": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png", # OCR 建议使用包含文本的图像
+        "OCR": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/web.jpg", # OCR 建议使用包含文本的图像
         "DrawLine": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
         "Crop": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
         "DrawShape": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",

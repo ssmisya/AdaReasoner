@@ -1,7 +1,8 @@
 task_name: "vsp_test"
-dataset_path: "/mnt/petrelfs/songmingyang/code/reasoning/tool_util_code/frozen_lake/data_curation/frozen_lake_metadata_v2"
-data_dir: "./metadata_split"  # 分割后的数据目录位置
-image_dir: /mnt/petrelfs/songmingyang/code/reasoning/tool_util_code/frozen_lake/data_curation
+# dataset_path: "/mnt/petrelfs/songmingyang/code/reasoning/tool_util_code/frozen_lake/data_curation/frozen_lake_metadata_v2"
+dataset_path: "/mnt/petrelfs/share_data/songmingyang/data/vl_reasoning/tool_dataset/frozen_lake_metadata_v2"
+data_dir: "/mnt/petrelfs/share_data/songmingyang/data/vl_reasoning/tool_dataset/frozen_lake_metadata_v2/metadata_split"  # 分割后的数据目录位置
+image_dir: /mnt/petrelfs/share_data/songmingyang/data/vl_reasoning/tool_dataset # 要这样设置，否则会报错，因为会自动添加/frozen_lake_metadata_v2/images
 dataset_type: "unique"  # 自定义数据加载逻辑
 tasks:
   # - "navigation-sft" 
@@ -11,4 +12,9 @@ tasks:
   # - "verify-rl" 
   - "verify-test" 
 generation_config:
-  max_length: 2048
+  max_length: 4096
+
+# 师兄的配置
+# dataset_path: "/mnt/petrelfs/songmingyang/code/reasoning/tool_util_code/frozen_lake/data_curation/frozen_lake_metadata_v2"
+# data_dir: "./metadata_split"  # 分割后的数据目录位置
+# image_dir: /mnt/petrelfs/songmingyang/code/reasoning/tool_util_code/frozen_lake/data_curation

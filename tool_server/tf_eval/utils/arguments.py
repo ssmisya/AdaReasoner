@@ -36,12 +36,17 @@ class TaskArguments:
     
     resume_from_ckpt: Optional[Dict[str, str]] = field(default=None,)
     save_to_ckpt: Optional[Dict[str, str]] = field(default=None,)
-    middle_images_save_dir: Optional[str] = field(default=None)
+    # 修改了定义，不然会报错
+    middle_images_save_dir: Optional[Dict[str, str]] = field(default=None)
     tool_selection: Optional[str] = field(default=None,)
     tool_selection_dict: Optional[str] = field(default=None)
                             
     def __post_init__(self):
         """初始化后处理所有需要转换为Box的字段"""
+        print(f"DEBUG: TaskArguments __post_init__ 开始")
+        print(f"DEBUG: 原始 middle_images_save_dir = {self.middle_images_save_dir}")
+        print(f"DEBUG: 原始 middle_images_save_dir 类型 = {type(self.middle_images_save_dir)}")
+        
         box_fields = [
             "resume_from_ckpt", 
             "save_to_ckpt", 
@@ -51,13 +56,26 @@ class TaskArguments:
         
         for field_name in box_fields:
             field_value = getattr(self, field_name)
+            # 避免打印过长的内容
+            if isinstance(field_value, dict) and len(str(field_value)) > 200:
+                print(f"DEBUG: 处理字段 {field_name}, 值: <长字典内容>, 类型: {type(field_value)}")
+            else:
+                print(f"DEBUG: 处理字段 {field_name}, 值: {field_value}, 类型: {type(field_value)}")
             
             if field_value is None:
                 setattr(self, field_name, Box())
+                print(f"DEBUG: {field_name} 设置为空 Box()")
             elif isinstance(field_value, dict):
                 setattr(self, field_name, Box(field_value))
+                print(f"DEBUG: {field_name} 转换为 Box，键: {list(field_value.keys())}")
             else:
+                print(f"DEBUG: {field_name} 不是字典，抛出错误")
                 raise ValueError(f"{field_name} should be a dictionary.")
+        
+        print(f"DEBUG: 最终 middle_images_save_dir = {self.middle_images_save_dir}")
+        print(f"DEBUG: 最终 middle_images_save_dir 类型 = {type(self.middle_images_save_dir)}")
+        if hasattr(self.middle_images_save_dir, 'keys'):
+            print(f"DEBUG: 最终 middle_images_save_dir 的键: {list(self.middle_images_save_dir.keys())}")
 
 
 # Define and parse arguments.
@@ -104,14 +122,21 @@ def parse_args():
         else:
             raise ValueError("Config file should be either a json or yaml file.")
         
+        print(f"DEBUG: 配置文件已加载")
+        task_config = config.get('task_args', {})
+        print(f"DEBUG: task_args 部分键: {list(task_config.keys())}")
+        print(f"DEBUG: middle_images_save_dir 在配置中: {task_config.get('middle_images_save_dir', 'NOT_FOUND')}")
+        
         if isinstance(config, dict):
             model_args = ModelArguments(**config["model_args"])
             task_args = TaskArguments(**config["task_args"])
             script_args = ScriptArguments(**config["script_args"])
+            print(f"DEBUG: 创建 TaskArguments 后，middle_images_save_dir = {task_args.middle_images_save_dir}")
         elif isinstance(config, list):
             model_args = ModelArguments(**config[0]["model_args"])
             task_args = TaskArguments(**config[0]["task_args"])
             script_args = ScriptArguments(**config[0]["script_args"])
+            print(f"DEBUG: 创建 TaskArguments 后（列表模式），middle_images_save_dir = {task_args.middle_images_save_dir}")
         else:
             raise ValueError("Config file should be either a dict or list of dicts.")
     else:
@@ -125,5 +150,8 @@ def parse_args():
     if isinstance(script_args.wandb_args, str):
         script_args.wandb_args = parse_str_into_dict(script_args.wandb_args)
     
+    print(f"DEBUG: 最终返回的 task_args.middle_images_save_dir = {task_args.middle_images_save_dir}")
+    if hasattr(task_args.middle_images_save_dir, 'keys'):
+        print(f"DEBUG: 最终返回的键: {list(task_args.middle_images_save_dir.keys())}")
     return dict(model_args=model_args, task_args=task_args, script_args=script_args)
     

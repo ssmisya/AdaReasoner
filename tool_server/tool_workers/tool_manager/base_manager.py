@@ -36,10 +36,27 @@ class ToolManager(object):
         self.init_offline_tools(tools)
         self.init_online_tools(self.controller_url_location)
         self.init_online_tool_addr_dict()
-        
-        logger.info(f"ToolManager is initialized.")
         self.available_tools = self.available_online_tools + self.available_offline_tools
         print("available_tools", self.available_tools)
+        
+        if self.tools is None:
+            # 如果未指定工具，检查所有常用工具
+            required_tools = ["GroundingDINO", "OCR", "SegmentRegionAroundPoint", "Point", 
+                             "Crop", "DrawLine", "DrawShape", "HighlightBox", "MaskBox", 
+                             "GetSubplotInfo", "GetBarInfo"]
+        else:
+            # 仅检查指定的常用工具
+            required_tools = [tool for tool in self.tools]
+                
+        miss_tool = [tool for tool in required_tools if tool not in self.available_tools]
+        if len(miss_tool) == 0:
+            logger.info("All required online tools are prepared successfully")
+        else:
+            logger.info(f"Not all required online tools are prepared successfully, missing: {miss_tool}")     
+            
+        logger.info(f"ToolManager is initialized.")
+        
+        
         self.headers = {"User-Agent": "LLaVA-Plus Client"}
         
     def init_online_tools(self, controller_url_location=None):
@@ -76,22 +93,7 @@ class ToolManager(object):
                     logger.error(f"Failed to connect to controller: {e}")
                     self.available_online_tools = []
             
-        # 检查常用工具是否可用
-        required_tools = []
-        if self.tools is None:
-            # 如果未指定工具，检查所有常用工具
-            required_tools = ["GroundingDINO", "OCR", "SegmentRegionAroundPoint", "Point", 
-                             "Crop", "DrawLine", "DrawShape", "HighlightBox", "MaskBox", 
-                             "GetSubplotInfo", "GetBarInfo"]
-        else:
-            # 仅检查指定的常用工具
-            required_tools = [tool for tool in self.tools]
-                
-        miss_tool = [tool for tool in required_tools if tool not in self.available_online_tools]
-        if len(miss_tool) == 0:
-            logger.info("All required online tools are prepared successfully")
-        else:
-            logger.info(f"Not all required online tools are prepared successfully, missing: {miss_tool}")        
+   
     
     def init_offline_tools(self, tools=None):
         """

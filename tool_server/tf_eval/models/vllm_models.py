@@ -229,7 +229,8 @@ class VllmModels(tp_model):
         if not batch or len(batch) == 0:  # If batch is empty
             return
         max_new_tokens = self.generation_config.get("max_new_tokens", 2048)  # Get maximum token generation count, default 2048
-        sampling_params = SamplingParams(max_tokens=max_new_tokens, temperature=0.6)  # Set sampling parameters
+        temperature = self.generation_config.get("temperature", 0)  # Get temperature setting, default 0.6
+        sampling_params = SamplingParams(max_tokens=max_new_tokens, temperature=temperature)  # Set sampling parameters
         
         inputs = self.form_input_from_dynamic_batch(batch)  # Extract inputs from batch
         # breakpoint()  # Debug breakpoint

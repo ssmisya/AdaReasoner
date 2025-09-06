@@ -162,7 +162,7 @@ def send_single_request(worker_addr, data, request_id, tool_name):
     return result
 
 ###
-def run_batch_test(args, tool_name, datas_template, num_requests=500, output_filename_prefix="batch_test_results"):
+def run_batch_test(args, tool_name, datas_template, num_requests=5, output_filename_prefix="batch_test_results"):
     """
     通用批量测试函数
     :param args: argparse的参数对象
@@ -402,3 +402,4 @@ if __name__ == "__main__":
     main()
 
 # python test_batch_tools.py --tools OCR GetBarInfo --controller_addr http://SH-IDC1-10-140-37-6:21112
+# python test_batch_tools.py --tools OCR --controller_addr http://SH-IDC1-10-140-37-6:21112

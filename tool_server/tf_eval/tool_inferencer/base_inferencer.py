@@ -553,22 +553,13 @@ class BaseToolInferencer(object):
         print(f"DEBUG: 更新状态后current_batch长度: {len(current_batch)}")
         
         # 主循环：处理所有批次
-        loop_count = 0
         while len(current_batch) > 0:
-            loop_count += 1
-            print(f"DEBUG: 主循环第 {loop_count} 次迭代，当前batch大小: {len(current_batch)}")
-            
             # 打印每个项目的状态
             for i, item in enumerate(current_batch):
                 print(f"DEBUG: 项目 {i}: idx={item.meta_data.get('idx', 'N/A')}, status={item.status}, round={item.current_round}/{item.max_rounds}")
                 if item.model_response:
                     has_response_tag = "<response>" in item.model_response[-1]
                     print(f"DEBUG: 项目 {i}: has_response_tag={has_response_tag}, if_use_tool={self.if_use_tool}")
-            
-            # 添加死循环检测
-            if loop_count > 1000:  # 防止无限循环
-                print(f"ERROR: 检测到可能的死循环，强制退出")
-                break
             
             try:
                 # 弹出所有已完成处理的项目

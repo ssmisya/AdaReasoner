@@ -1,0 +1,8 @@
+task_name: "web_guichat"
+dataset_path: /mnt/petrelfs/sunhaoyu/visual-code/datasets/web_guichat
+# num_sample: 1100
+dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv
+generation_config:
+  max_length: 8192
+  # temperature: 0.6
+

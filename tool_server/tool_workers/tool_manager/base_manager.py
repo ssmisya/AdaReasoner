@@ -264,7 +264,8 @@ class ToolManager(object):
                         session = requests.Session()
                         session.trust_env = False
                         ret = session.post(tool_worker_addr + "/worker_generate", 
-                                          headers=self.headers, json=params, proxies={})
+                                          headers=self.headers, json=params, proxies={},
+                                          timeout=(3000, 3000))
                     ret_message = ret.json()
                 except Exception as e:
                     logger.error(f"Failed to call tool {tool_name}: {e}")

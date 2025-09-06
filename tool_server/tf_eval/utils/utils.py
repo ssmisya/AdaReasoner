@@ -146,6 +146,9 @@ def is_main_process():
             return dist.get_rank() == 0
         else:
             return True
+    else:
+        # vllm环境下也应该返回True
+        return True
 
 def dist_wait_for_everyone():
     if not is_vllm_environment(): 
@@ -205,6 +208,10 @@ def b64_encode(img):
     return img_b64_str
 
 def pil_to_base64(image):
+    # 如果输入不是PIL Image，先转换为PIL Image
+    if not isinstance(image, Image.Image):
+        image = load_image(image)
+    
     if image.mode in ("RGBA", "LA", "P"):
         image = image.convert("RGB") 
     return b64_encode(image)
@@ -226,12 +233,16 @@ def url_base64_to_pil(b64_str):
 def load_image(image) -> Image.Image:
     if isinstance(image, Image.Image):
         return image
-    else:
-        assert isinstance(image, str)
+    elif isinstance(image, bytes):
+        # 处理bytes类型的图像数据
+        return Image.open(BytesIO(image)).convert('RGB')
+    elif isinstance(image, str):
         if os.path.exists(image):
             return Image.open(image).convert('RGB')
         else:
             return load_image_from_base64(image)
+    else:
+        raise ValueError(f"Unsupported image type: {type(image)}")
 
 def remove_pil_objects(data):
     """
@@ -248,7 +259,7 @@ def remove_pil_objects(data):
         return [remove_pil_objects(item) for item in data if not isinstance(item, Image.Image)]
     elif isinstance(data, dict):
         # 如果是字典，对键值递归调用
-        return {key: remove_pil_objects(value) for key, value in data.items() if not isinstance(value, Image.Image) and not key == "image" and not key == "image_url"}
+        return {key: remove_pil_objects(value) for key, value in data.items() if not isinstance(value, Image.Image) and not key == "image" and not key == "image_url" and not key == "current_image"}
     else:
         # 如果是其他类型，直接返回
         return data

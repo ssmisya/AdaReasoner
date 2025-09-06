@@ -220,7 +220,7 @@ if __name__ == "__main__":
         "--send_image", action="store_true",
     )
     parser.add_argument(
-        "--image_path", type=str, default="/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/two_col_102588.png"
+        "--image_path", type=str, default="/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/two_col_102588.png"
     )
     # /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/mathvista_35.jpg
     # parallel test parameters

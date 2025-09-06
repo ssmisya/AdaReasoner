@@ -74,6 +74,7 @@ class DynamicBatchManager():
     
     def append_item(self, meta_data: Dict):
         # breakpoint()
+        print(f"DEBUG: append_item被调用，meta_data idx: {meta_data.get('idx', 'N/A')}")
         if len(self.dynamic_batch) < self.batch_size:
             # breakpoint()
             candidate_item = DynamicBatchItem(
@@ -82,25 +83,38 @@ class DynamicBatchManager():
                 meta_data=meta_data,
                 status="pending"
             )
+            print(f"DEBUG: 开始生成conversation")
             candidate_item.conversation = self.generate_conversation_fn(
                 text = meta_data["text"], 
                 image = meta_data["image"],
                 role = "user"
             )
-            
+            print(f"DEBUG: conversation生成成功")
             self.dynamic_batch.append(candidate_item)
+            print(f"DEBUG: 成功添加到dynamic_batch，当前长度: {len(self.dynamic_batch)}")
         else:
             raise ValueError("Batch is full")
     
     
     def append_item_to_full(self, dataloader, progress_bar=None):
+        print(f"DEBUG: append_item_to_full开始，当前batch大小: {len(self.dynamic_batch)}, batch_size限制: {self.batch_size}")
+        items_added = 0
         while len(self.dynamic_batch) < self.batch_size:
             try:
-                self.append_item(next(dataloader))
+                data_item = next(dataloader)
+                print(f"DEBUG: 成功从dataloader获取数据项，idx: {data_item.get('idx', 'N/A')}")
+                self.append_item(data_item)
+                items_added += 1
+                print(f"DEBUG: 成功添加数据项，当前batch大小: {len(self.dynamic_batch)}")
                 if progress_bar:
                     progress_bar.update(1)
-            except:
+            except StopIteration as e:
+                print(f"DEBUG: dataloader迭代完毕，共添加了{items_added}个数据项")
                 break
+            except Exception as e:
+                print(f"DEBUG: append_item_to_full出现异常: {e}")
+                break
+        print(f"DEBUG: append_item_to_full完成，最终batch大小: {len(self.dynamic_batch)}")
         
     
 
@@ -110,11 +124,14 @@ class DynamicBatchManager():
     
     # Caution: Only model.generate can call this function
     def update_item_status(self):
-        for item in self.dynamic_batch:
+        for i, item in enumerate(self.dynamic_batch):
             has_response_tag = False
 
             if item.model_response and "<response>" in item.model_response[-1]:
                 has_response_tag = True
+            
+            old_status = item.status
+            old_round = item.current_round
                 
             if item.status == "pending":
                 # 如果不使用工具，或者达到max_rounds，或者回答中含有<response>....</response>，则设为finished
@@ -133,6 +150,10 @@ class DynamicBatchManager():
                 pass
             else:
                 raise ValueError(f"Invalid status {item.status}")
+            
+            # 添加状态变化日志
+            if old_status != item.status or old_round != item.current_round:
+                print(f"DEBUG: 项目 {item.meta_data.get('idx', 'N/A')} 状态更新: {old_status}({old_round}) -> {item.status}({item.current_round}), has_response_tag={has_response_tag}, if_use_tool={self.if_use_tool}")
         
     
      

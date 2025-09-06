@@ -20,6 +20,9 @@ from ...utils.log_utils import get_logger
 from tool_server.utils.utils import *
 
 logger = get_logger(__name__)
+
+
+
 class BaseEvalDataset(Dataset):
     '''
     The API dataset class
@@ -55,7 +58,12 @@ class BaseEvalDataset(Dataset):
         self.results = []
         
         self.full_data = self.load_data_function()
+        print(f"DEBUG: load_data_function返回数据长度: {len(self.full_data)}")
+        if len(self.full_data) > 0:
+            print(f"DEBUG: 第一个数据项keys: {self.full_data[0].keys()}")
+            print(f"DEBUG: 第一个数据项idx: {self.full_data[0].get('idx', 'N/A')}")
         self.meta_data = deepcopy(self.full_data)
+        print(f"DEBUG: meta_data长度: {len(self.meta_data)}")
         self.load_ckpt_path = None
         self.save_ckpt_path = None
         self.middle_images_save_dir = None
@@ -63,17 +71,40 @@ class BaseEvalDataset(Dataset):
         
         if task_args.resume_from_ckpt and self.task_name in self.task_args.resume_from_ckpt:
             self.load_ckpt_path = self.task_args.resume_from_ckpt[self.task_name]
+            print(f"DEBUG: 开始从checkpoint恢复，路径: {self.load_ckpt_path}")
             self.resume_from_ckpt(self.load_ckpt_path)
+            print(f"DEBUG: checkpoint恢复完成，剩余meta_data长度: {len(self.meta_data)}")
         
         if task_args.save_to_ckpt and self.task_name in self.task_args.save_to_ckpt:
             logger.info(f"save to ckpt path: {self.task_args.save_to_ckpt}")
             self.save_ckpt_path = self.task_args.save_to_ckpt[self.task_name]
+        #     logger.info(f"设置检查点保存路径: {self.save_ckpt_path}")
+        # else:
+        #     logger.info(f"未设置检查点保存路径 - task_args.save_to_ckpt: {getattr(task_args, 'save_to_ckpt', None)}, task_name: {self.task_name}")
+        #     self.save_ckpt_path = None
+        
+        # 添加调试打印
+        print(f"DEBUG: task_args.middle_images_save_dir = {task_args.middle_images_save_dir}")
+        print(f"DEBUG: type(task_args.middle_images_save_dir) = {type(task_args.middle_images_save_dir)}")
+        print(f"DEBUG: self.task_name = {self.task_name}")
+        print(f"DEBUG: task_args.middle_images_save_dir 是否为真值: {bool(task_args.middle_images_save_dir)}")
+        if task_args.middle_images_save_dir:
+            print(f"DEBUG: self.task_name in task_args.middle_images_save_dir = {self.task_name in task_args.middle_images_save_dir}")
+            # 打印键列表而不是完整内容
+            if hasattr(task_args.middle_images_save_dir, 'keys'):
+                print(f"DEBUG: task_args.middle_images_save_dir 的键: {list(task_args.middle_images_save_dir.keys())}")
         
         if task_args.middle_images_save_dir and self.task_name in self.task_args.middle_images_save_dir:
             logger.info(f"middle images save dir: {self.task_args.middle_images_save_dir}")
             self.middle_images_save_dir = self.task_args.middle_images_save_dir[self.task_name]
+            print(f"DEBUG: 设置 middle_images_save_dir 为: {self.middle_images_save_dir}")
             if not os.path.exists(self.middle_images_save_dir):
                 os.makedirs(self.middle_images_save_dir, exist_ok=True)
+                print(f"DEBUG: 创建目录: {self.middle_images_save_dir}")
+            else:
+                print(f"DEBUG: 目录已存在: {self.middle_images_save_dir}")
+        else:
+            print(f"DEBUG: middle_images_save_dir 条件判断失败")
         
         if task_args.tool_selection_dict and self.task_name in self.task_args.tool_selection_dict:
             logger.info(f"tool selection dict: {self.task_args.tool_selection_dict}")
@@ -104,19 +135,96 @@ class BaseEvalDataset(Dataset):
         return len(self.meta_data)
     
     def store_results(self,result):
+        print(f"DEBUG: store_results 被调用，result keys: {result.keys()}")
         image_history = result["results"].pop("image_history", {})
+        
+        # 新增：在结果中添加原始数据的答案信息
+        result_idx = result["idx"]
+        # 从 full_data 中找到对应的原始数据
+        original_data = None
+        for item in self.full_data:
+            if item.get("idx") == result_idx:
+                original_data = item
+                break
+        
+        if original_data:
+            # 将原始数据中的重要信息添加到结果中
+            result["results"]["original_question"] = original_data.get("text", "")
+            result["results"]["ground_truth_answer"] = original_data.get("answer", "")
+            # 如果还有其他有用的字段，也可以添加
+            if "question" in original_data:
+                result["results"]["original_question"] = original_data["question"]
+            # print(f"DEBUG: 添加原始答案到结果中: {original_data.get('answer', 'N/A')}")
+        else:
+            print(f"DEBUG: 未找到 idx={result_idx} 的原始数据")
+        
+        # 修改：只打印图像历史的键和类型信息，不打印完整内容
+        if image_history:
+            image_info = {}
+            for key, value in image_history.items():
+                if isinstance(value, str) and len(value) > 100:
+                    image_info[key] = f"base64_string(长度:{len(value)})"
+                elif isinstance(value, bytes):
+                    image_info[key] = f"bytes(长度:{len(value)})"
+                else:
+                    image_info[key] = f"{type(value).__name__}({str(value)[:50]}...)"
+            print(f"DEBUG: image_history 信息: {image_info}")
+        else:
+            print(f"DEBUG: image_history: 空")
+        
+        print(f"DEBUG: self.middle_images_save_dir: {self.middle_images_save_dir}")
         self.results.append(result)
         
         if self.middle_images_save_dir:
+            print(f"DEBUG: 进入图像保存逻辑")
             item_id  = result["idx"]
             sub_save_dir = os.path.join(self.middle_images_save_dir, str(item_id))
+            print(f"DEBUG: 子目录路径: {sub_save_dir}")
             if not os.path.exists(sub_save_dir):
                 os.makedirs(sub_save_dir, exist_ok=True)
+                print(f"DEBUG: 创建子目录: {sub_save_dir}")
                 
             for image_key, image_value in image_history.items():
-                image = load_image(image_value)
-                assert isinstance(image, Image.Image), f"Image value for {image_key} should be a PIL Image, but got {type(image_value)}"
-                image.save(os.path.join(sub_save_dir, f"{image_key}.png"))
+                print(f"DEBUG: 保存图像 {image_key} (类型: {type(image_value).__name__})")
+                try:
+                    # 改进：针对不同类型的图像数据使用不同的处理方式
+                    if isinstance(image_value, bytes):
+                        # 对于 bytes 类型，直接使用 PIL 打开
+                        from io import BytesIO
+                        image = Image.open(BytesIO(image_value))
+                        print(f"DEBUG: 成功从 bytes 加载图像 {image_key}, 尺寸: {image.size}")
+                    elif isinstance(image_value, str):
+                        # 对于字符串类型（base64），使用现有的 load_image 函数
+                        image = load_image(image_value)
+                        print(f"DEBUG: 成功从字符串加载图像 {image_key}, 尺寸: {image.size}")
+                    elif isinstance(image_value, Image.Image):
+                        # 如果已经是 PIL Image，直接使用
+                        image = image_value
+                        print(f"DEBUG: 直接使用 PIL 图像 {image_key}, 尺寸: {image.size}")
+                    else:
+                        # 其他类型，尝试使用 load_image 函数
+                        image = load_image(image_value)
+                        print(f"DEBUG: 使用 load_image 加载图像 {image_key}, 尺寸: {image.size}")
+                    
+                    # 确保是 PIL Image
+                    assert isinstance(image, Image.Image), f"Image value for {image_key} should be a PIL Image, but got {type(image)}"
+                    
+                    # 如果图像是 RGBA 模式，转换为 RGB
+                    if image.mode in ("RGBA", "LA", "P"):
+                        image = image.convert("RGB")
+                        print(f"DEBUG: 将图像 {image_key} 从 {image.mode} 转换为 RGB")
+                    
+                    save_path = os.path.join(sub_save_dir, f"{image_key}.png")
+                    image.save(save_path)
+                    print(f"DEBUG: 图像已保存到: {save_path}")
+                    
+                except Exception as e:
+                    print(f"DEBUG: 保存图像 {image_key} 失败: {e}")
+                    # 打印更详细的错误信息
+                    import traceback
+                    traceback.print_exc()
+        else:
+            print(f"DEBUG: self.middle_images_save_dir 为空，跳过图像保存")
             
         if self.save_ckpt_path:
             self.save_item_into_ckpt_file(result)
@@ -138,6 +246,7 @@ class BaseEvalDataset(Dataset):
         if os.path.exists(ckpt_path):
             logger.info(f"loading results from {ckpt_path}")
             ckpt_data = process_jsonl(ckpt_path)
+            print(f"DEBUG: checkpoint文件中有{len(ckpt_data)}条记录")
             self.processed_id = {}
             
             for ckpt_item in ckpt_data:
@@ -148,10 +257,15 @@ class BaseEvalDataset(Dataset):
                     self.results.append(ckpt_item["results"])
                     self.processed_id[ckpt_item["results"]["idx"]] = 1
                     
+            print(f"DEBUG: 从checkpoint中恢复了{len(self.results)}个结果")
+            print(f"DEBUG: processed_id keys sample: {list(self.processed_id.keys())[:5]}")
+            original_meta_data_len = len(self.meta_data)
             self.meta_data = [item for item in self.meta_data if item["idx"] not in self.processed_id]
+            print(f"DEBUG: 过滤前meta_data长度: {original_meta_data_len}, 过滤后长度: {len(self.meta_data)}")
             logger.info(f"Total items: {len(self.full_data)}, processed items: {len(self.results)}, remaining items: {len(self.meta_data)}")
         else:
             logger.info(f"ckpt path {ckpt_path} not found")
+            print(f"DEBUG: checkpoint文件不存在: {ckpt_path}")
             pass
 
     

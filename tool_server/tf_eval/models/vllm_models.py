@@ -63,28 +63,30 @@ class VllmModels(tp_model):
 
         assert self.system_prompt, "System prompt must be set before generating conversation."  # Ensure system prompt is set
 
+        # 先确保图像是PIL Image格式，然后转换为base64
+        image = load_image(image)  # 使用load_image函数处理各种图像类型
         image = pil_to_base64(image)  # Convert PIL image to base64 encoding
         messages = [
             {
-                "role": "system",  # System role
+                "role": "system",
                 "content": [
                     {
                         "type": "text",
-                        "text": self.system_prompt,  # Evaluation prompt defined in prompt.py
+                        "text": self.system_prompt,
                     },
                 ],
             },
             {
-                "role": "user",    # User role
+                "role": "user",
                 "content": [
                     {
                         "type": "text",
-                        "text": text,  # User input text
+                        "text": text,
                     },
                     {
-                        "type": "image_url",  # Image URL type
+                        "type": "image_url",
                         "image_url": {
-                            "url": f"data:image/jpeg;base64,{image}"  # Provide image in base64 format
+                            "url": f"data:image/jpeg;base64,{image}"
                         },
                     },
                 ],
@@ -227,6 +229,7 @@ class VllmModels(tp_model):
             Generate model responses for each conversation in the batch and update conversation history
         """
         if not batch or len(batch) == 0:  # If batch is empty
+            print("batch is empty!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             return
         max_new_tokens = self.generation_config.get("max_new_tokens", 2048)  # Get maximum token generation count, default 2048
         temperature = self.generation_config.get("temperature", 0)  # Get temperature setting, default 0.6

@@ -8,6 +8,7 @@ import ast
 from tool_server.utils.server_utils import build_logger
 from tool_server.utils.utils import load_image, pil_to_base64
 from tool_server.tool_workers.offline_workers.base_offline_worker import BaseOfflineWorker
+from tool_server.utils.error_codes import *
 
 logger = build_logger("draw_path_worker")
 
@@ -139,14 +140,16 @@ class Draw2DPath(BaseOfflineWorker):
             return {
                 "status": "success",
                 "edited_image": image_base64,
-                "message": "Path drawn successfully"
+                "message": "Path drawn successfully",
+                "error_code": SUCCESS  # 添加这一行
             }
             
         except Exception as e:
             logger.error(f"Error drawing path: {str(e)}")
             return {
                 "status": "failed",
-                "message": f"Error drawing path: {str(e)}"
+                "message": f"Error drawing path: {str(e)}",
+                "error_code": TOOL_RUN_FAILED  # 添加这一行
             }
     
     def draw_direction_sequence(self, image, start, directions, step=64, line_width=3, line_color="red"):

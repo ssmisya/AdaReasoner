@@ -1081,17 +1081,17 @@ def main():
     tools_to_test = AVAILABLE_TOOLS if "all" in args.tools else args.tools
 
     # tools_to_test = ["OCR", "DrawShape","Crop","Point","GroundingDINO","SegmentRegionAroundPoint","DrawLine","HighlightBox","MaskBox"]
-    tools_to_test = ["Point"]
+    tools_to_test = ["OCR"]
     
     # 为不同工具设置合适的测试图像
     image_dict = {
         "default":"/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
-        "GroundingDINO": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/truck.jpg",
-        "SegmentRegionAroundPoint": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/zebra.jpg",
-        "Point": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/zebra.jpg",
-        "LanguageModel": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots1.jpg",
-        "GetSubplotInfo": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots2.jpg",
-        "GetBarInfo": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/bars1.jpg"
+        # "GroundingDINO": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/truck.jpg",
+        # "SegmentRegionAroundPoint": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/zebra.jpg",
+        # "Point": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/zebra.jpg",
+        # "LanguageModel": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots1.jpg",
+        # "GetSubplotInfo": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots2.jpg",
+        # "GetBarInfo": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/bars1.jpg"
     }
     
     # 运行测试

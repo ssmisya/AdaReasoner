@@ -29,8 +29,6 @@ import base64
 
 logger = get_logger(__name__)
 
-
-
 class BaseToolInferencer(object):
     """
     基础工具推理器类
@@ -174,19 +172,16 @@ class BaseToolInferencer(object):
                     
                     # 获取工具响应文本
                     # 如果工具中有"edited_image"，则去除，保留剩余的内容为tool_response_text
+                    tool_response.pop("tool_reward", None)  
                     if "edited_image" in tool_response:
                         # 将tool_response中的"edited_image"删除
                         tool_response.pop("edited_image", None)
-                        tool_response_text = tool_response
+                        tool_response_text = f"{tool_response} New image generated and saved as: img_{len(self.image_history[item_id])}."
                     else:
                         tool_response_text = tool_response
-                    
-                    # 获取API名称
-                    api_name = tool_cfg[0].get("API_name", tool_cfg[0].get("api_name", ""))
-
+                
                     # 根据得到的响应构建新的响应文本
-                    new_response = f"{tool_response_text}\n"
-                    new_round_prompt = f"{new_response} Please summarize the tool outputs and answer my first question."
+                    new_round_prompt = f"{tool_response_text}\n"
                 except:
                     # 异常处理：如果处理工具响应时出错，使用原始提示
                     edited_image = None
@@ -194,7 +189,7 @@ class BaseToolInferencer(object):
             else:
                 # 如果没有工具响应，使用原始提示
                 edited_image = None
-                new_round_prompt = original_prompt
+                new_round_prompt = "Please continue with your response or call a tool."
             
             # 创建新轮次输入并添加到项目中
             # 将图片也添加到new_round_input中
@@ -211,14 +206,11 @@ class BaseToolInferencer(object):
         批量获取工具响应
         处理当前批次中的每个项目，调用相应的工具获取响应
         """
-        print(f"DEBUG: batch_get_tool_response 开始")
         current_batch = self.manager.get_current_batch()
-        for i, item in enumerate(current_batch):
+        for item in current_batch:
             # 跳过未处理或状态不是processing的项目
             if item.model_response is None or item.status != "processing":
                 continue
-            
-            print(f"DEBUG: 处理项目 {i}: idx={item.meta_data.get('idx', 'N/A')}")
             
             tool_cfg = item.tool_cfg[item.current_round-1]
             assert len(item.tool_cfg) == item.current_round
@@ -233,7 +225,6 @@ class BaseToolInferencer(object):
 
             # 如果存在工具配置，调用相应的工具
             if tool_cfg is not None and len(tool_cfg) > 0:
-                print(f"DEBUG: 项目 {i} 有工具配置，开始调用工具")
                 assert item.status == "processing"
                 try:
                     # 目前只支持一个工具
@@ -241,19 +232,16 @@ class BaseToolInferencer(object):
 
                     # 获取API名称
                     api_name = tool_cfg[0].get("API_name", tool_cfg[0].get("api_name", ""))
-                    print(f"DEBUG: 项目 {i} API名称: {api_name}")
 
                     # 检查API是否在可用模型列表中
                     if api_name not in self.available_models:
                         # 记录错误并添加错误响应
                         logger.error(f"API_name {api_name} not in available models, {self.available_models}")
                         item.tool_response.append(dict(text=f"There is no tool names {api_name}.",status="failed"))
-                        print(f"DEBUG: 项目 {i} API不可用")
                         continue
 
                     # 获取API参数
                     api_params = tool_cfg[0].get("api_params", tool_cfg[0].get("API_params", {}))
-                    print(f"DEBUG: 项目 {i} API参数: {api_params}")
                     
                     # 处理图像参数
                     image_param = None
@@ -261,11 +249,11 @@ class BaseToolInferencer(object):
                     # 检查参数中是否包含image参数，并且是否符合img_n格式
                     if "image" in api_params and isinstance(api_params["image"], str) and api_params["image"].startswith("img_"):
                         img_key = api_params["image"]
-                        
                         # 从图像历史中获取对应图像
                         if img_key in self.image_history[item_id]:
                             image = self.image_history[item_id][img_key]
                             # 如果是需要图像的工具，确保图像格式正确
+                            # if api_name in ["Point","SegmentRegionAroundPoint","Crop","GroundingDINO","DrawLine","OCR","GetSubplotInfo","GetBarInfo", "DrawShape", "HighlightBox", "MaskBox", "LanguageModel"]:
                             if image is not None:
                                 image = load_image(image)
                                 image = pil_to_base64(image)
@@ -273,10 +261,8 @@ class BaseToolInferencer(object):
                                 api_params["image"] = image
                         else:
                             # 如果找不到请求的图像，记录错误
-                            print(f"DEBUG_TOOL: 图像 {img_key} 未找到！")
                             logger.error(f"Image {img_key} not found in history for item {item_id}")
                             item.tool_response.append(dict(text=f"Image {img_key} not found in history.",status="failed"))
-                            print(f"DEBUG: 项目 {i} 图像 {img_key} 未找到")
                             continue
                     # 如果没有指定图像或不是img_n格式，使用当前图像或元数据中的图像
                     # elif api_name in ["Point","SegmentRegionAroundPoint","Crop","GroundingDINO","DrawLine","OCR","GetSubplotInfo","GetBarInfo", "DrawShape", "HighlightBox", "MaskBox", "LanguageModel"]:
@@ -296,7 +282,6 @@ class BaseToolInferencer(object):
                             # 如果找不到图像，记录错误
                             logger.error(f"No image available for tool {api_name}")
                             item.tool_response.append(dict(text=f"No image available for tool {api_name}.",status="failed"))
-                            print(f"DEBUG: 项目 {i} 没有可用图像")
                             continue
                     
                     # 设置默认参数和用户提供的参数
@@ -304,37 +289,28 @@ class BaseToolInferencer(object):
                         **api_params,
                     }
                     
-                    print(f"DEBUG: 项目 {i} 开始调用工具管理器")
                     # 调用工具获取响应
                     tool_response = self.tool_manager.call_tool(api_name, api_paras)
                     tool_response_clone = copy.deepcopy(tool_response)
-                    print(f"DEBUG: 项目 {i} 工具调用完成")
 
                     # 记录工具调用结果
                     if tool_response['status'] == "success":
                         logger.info(f"The {api_name} calls successfully!")
-                        print(f"DEBUG: 项目 {i} 工具调用成功")
                     else:
                         logger.info(f"The {api_name} calls failed!")
-                        print(f"DEBUG: 项目 {i} 工具调用失败")
                     
                     # 将工具响应添加到项目中
                     item.tool_response.append(tool_response_clone)
-                    print(f"DEBUG: 项目 {i} 工具响应已添加")
                     continue
                 except Exception as e:
                     # 异常处理：如果调用工具时出错，添加错误响应
                     logger.info(f"Tool {api_name} failed to answer the question, tool_cfg is {tool_cfg}, error: {str(e)}")
                     item.tool_response.append(dict(text=f"Tool {api_name} failed to answer the question: {str(e)}",status="failed"))
-                    print(f"DEBUG: 项目 {i} 工具调用异常: {e}")
                     continue
             else:
                 # 如果没有工具配置，添加空响应
                 item.tool_response.append(None)
-                print(f"DEBUG: 项目 {i} 没有工具配置")
                 continue
-                
-        print(f"DEBUG: batch_get_tool_response 完成")
 
     def extract_tool_call(self, text: str):
         """
@@ -405,30 +381,22 @@ class BaseToolInferencer(object):
         批量解析工具配置
         从模型响应中提取工具配置信息
         """
-        print(f"DEBUG: batch_parse_tool_config 开始")
         current_batch = self.manager.get_current_batch()
-        for i, item in enumerate(current_batch):
-            if item.status != "processing":
-                continue
-                
-            print(f"DEBUG: 解析项目 {i}: idx={item.meta_data.get('idx', 'N/A')}")
+        for item in current_batch:
             model_response = item.model_response[item.current_round-1]
             assert len(item.model_response) == item.current_round
             
             # 跳过未处理或状态不是processing的项目
-            if model_response is None:
-                print(f"DEBUG: 项目 {i} model_response为None，跳过")
+            if model_response is None or item.status != "processing":
                 continue
             
             try:
-                print(f"DEBUG: 项目 {i} 开始解析工具配置")
                 # 根据模型模式解析工具配置
                 if self.model_mode == "general":
                     # 添加调试信息
                     
                     # 提取工具调用信息
                     tool_calls = self.extract_tool_call(model_response)
-                    print(f"DEBUG: 项目 {i} 提取到工具调用: {tool_calls}")
                     
                     if tool_calls is not None and len(tool_calls) > 0:
                         # 只使用第一个工具调用，每个时间步只做一个操作
@@ -443,22 +411,16 @@ class BaseToolInferencer(object):
                         # 构建通用工具配置
                         tool_cfg = [{'API_name': tool_name,
                                     'API_params': tool_params}]
-                        print(f"DEBUG: 项目 {i} 工具配置: {tool_cfg}")
                     else:
                         # 如果没有提取到工具调用，设置工具配置为None
                         tool_cfg = None
-                        print(f"DEBUG: 项目 {i} 没有提取到工具调用")
             except Exception as e:
                 # 异常处理：如果解析工具配置时出错，记录错误并设置工具配置为None
                 logger.info(f"Failed to parse tool config: {e}.")
                 tool_cfg = None
-                print(f"DEBUG: 项目 {i} 解析工具配置出错: {e}")
                 
             # 将工具配置添加到数据项中
             item.tool_cfg.append(tool_cfg)
-            print(f"DEBUG: 项目 {i} 工具配置已添加")
-            
-        print(f"DEBUG: batch_parse_tool_config 完成")
             
     def pop_qualified_items(self):
         """
@@ -481,8 +443,9 @@ class BaseToolInferencer(object):
                 final_answer = self.manager.extract_final_answer(final_model_output)
                 item_dict["final_answer"] = final_answer
                 item_dict["image_history"] = self.image_history.get(item_id, {})
-                # 记录要移除的item_id
+                item_dict.pop("current_image", None) 
                 
+                # 记录要移除的item_id
                 removed_item_ids.append(item_id)
                 
                 res.append(item_dict)
@@ -515,66 +478,36 @@ class BaseToolInferencer(object):
             num_workers=2, 
             collate_fn=lambda x: x[0]  # 确保每次返回一个数据项
         )
-
-        print("运行到数据加载器这里了,dataloader长度为：",len(self.dataloader))
-        print(f"DEBUG: dataloader类型: {type(self.dataloader)}")
-        print(f"DEBUG: tp_model类型: {type(self.tp_model)}")
         
         # 如果启用分布式训练且不使用vLLM模型，则使用accelerator准备数据加载器
         if dist.is_initialized() and not 'vllm_models' in str(type(self.tp_model)):
             self.dataloader = self.accelerator.prepare(self.dataloader)
-            print(f"DEBUG: 使用accelerator准备后的dataloader长度: {len(self.dataloader)}")
             
         # 将数据加载器转换为迭代器并设置模型为评估模式
         self.dataloader_iter = iter(self.dataloader)
-        print(f"DEBUG: 创建dataloader_iter成功")
-        # self.tp_model.eval()
+        self.tp_model.eval()
         # 创建进度条
         progress_bar = tqdm_rank0(len(self.dataloader), desc="Model Responding")
 
         # 如果数据加载器为空且不使用vLLM模型，则等待所有进程完成，并返回
         if len(self.dataloader) == 0 and not 'vllm_models' in str(type(self.tp_model)):
-            print(f"DEBUG: dataloader为空且不使用vLLM，直接返回")
             self.accelerator.wait_for_everyone()
             return
             
         # 将数据加载器中的数据项添加到管理器中，并使用进度条显示进度
-        print(f"DEBUG: 开始调用manager.append_item_to_full")
         self.manager.append_item_to_full(self.dataloader_iter, progress_bar=progress_bar)
-        print(f"DEBUG: 完成manager.append_item_to_full调用")
 
         # 获取当前批次并使用模型生成响应
         current_batch = self.manager.get_current_batch()
-        print(f"DEBUG: 第一次获取current_batch长度: {len(current_batch)}")
-        print(f"DEBUG: manager.dynamic_batch长度: {len(self.manager.dynamic_batch)}")
         self.tp_model.generate(current_batch) # 获得的是批量响应
         # 更新管理器中的状态
         self.manager.update_item_status()
-        print(f"DEBUG: 更新状态后current_batch长度: {len(current_batch)}")
         
         # 主循环：处理所有批次
-        loop_count = 0
         while len(current_batch) > 0:
-            loop_count += 1
-            print(f"DEBUG: 主循环第 {loop_count} 次迭代，当前batch大小: {len(current_batch)}")
-            
-            # 打印每个项目的状态
-            for i, item in enumerate(current_batch):
-                print(f"DEBUG: 项目 {i}: idx={item.meta_data.get('idx', 'N/A')}, status={item.status}, round={item.current_round}/{item.max_rounds}")
-                if item.model_response:
-                    has_response_tag = "<response>" in item.model_response[-1]
-                    print(f"DEBUG: 项目 {i}: has_response_tag={has_response_tag}, if_use_tool={self.if_use_tool}")
-            
-            # 添加死循环检测
-            if loop_count > 1000:  # 防止无限循环
-                print(f"ERROR: 检测到可能的死循环，强制退出")
-                break
-            
             try:
                 # 弹出所有已完成处理的项目
                 results = self.pop_qualified_items()
-                print(f"DEBUG: 弹出了 {len(results)} 个已完成的项目")
-                
                 # 将结果存储到数据集中
                 for res in results:
                     idx = res["meta_data"]["idx"]
@@ -594,60 +527,25 @@ class BaseToolInferencer(object):
                     continue
                 
                 # 以下是使用工具的流程
-                # 检查是否还有需要处理的项目
-                processing_items = [item for item in current_batch if item.status == "processing"]
-                print(f"DEBUG: 需要处理的项目数量: {len(processing_items)}")
+                # 解析工具配置
+                self.batch_parse_tool_config()
+                # 获取工具响应
+                self.batch_get_tool_response()
+                # 将工具响应转换为下一轮输入
+                self.batch_tool_response_to_next_round_input()
                 
-                if len(processing_items) > 0:
-                    print(f"DEBUG: 开始解析工具配置")
-                    # 解析工具配置
-                    self.batch_parse_tool_config()
-                    print(f"DEBUG: 工具配置解析完成")
-                    
-                    print(f"DEBUG: 开始获取工具响应")
-                    # 获取工具响应
-                    self.batch_get_tool_response()
-                    print(f"DEBUG: 工具响应获取完成")
-                    
-                    print(f"DEBUG: 开始转换工具响应为下一轮输入")
-                    # 将工具响应转换为下一轮输入
-                    self.batch_tool_response_to_next_round_input()
-                    print(f"DEBUG: 工具响应转换完成")
-                else:
-                    print(f"DEBUG: 没有需要处理的项目，跳过工具处理")
-                
-                print(f"DEBUG: 开始重新填充批次")
                 # 重新填充当前批次
                 self.manager.append_item_to_full(self.dataloader_iter, progress_bar=progress_bar)
-                print(f"DEBUG: 批次重新填充完成")
                 
                 # 获取更新后的当前批次并生成新的响应
                 current_batch = self.manager.get_current_batch()
-                print(f"DEBUG: 更新后的current_batch长度: {len(current_batch)}")
-                
                 if len(current_batch) > 0:
-                    # 如果没有新数据且没有处理中的项目，强制结束所有pending项目
-                    if len(processing_items) == 0 and len([item for item in current_batch if item.status == "pending"]) > 0:
-                        print(f"DEBUG: 没有新数据且没有处理中项目，强制结束所有pending项目")
-                        for item in current_batch:
-                            if item.status == "pending":
-                                item.status = "finished"
-                        continue
-                    
-                    print(f"DEBUG: 开始生成响应")
                     self.tp_model.generate(current_batch)
-                    print(f"DEBUG: 响应生成完成")
-                    
-                    print(f"DEBUG: 开始更新状态")
                     # 更新状态，应该会更新current_batch，直到结束
                     self.manager.update_item_status()
-                    print(f"DEBUG: 状态更新完成")
-                else:
-                    print(f"DEBUG: current_batch为空，准备退出循环")
 
             except StopIteration:
                 # 当迭代器耗尽时退出循环
-                print(f"DEBUG: StopIteration异常，退出循环")
                 break
                 
         # 确保所有项目都已处理完毕

@@ -6,13 +6,12 @@ import uuid
 import os
 import re
 import io
-import signal
 import numpy as np
 from PIL import Image
 import torch
 import traceback
 import asyncio
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+from concurrent.futures import ThreadPoolExecutor
 from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.responses import StreamingResponse, JSONResponse
 from transformers import HfArgumentParser
@@ -148,14 +147,6 @@ class OCRToolArguments(WorkerArguments):
         default=False,
         metadata={"help": "Enable multi-GPU inference"}
     )
-    ocr_task_timeout: Optional[int] = field(
-        default=60,
-        metadata={"help": "Timeout for individual OCR inference tasks in seconds"}
-    )
-    ocr_request_timeout: Optional[int] = field(
-        default=120,
-        metadata={"help": "Overall timeout for OCR requests in seconds"}
-    )
 
 class OCRToolWorker(BaseToolWorker):
     def __init__(self, worker_arguments: OCRToolArguments = None):
@@ -169,10 +160,6 @@ class OCRToolWorker(BaseToolWorker):
         else:
             worker_arguments.limit_model_concurrency = 5  # 默认允许5个并发请求
         
-        # 首先初始化超时配置
-        self.ocr_task_timeout = getattr(worker_arguments, 'ocr_task_timeout', 60)
-        self.ocr_request_timeout = getattr(worker_arguments, 'ocr_request_timeout', 120)
-        
         # 在调用父类初始化前先初始化多GPU配置
         self.enable_multi_gpu = getattr(worker_arguments, 'enable_multi_gpu', False)
         self.gpu_ids = []
@@ -182,7 +169,6 @@ class OCRToolWorker(BaseToolWorker):
             self.gpu_ids = [0]  # 默认使用GPU 0
             
         logger.info(f"Multi-GPU enabled: {self.enable_multi_gpu}, GPU IDs: {self.gpu_ids}")
-        logger.info(f"OCR timeout settings - Task: {self.ocr_task_timeout}s, Request: {self.ocr_request_timeout}s")
         
         # 多GPU相关变量初始化
         self.gpu_processes = []
@@ -190,13 +176,6 @@ class OCRToolWorker(BaseToolWorker):
         self.result_queue = None
         self.task_counter = 0
         self.pending_tasks = {}
-        
-        # 负载均衡相关变量
-        self.current_gpu_index = 0  # 用于轮询调度
-        self.gpu_task_counts = {}  # 跟踪每个GPU的任务数
-        self.gpu_processing_times = {}  # 跟踪每个GPU的处理时间统计
-        import threading
-        self.load_balancer_lock = threading.Lock()  # 保证线程安全
         
         # 调用父类初始化
         super().__init__(worker_arguments)
@@ -257,10 +236,6 @@ class OCRToolWorker(BaseToolWorker):
             task_queue = mp.Queue()
             self.task_queues.append(task_queue)
             
-            # 初始化GPU统计信息
-            self.gpu_task_counts[gpu_id] = 0
-            self.gpu_processing_times[gpu_id] = []
-            
             # 创建GPU工作进程
             process = mp.Process(
                 target=gpu_worker_process,
@@ -269,8 +244,6 @@ class OCRToolWorker(BaseToolWorker):
             process.start()
             self.gpu_processes.append(process)
             logger.info(f"Started GPU worker process for GPU {gpu_id}")
-            
-        logger.info(f"Initialized load balancing for {len(self.gpu_ids)} GPUs: {self.gpu_ids}")
         
         # 启动结果收集线程
         import threading
@@ -286,17 +259,6 @@ class OCRToolWorker(BaseToolWorker):
             try:
                 task_id, result = self.result_queue.get(timeout=1)
                 if task_id in self.pending_tasks:
-                    # 更新GPU统计信息
-                    if 'gpu_id' in result:
-                        gpu_id = result['gpu_id']
-                        if gpu_id in self.gpu_task_counts:
-                            self.gpu_task_counts[gpu_id] += 1
-                        if 'processing_time' in result and gpu_id in self.gpu_processing_times:
-                            self.gpu_processing_times[gpu_id].append(result['processing_time'])
-                            # 只保留最近100个处理时间记录
-                            if len(self.gpu_processing_times[gpu_id]) > 100:
-                                self.gpu_processing_times[gpu_id] = self.gpu_processing_times[gpu_id][-100:]
-                    
                     # 将结果传递给等待的任务
                     self.pending_tasks[task_id].put(result)
                     del self.pending_tasks[task_id]
@@ -307,109 +269,14 @@ class OCRToolWorker(BaseToolWorker):
         
     def get_tool_instruction(self):
         return self.instruction
-    
-    def update_timeout_settings(self, task_timeout=None, request_timeout=None):
-        """动态更新超时设置"""
-        if task_timeout is not None:
-            old_task_timeout = self.ocr_task_timeout
-            self.ocr_task_timeout = task_timeout
-            logger.info(f"Updated OCR task timeout from {old_task_timeout}s to {task_timeout}s")
-            
-        if request_timeout is not None:
-            old_request_timeout = self.ocr_request_timeout
-            self.ocr_request_timeout = request_timeout
-            logger.info(f"Updated OCR request timeout from {old_request_timeout}s to {request_timeout}s")
-    
-    def get_timeout_settings(self):
-        """获取当前超时设置"""
-        return {
-            "task_timeout": self.ocr_task_timeout,
-            "request_timeout": self.ocr_request_timeout
-        }
-    
-    def get_gpu_stats(self):
-        """获取GPU统计信息"""
-        if not self.enable_multi_gpu or len(self.gpu_ids) <= 1:
-            return {"multi_gpu_enabled": False}
-            
-        stats = {
-            "multi_gpu_enabled": True,
-            "gpu_ids": self.gpu_ids,
-            "current_gpu_index": self.current_gpu_index,
-            "task_counts": dict(self.gpu_task_counts),
-            "queue_sizes": {gpu_id: self.task_queues[i].qsize() for i, gpu_id in enumerate(self.gpu_ids)},
-            "average_processing_times": {}
-        }
         
-        # 计算平均处理时间
-        for gpu_id in self.gpu_ids:
-            times = self.gpu_processing_times.get(gpu_id, [])
-            if times:
-                stats["average_processing_times"][gpu_id] = {
-                    "avg": sum(times) / len(times),
-                    "count": len(times),
-                    "min": min(times),
-                    "max": max(times)
-                }
-            else:
-                stats["average_processing_times"][gpu_id] = {
-                    "avg": 0.0,
-                    "count": 0,
-                    "min": 0.0,
-                    "max": 0.0
-                }
-        
-        return stats
-    
-    def reset_gpu_stats(self):
-        """重置GPU统计信息"""
-        if self.enable_multi_gpu and len(self.gpu_ids) > 1:
-            with self.load_balancer_lock:
-                for gpu_id in self.gpu_ids:
-                    self.gpu_task_counts[gpu_id] = 0
-                    self.gpu_processing_times[gpu_id] = []
-                logger.info("GPU statistics have been reset")
-                return True
-        return False
-        
-    async def generate_gate_async(self, params):
-        """异步generate_gate，提供真正的异步处理能力"""
-        try:
-            # 直接调用异步实现，避免线程池开销
-            ret = await self.generate_impl_async(params)
-            return ret
-        except asyncio.TimeoutError:
-            logger.error(f"OCR request timeout after {self.ocr_request_timeout} seconds")
-            return {
-                "tool_response_from": self.model_name,
-                "status": "failed",
-                "message": f"OCR request timeout after {self.ocr_request_timeout} seconds",
-                "error_code": TOOL_RUN_FAILED
-            }
-        except Exception as e:
-            logger.error(f"Error in generate_gate_async: {e}")
-            return {
-                "tool_response_from": self.model_name,
-                "status": "failed",
-                "message": f"Error in generate_gate_async: {e}",
-                "error_code": TOOL_RUN_FAILED
-            }
-    
     def generate_gate(self, params):
-        """覆盖父类方法，使用线程池处理请求并支持超时控制（向后兼容）"""
+        """覆盖父类方法，使用线程池处理请求"""
         try:
-            # 使用线程池提交任务，使用可配置的超时时间
+            # 使用线程池提交任务
             future = self.thread_pool.submit(self.generate_impl, params)
-            ret = future.result(timeout=self.ocr_request_timeout)
+            ret = future.result(timeout=300)  # 设置超时时间
             return ret
-        except FutureTimeoutError:
-            logger.error(f"OCR request timeout after {self.ocr_request_timeout} seconds")
-            return {
-                "tool_response_from": self.model_name,
-                "status": "failed",
-                "message": f"OCR request timeout after {self.ocr_request_timeout} seconds",
-                "error_code": TOOL_RUN_FAILED
-            }
         except Exception as e:
             logger.error(f"Error in generate_gate: {e}")
             return {
@@ -419,8 +286,8 @@ class OCRToolWorker(BaseToolWorker):
                 "error_code": TOOL_RUN_FAILED
             }
     
-    async def generate_impl_async(self, params):
-        """异步实现实际的生成逻辑"""
+    def generate_impl(self, params):
+        """实现实际的生成逻辑"""
         tool_reward = 2.0
         # 计算Parameter Name Matching
         param_keys = set(params.keys())
@@ -460,11 +327,11 @@ class OCRToolWorker(BaseToolWorker):
             
             correct_param_content_num += 1
 
-            # 根据GPU配置选择异步处理方式
+            # 根据GPU配置选择处理方式
             if self.enable_multi_gpu and len(self.gpu_ids) > 1:
-                ocr_result = await self._process_ocr_multi_gpu_async(np.array(img), text_threshold)
+                ocr_result = self._process_ocr_multi_gpu(np.array(img), text_threshold)
             else:
-                ocr_result = await self._process_ocr_single_gpu_async(np.array(img), text_threshold)
+                ocr_result = self._process_ocr_single_gpu(np.array(img), text_threshold)
             
             # 构建返回结果
             pred_dict = {
@@ -505,82 +372,13 @@ class OCRToolWorker(BaseToolWorker):
             }
             return pred_dict
     
-    def generate_impl(self, params):
-        """同步包装器，实现实际的生成逻辑"""
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            return loop.run_until_complete(self.generate_impl_async(params))
-        finally:
-            loop.close()
-    
-    async def _ocr_predict_with_timeout_async(self, img_array, timeout):
-        """异步带超时控制的OCR推理函数"""
-        import threading
-        import queue
-        
-        result_queue = queue.Queue()
-        exception_queue = queue.Queue()
-        
-        def ocr_worker():
-            try:
-                result = self.ocr_model.predict(img_array)
-                result_queue.put(result)
-            except Exception as e:
-                exception_queue.put(e)
-        
-        # 启动OCR线程
-        ocr_thread = threading.Thread(target=ocr_worker)
-        ocr_thread.daemon = True
-        ocr_thread.start()
-        
-        # 异步等待结果或超时
-        loop = asyncio.get_event_loop()
-        try:
-            result = await loop.run_in_executor(
-                None, 
-                lambda: result_queue.get(timeout=timeout)
-            )
-            return result, None
-        except queue.Empty:
-            logger.warning(f"OCR inference timeout after {timeout} seconds")
-            return None, "OCR inference timeout"
-        except Exception as e:
-            if not exception_queue.empty():
-                exception = exception_queue.get()
-                return None, str(exception)
-            return None, str(e)
-    
-    def _ocr_predict_with_timeout(self, img_array, timeout):
-        """同步包装器，用于向后兼容"""
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            return loop.run_until_complete(self._ocr_predict_with_timeout_async(img_array, timeout))
-        finally:
-            loop.close()
-    
-    async def _process_ocr_single_gpu_async(self, img_array, text_threshold):
-        """异步单GPU OCR处理方法（带超时保护）"""
+    def _process_ocr_single_gpu(self, img_array, text_threshold):
+        """单GPU OCR处理方法"""
         detections = []
         
         try:
-            # 使用异步带超时的PaddleOCR推理
-            result, error = await self._ocr_predict_with_timeout_async(img_array, self.ocr_task_timeout)
-            
-            if error:
-                return {
-                    "status": "failed",
-                    "message": error,
-                    "detections": []
-                }
-            
-            if not result:
-                return {
-                    "status": "failed",
-                    "message": "OCR inference returned no result",
-                    "detections": []
-                }
+            # 使用PaddleOCR进行推理
+            result = self.ocr_model.predict(img_array)
             
             if result and len(result) > 0:
                 first_result = result[0]
@@ -634,64 +432,36 @@ class OCRToolWorker(BaseToolWorker):
                 "detections": []
             }
     
-    def _process_ocr_single_gpu(self, img_array, text_threshold):
-        """同步包装器，用于向后兼容"""
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            return loop.run_until_complete(self._process_ocr_single_gpu_async(img_array, text_threshold))
-        finally:
-            loop.close()
-    
-    def _select_gpu_for_task(self):
-        """选择最适合的GPU处理任务"""
-        with self.load_balancer_lock:
-            # 策略1: 轮询调度 (Round Robin) - 最公平的分配
-            selected_gpu_idx = self.current_gpu_index
-            self.current_gpu_index = (self.current_gpu_index + 1) % len(self.gpu_ids)
-            selected_gpu_id = self.gpu_ids[selected_gpu_idx]
-            
-            # 获取当前状态用于日志
-            queue_sizes = [q.qsize() for q in self.task_queues]
-            task_counts = [self.gpu_task_counts.get(gpu_id, 0) for gpu_id in self.gpu_ids]
-            
-            logger.info(f"Load balancer - Selected GPU {selected_gpu_id} (Round Robin)")
-            logger.info(f"Current state - Queue sizes: {dict(zip(self.gpu_ids, queue_sizes))}, Task counts: {dict(zip(self.gpu_ids, task_counts))}")
-            
-            return selected_gpu_idx, selected_gpu_id
-    
-    async def _process_ocr_multi_gpu_async(self, img_array, text_threshold):
-        """异步多GPU OCR处理方法（使用改进的负载均衡）"""
+    def _process_ocr_multi_gpu(self, img_array, text_threshold):
+        """多GPU OCR处理方法（使用负载均衡）"""
         try:
             # 生成任务ID
             self.task_counter += 1
             task_id = f"task_{self.task_counter}_{time.time()}"
             
-            # 使用改进的负载均衡算法选择GPU
-            selected_gpu_idx, selected_gpu_id = self._select_gpu_for_task()
+            # 选择队列最短的GPU（负载均衡）
+            queue_sizes = [q.qsize() for q in self.task_queues]
+            selected_gpu_idx = queue_sizes.index(min(queue_sizes))
+            selected_gpu_id = self.gpu_ids[selected_gpu_idx]
+            
+            logger.info(f"Task {task_id} assigned to GPU {selected_gpu_id} (queue size: {queue_sizes[selected_gpu_idx]})")
             
             # 创建结果队列
             result_queue = queue.Queue()
             self.pending_tasks[task_id] = result_queue
             
-            # 将任务添加到选定的GPU队列（非阻塞）
+            # 将任务添加到选定的GPU队列
             self.task_queues[selected_gpu_idx].put((task_id, img_array, text_threshold))
-            logger.info(f"Task {task_id} dispatched to GPU {selected_gpu_id} (async)")
             
-            # 异步等待结果
-            loop = asyncio.get_event_loop()
+            # 等待结果
             try:
-                # 使用线程池执行阻塞操作，避免阻塞事件循环
-                result = await loop.run_in_executor(
-                    None, 
-                    lambda: result_queue.get(timeout=self.ocr_task_timeout)
-                )
+                result = result_queue.get(timeout=30)  # 30秒超时
                 return result
             except queue.Empty:
-                logger.error(f"Task {task_id} timeout after {self.ocr_task_timeout} seconds")
+                logger.error(f"Task {task_id} timeout")
                 return {
                     "status": "failed",
-                    "message": f"Multi-GPU processing timeout after {self.ocr_task_timeout} seconds",
+                    "message": "Multi-GPU processing timeout",
                     "detections": []
                 }
             finally:
@@ -706,16 +476,6 @@ class OCRToolWorker(BaseToolWorker):
                 "message": str(e),
                 "detections": []
             }
-    
-    def _process_ocr_multi_gpu(self, img_array, text_threshold):
-        """同步包装器，用于向后兼容"""
-        # 在线程池中运行异步方法
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            return loop.run_until_complete(self._process_ocr_multi_gpu_async(img_array, text_threshold))
-        finally:
-            loop.close()
     
     # 使用generate_impl作为generate方法
     def generate(self, params):
@@ -736,120 +496,26 @@ class OCRToolWorker(BaseToolWorker):
             results = []
             futures = []
             
-            # 创建异步任务列表，实现真正的并发处理
-            async_tasks = []
+            # 提交所有任务到线程池
             for params in batch_params:
-                task = asyncio.create_task(self.generate_gate_async(params))
-                async_tasks.append(task)
+                future = self.thread_pool.submit(self.generate_impl, params)
+                futures.append(future)
             
-            # 并发执行所有任务，使用超时控制
-            try:
-                results = await asyncio.wait_for(
-                    asyncio.gather(*async_tasks, return_exceptions=True),
-                    timeout=self.ocr_request_timeout
-                )
-                
-                # 处理结果和异常
-                processed_results = []
-                for i, result in enumerate(results):
-                    if isinstance(result, Exception):
-                        logger.error(f"Batch item {i} error: {result}")
-                        processed_results.append({
-                            "tool_response_from": self.model_name,
-                            "status": "failed",
-                            "message": f"Processing error: {str(result)}",
-                            "error_code": TOOL_RUN_FAILED
-                        })
-                    else:
-                        processed_results.append(result)
-                
-                results = processed_results
-                
-            except asyncio.TimeoutError:
-                logger.error(f"Batch processing timeout after {self.ocr_request_timeout} seconds")
-                # 取消所有未完成的任务
-                for task in async_tasks:
-                    if not task.done():
-                        task.cancel()
-                
-                results = [{
-                    "tool_response_from": self.model_name,
-                    "status": "failed",
-                    "message": f"Batch processing timeout after {self.ocr_request_timeout} seconds",
-                    "error_code": TOOL_RUN_FAILED
-                } for _ in batch_params]
+            # 收集所有结果
+            for future in futures:
+                try:
+                    result = future.result(timeout=300)
+                    results.append(result)
+                except Exception as e:
+                    logger.error(f"Error processing batch item: {e}")
+                    results.append({
+                        "tool_response_from": self.model_name,
+                        "status": "failed",
+                        "message": f"Processing error: {str(e)}",
+                        "error_code": TOOL_RUN_FAILED
+                    })
             
             return JSONResponse(results)
-        
-        @self.app.post("/worker_timeout_settings")
-        async def api_timeout_settings(request: Request):
-            """管理超时设置的API端点"""
-            try:
-                data = await request.json()
-                action = data.get("action", "get")
-                
-                if action == "get":
-                    return JSONResponse({
-                        "status": "success",
-                        "timeout_settings": self.get_timeout_settings()
-                    })
-                elif action == "update":
-                    task_timeout = data.get("task_timeout")
-                    request_timeout = data.get("request_timeout")
-                    self.update_timeout_settings(task_timeout, request_timeout)
-                    return JSONResponse({
-                        "status": "success",
-                        "message": "Timeout settings updated",
-                        "timeout_settings": self.get_timeout_settings()
-                    })
-                else:
-                    return JSONResponse({
-                        "status": "failed",
-                        "message": f"Unknown action: {action}"
-                    })
-            except Exception as e:
-                logger.error(f"Error in timeout settings API: {e}")
-                return JSONResponse({
-                    "status": "failed",
-                    "message": f"Error: {str(e)}"
-                })
-        
-        @self.app.post("/worker_gpu_stats")
-        async def api_gpu_stats(request: Request):
-            """管理GPU统计信息的API端点"""
-            try:
-                data = await request.json()
-                action = data.get("action", "get")
-                
-                if action == "get":
-                    stats = self.get_gpu_stats()
-                    return JSONResponse({
-                        "status": "success",
-                        "gpu_stats": stats
-                    })
-                elif action == "reset":
-                    success = self.reset_gpu_stats()
-                    if success:
-                        return JSONResponse({
-                            "status": "success",
-                            "message": "GPU statistics reset successfully"
-                        })
-                    else:
-                        return JSONResponse({
-                            "status": "failed",
-                            "message": "Multi-GPU not enabled or only one GPU available"
-                        })
-                else:
-                    return JSONResponse({
-                        "status": "failed",
-                        "message": f"Unknown action: {action}"
-                    })
-            except Exception as e:
-                logger.error(f"Error in GPU stats API: {e}")
-                return JSONResponse({
-                    "status": "failed",
-                    "message": f"Error: {str(e)}"
-                })
 
     def __del__(self):
         """析构函数，确保线程池和GPU进程正确关闭"""

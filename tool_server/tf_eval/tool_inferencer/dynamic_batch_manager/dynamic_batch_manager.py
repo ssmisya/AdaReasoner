@@ -74,7 +74,7 @@ class DynamicBatchManager():
     
     def append_item(self, meta_data: Dict):
         # breakpoint()
-        print(f"DEBUG: append_item被调用，meta_data idx: {meta_data.get('idx', 'N/A')}")
+        # print(f"DEBUG: append_item被调用，meta_data idx: {meta_data.get('idx', 'N/A')}")
         if len(self.dynamic_batch) < self.batch_size:
             # breakpoint()
             candidate_item = DynamicBatchItem(
@@ -83,15 +83,15 @@ class DynamicBatchManager():
                 meta_data=meta_data,
                 status="pending"
             )
-            print(f"DEBUG: 开始生成conversation")
+            # print(f"DEBUG: 开始生成conversation")
             candidate_item.conversation = self.generate_conversation_fn(
                 text = meta_data["text"], 
                 image = meta_data["image"],
                 role = "user"
             )
-            print(f"DEBUG: conversation生成成功")
+            # print(f"DEBUG: conversation生成成功")
             self.dynamic_batch.append(candidate_item)
-            print(f"DEBUG: 成功添加到dynamic_batch，当前长度: {len(self.dynamic_batch)}")
+            # print(f"DEBUG: 成功添加到dynamic_batch，当前长度: {len(self.dynamic_batch)}")
         else:
             raise ValueError("Batch is full")
     
@@ -102,10 +102,10 @@ class DynamicBatchManager():
         while len(self.dynamic_batch) < self.batch_size:
             try:
                 data_item = next(dataloader)
-                print(f"DEBUG: 成功从dataloader获取数据项，idx: {data_item.get('idx', 'N/A')}")
+                # print(f"DEBUG: 成功从dataloader获取数据项，idx: {data_item.get('idx', 'N/A')}")
                 self.append_item(data_item)
                 items_added += 1
-                print(f"DEBUG: 成功添加数据项，当前batch大小: {len(self.dynamic_batch)}")
+                # print(f"DEBUG: 成功添加数据项，当前batch大小: {len(self.dynamic_batch)}")
                 if progress_bar:
                     progress_bar.update(1)
             except StopIteration as e:

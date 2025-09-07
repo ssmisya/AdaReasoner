@@ -242,7 +242,7 @@ class ToolManager(object):
     
     def call_tool(self, tool_name, params):
         """调用工具并返回结果"""
-        timeout_sec = 6000000  # timeout per attempt
+        timeout_sec = 300  # timeout per attempt
         ret_message = {"text": f"Failed to call tool {tool_name} for unknown reason, ", "error_code": 1}
         try:
             signal.alarm(timeout_sec)
@@ -265,7 +265,7 @@ class ToolManager(object):
                         session.trust_env = False
                         ret = session.post(tool_worker_addr + "/worker_generate", 
                                           headers=self.headers, json=params, proxies={},
-                                          timeout=(3000, 3000))
+                                          timeout=(300, 300))
                     ret_message = ret.json()
                 except Exception as e:
                     logger.error(f"Failed to call tool {tool_name}: {e}")

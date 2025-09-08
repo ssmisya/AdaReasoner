@@ -58,6 +58,7 @@ class AStarWithPixelCoordinate(BaseOfflineWorker):
             }
         }
     }
+        
     def _format_path_string(self, path_string):
         """将路径字符串从 'ludr' 格式转换为 'L,R,U,D' 格式"""
         if not path_string:

@@ -330,6 +330,7 @@ def main():
         print("未从命令行接收到路径，使用代码中预设的路径列表。")
         jsonl_paths = [
             "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu/v1_200_rl_output.jsonl"
+            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu/7b_wo_tool_output.jsonl"
         ]
     
     if len(jsonl_paths) == 1 and os.path.isdir(jsonl_paths[0]):

@@ -81,7 +81,7 @@ tool_worker_config:
       job_name: crop
       calculate_type: control
       cmd:
-        script-addr: tool_server.tool_workers.online_workers.crop_worker
+        script-addr: tool_server.tool_workers.online_workers.crop_worker_prompt
         port: 20040
         host: "0.0.0.0"
 
@@ -90,7 +90,7 @@ tool_worker_config:
       job_name: ocr
       calculate_type: calculate
       node_list: "SH-IDC1-10-140-37-82"
-      cuda_visible_devices: "4,5"  # 多GPU设置
+      cuda_visible_devices: "4,5"
       use_apptainer: true
       apptainer_image: "/mnt/petrelfs/sunhaoyu/visual-code/tool-server.sif"
       cmd:
@@ -105,12 +105,12 @@ tool_worker_config:
   #     worker_name: OCR
   #     job_name: ocr
   #     calculate_type: calculate
-  #     node_list: "SH-IDC1-10-140-37-21"
-  #     cuda_visible_devices: "0"
+  #     node_list: "SH-IDC1-10-140-37-41"
+  #     cuda_visible_devices: "5"
   #     use_apptainer: true
   #     apptainer_image: "/mnt/petrelfs/sunhaoyu/visual-code/tool-server.sif"
   #     cmd:
-  #       script-addr: tool_server.tool_workers.online_workers.ocr_worker
+  #       script-addr: tool_server.tool_workers.online_workers.ocr_worker_paddle_单卡
   #       port: 20009
   #       host: "0.0.0.0"
 

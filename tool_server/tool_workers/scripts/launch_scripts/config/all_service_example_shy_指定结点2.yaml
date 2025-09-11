@@ -25,18 +25,18 @@ controller_config:
 # 比如model-path会转义成model_path
 
 tool_worker_config:
-  - Point:
-      worker_name: Point
-      job_name: point2
-      calculate_type: calculate
-      conda_env: "tool-server"
-      node_list: "SH-IDC1-10-140-37-21"
-      cuda_visible_devices: "3"
-      cmd:
-        script-addr: tool_server.tool_workers.online_workers.molmo_point_worker
-        port: 20029
-        host: "0.0.0.0"
-        model_path: "/mnt/petrelfs/share_data/songmingyang/model/mm/tools/Molmo-7B-D-0924"
+  # - Point:
+  #     worker_name: Point
+  #     job_name: point
+  #     calculate_type: calculate
+  #     conda_env: "tool-server"
+  #     node_list: "SH-IDC1-10-140-37-21"
+  #     cuda_visible_devices: "5"
+  #     cmd:
+  #       script-addr: tool_server.tool_workers.online_workers.molmo_point_worker
+  #       port: 20027
+  #       host: "0.0.0.0"
+  #       model_path: "/mnt/petrelfs/share_data/songmingyang/model/mm/tools/Molmo-7B-D-0924"
 
   # - SegmentRegionAroundPoint:
   #     worker_name: SegmentRegionAroundPoint
@@ -76,22 +76,39 @@ tool_worker_config:
   #       port: 20032
   #       host: "0.0.0.0"
 
-  # - Crop:
-  #     worker_name: Crop
-  #     job_name: crop
-  #     calculate_type: control
-  #     cmd:
-  #       script-addr: tool_server.tool_workers.online_workers.crop_worker
-  #       port: 20040
-  #       host: "0.0.0.0"
+  - Crop:
+      worker_name: Crop
+      job_name: crop
+      calculate_type: control
+      cmd:
+        script-addr: tool_server.tool_workers.online_workers.crop_worker_prompt
+        port: 20042
+        host: "0.0.0.0"
 
   # - OCR:
   #     worker_name: OCR
   #     job_name: ocr
   #     calculate_type: calculate
-  #     conda_env: "tool-server"
-  #     node_list: "SH-IDC1-10-140-37-79"
-  #     cuda_visible_devices: "7"
+  #     node_list: "SH-IDC1-10-140-37-71"
+  #     cuda_visible_devices: "1,4"  # 多GPU设置
+  #     use_apptainer: true
+  #     apptainer_image: "/mnt/petrelfs/sunhaoyu/visual-code/tool-server.sif"
+  #     cmd:
+  #       script-addr: tool_server.tool_workers.online_workers.ocr_worker
+  #       port: 20010
+  #       host: "0.0.0.0"
+  #       gpu_ids: "1,4"  # 指定使用的GPU ID
+  #       enable_multi_gpu: true  # 启用多GPU推理
+  #       max_concurrency: 5  # 增加并发数以支持多GPU
+
+  # - OCR:
+  #     worker_name: OCR
+  #     job_name: ocr
+  #     calculate_type: calculate
+  #     node_list: "SH-IDC1-10-140-37-21"
+  #     cuda_visible_devices: "0"
+  #     use_apptainer: true
+  #     apptainer_image: "/mnt/petrelfs/sunhaoyu/visual-code/tool-server.sif"
   #     cmd:
   #       script-addr: tool_server.tool_workers.online_workers.ocr_worker
   #       port: 20009

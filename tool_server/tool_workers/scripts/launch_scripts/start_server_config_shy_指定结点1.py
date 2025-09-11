@@ -43,7 +43,8 @@ class ServerManager:
     def run_srun_command(self, job_name: str, gpus: int, cpus: int, 
                          command: List[str], log_file: str, srun_kwargs: Dict = {}, 
                          conda_env: str = None, cuda_visible_devices: Optional[str] = None, 
-                         node_list: Optional[str] = None) -> subprocess.Popen: # node_list 允许为 None
+                         node_list: Optional[str] = None, use_apptainer: bool = False, 
+                         apptainer_image: Optional[str] = None) -> subprocess.Popen: # node_list 允许为 None
         """
         通过SLURM运行命令
         
@@ -57,6 +58,8 @@ class ServerManager:
             conda_env: Conda环境名称，如果需要激活特定环境
             cuda_visible_devices: 控制CUDA可见设备，如果为None则不设置，如果为空字符串则清除
             node_list: 指定运行的节点列表，如果为None则不指定
+            use_apptainer: 是否使用apptainer容器
+            apptainer_image: apptainer镜像路径
             
         返回:
             subprocess.Popen对象，表示运行的进程
@@ -71,7 +74,8 @@ class ServerManager:
             "-n1",
             "--ntasks-per-node=1",
             # f"-c {cpus}",
-            "-c 2",
+            # 手动指定cpu数量
+            "-c 16",
             "--kill-on-bad-exit=1",
             "--quotatype=reserved",
             # "--quotatype=spot",
@@ -95,12 +99,43 @@ class ServerManager:
         for k,v in srun_kwargs.items():
             srun_cmd.extend([f"-{k}", str(v)])
         
-        srun_cmd.extend(command)
-        
-        self.logger.info(f"启动作业: {job_name} 使用conda环境 {conda_env if conda_env else '原始环境'}")
-        self.logger.info(f"完整的srun命令: {' '.join(srun_cmd)}")
-        
-        return subprocess.Popen(" ".join(srun_cmd), shell=True, env=os.environ.copy())
+        # 如果使用apptainer，则包装命令
+        if use_apptainer and apptainer_image:
+            # 设置apptainer需要的环境变量
+            apptainer_env = os.environ.copy()
+            apptainer_env.update({
+                "NCCL_SOCKET_IFNAME": "bond0",
+                "NCCL_IB_HCA": "mlx5_0", 
+                "NCCL_DEBUG": "ERROR",
+                "NCCL_DEBUG_SUBSYS": "ALL",
+                "VLLM_WORKER_MULTIPROC_METHOD": "spawn",
+                "OMP_NUM_THREADS": "8",
+                "CFLAGS": "-I/mnt/petrelfs/sunhaoyu/visual-code/libaio/usr/include",
+                "LDFLAGS": "-L/mnt/petrelfs/sunhaoyu/visual-code/libaio/usr/lib",
+                "C_INCLUDE_PATH": "/mnt/petrelfs/sunhaoyu/visual-code/libaio/usr/include"
+            })
+            
+            apptainer_cmd = [
+                "apptainer", "exec",
+                "--nv",
+                "--bind", "/mnt:/mnt",
+                apptainer_image
+            ]
+            
+            srun_cmd.extend(apptainer_cmd)
+            srun_cmd.extend(command)
+            
+            self.logger.info(f"启动作业: {job_name} 使用apptainer镜像 {apptainer_image}")
+            self.logger.info(f"完整的srun+apptainer命令: {' '.join(srun_cmd)}")
+            
+            return subprocess.Popen(" ".join(srun_cmd), shell=True, env=apptainer_env)
+        else:
+            srun_cmd.extend(command)
+            
+            self.logger.info(f"启动作业: {job_name} 使用conda环境 {conda_env if conda_env else '原始环境'}")
+            self.logger.info(f"完整的srun命令: {' '.join(srun_cmd)}")
+            
+            return subprocess.Popen(" ".join(srun_cmd), shell=True, env=os.environ.copy())
 
     def wait_for_job(self, job_name: str) -> str:
         """
@@ -267,7 +302,9 @@ class ServerManager:
             srun_kwargs=config_obj.get("srun_kwargs", {}), 
             conda_env=config_obj.get("conda_env", None), 
             cuda_visible_devices=cuda_visible_devices, 
-            node_list=worker_node # 根据 calculate_type 传入可能为 None 的 worker_node
+            node_list=worker_node, # 根据 calculate_type 传入可能为 None 的 worker_node
+            use_apptainer=config_obj.get("use_apptainer", False),
+            apptainer_image=config_obj.get("apptainer_image", None)
         )
         
         wait_dict = self.wait_for_job(job_name)

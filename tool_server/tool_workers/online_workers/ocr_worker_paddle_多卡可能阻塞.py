@@ -49,7 +49,7 @@ def gpu_worker_process(gpu_id, task_queue, result_queue):
         use_doc_orientation_classify=False,
         use_doc_unwarping=False,
         use_textline_orientation=False,
-        lang='ch',
+        lang='en',
         device=f'gpu:0'  # 在进程内总是使用GPU:0，因为CUDA_VISIBLE_DEVICES已经设置
     )
     
@@ -218,7 +218,7 @@ class OCRToolWorker(BaseToolWorker):
             use_doc_orientation_classify=False, 
             use_doc_unwarping=False, 
             use_textline_orientation=False,
-            lang='ch',  # 支持中英文
+            lang='en',  # 支持中英文
             device=device_str
         )
         logger.info(f"Single PaddleOCR model loaded on {device_str}")

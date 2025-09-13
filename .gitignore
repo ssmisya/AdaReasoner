@@ -206,3 +206,5 @@ tool_server/tf_eval/scripts/*
 !tool_server/tf_eval/scripts/notebooks/form_tool_statistics.ipynb
 !tool_server/tf_eval/scripts/notebooks/form_res.ipynb
 !tool_server/tf_eval/scripts/notebooks/form_llm_judge_res.ipynb
+
+tool_server/tool_workers/scripts/launch_scripts/

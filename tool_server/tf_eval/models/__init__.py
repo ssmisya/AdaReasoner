@@ -10,7 +10,7 @@ logger.add(sys.stdout, level="WARNING")
 AVAILABLE_MODELS = {
     "qwen2vl": "Qwen2VL",
     "gemini": "GeminiModels",
-    "gemini_openai": "Gemini_openai_Models",
+    "gemini_create_data": "Gemini_create_data_Models",
     "openai": "OpenaiModels",
     "llava_plus": "LLaVA_Plus",
     "lmdeploy_models": "LMDeployModels",

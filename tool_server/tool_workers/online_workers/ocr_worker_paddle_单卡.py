@@ -85,7 +85,7 @@ class OCRToolWorker(BaseToolWorker):
             use_doc_orientation_classify=False, 
             use_doc_unwarping=False, 
             use_textline_orientation=False,
-            lang='ch'  # 支持中英文
+            lang='en'  # 支持中英文
         )
         
     def get_tool_instruction(self):

@@ -18,7 +18,7 @@ class DynamicBatchItem:
     tool_response :  List[str] = field(default_factory=list)
     new_round_input :  List[str] = field(default_factory=list)
     current_image : Image = field(default=None)
-    
+    image_history: Dict = field(default_factory=list)
     
 
 
@@ -86,9 +86,16 @@ class DynamicBatchManager():
             # print(f"DEBUG: 开始生成conversation")
             candidate_item.conversation = self.generate_conversation_fn(
                 text = meta_data["text"], 
-                image = meta_data["image"],
+                images = meta_data["images"],
                 role = "user"
             )
+            
+            image_history = {}
+            for idx,image in enumerate(meta_data["images"]):
+                image_history[f"img_{idx+1}"] = image
+                
+            candidate_item.image_history = image_history
+                
             # print(f"DEBUG: conversation生成成功")
             self.dynamic_batch.append(candidate_item)
             # print(f"DEBUG: 成功添加到dynamic_batch，当前长度: {len(self.dynamic_batch)}")

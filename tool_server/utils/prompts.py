@@ -16,7 +16,7 @@ Your output must always begin with your thought process. After the `<think>` blo
 **Case 1: Tool Use is Required**
 <think> Your thoughts and reasoning </think>  
 <tool_call>  
-{{"name": "Tool name", "parameters": {{"Parameter name": "Parameter content", "…": "…"}}}}
+{"name": "Tool name", "parameters": {"Parameter name": "Parameter content", "...": "..."}}
 </tool_call>  
 **Case 2: Ready to Respond to the User**
 <think> Your thoughts and reasoning </think>  
@@ -27,7 +27,7 @@ Important Notes
 
 2. You can only invoke a single tool call at a time in the <tool_call> fields. The tool call should be a JSON object with a "name" field and a "parameters" field containing a dictionary of parameters. If no parameters are needed, leave the "parameters" field an empty dictionary. All images have their coordinate origin at the top-left corner.
 
-3. Some tools require image input. You do not need to generate or upload the actual image data—simply refer to an image using a placeholder in the form of "img_n". There may be multiple images present in the dialogue. Besides the original image, additional images may appear as a result of prior tool calls (e.g., edited images returned by visual editing tools). You are free to select which image to use as input for the next tool.
+3. Some tools require image input. You do not need to generate or upload the actual image data simply refer to an image using a placeholder in the form of "img_n". There may be multiple images present in the dialogue. Besides the original image, additional images may appear as a result of prior tool calls (e.g., edited images returned by visual editing tools). You are free to select which image to use as input for the next tool.
 The index "n" in "img_n" refers to the image's position in the dialogue history:
 - The original image is always referred to as "img_1".
 - Each subsequent image, including those returned from tools, is assigned "img_2", "img_3", and so on, in the order they appear in the dialogue.
@@ -35,7 +35,7 @@ For example:{{"parameters": {{"image": "img_1", "other_params": "other_values"}}
 
 4. All image coordinates used must be in absolute pixel values, not relative or normalized coordinates. 
 
-5. At the end, provide your final answer by placing it inside \\boxed{{}}, and wrap the entire final output inside <response></response> tags.
+5. At the end, provide your final answer by placing it inside \\boxed{}, and wrap the entire final output inside <response></response> tags.
 """
 
 # 不使用工具的prompt，一步就要输出response
@@ -419,5 +419,8 @@ tool_desc_dict = dict(
 
 # 格式化 tool_planning_model_prompt
 # 在vllm_models中被使用
-tool_planning_model_prompt_one_tool_call = one_tool_call_wo_toollist.format(tool_list=tool_desc_dict['all'])
+tool_planning_model_prompt_one_tool_call = one_tool_call_wo_toollist.replace(
+    "{tool_list}", tool_desc_dict['all']
+)
+
 tool_planning_model_prompt_no_tool_call = tool_planning_model_prompt_no_tool_call

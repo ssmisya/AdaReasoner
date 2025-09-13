@@ -41,7 +41,7 @@ class tp_model(abc.ABC):
     def generate_conversation_fn(
         self,
         text,
-        image, 
+        images, 
         role = "user",
     ):
         raise NotImplementedError
@@ -63,16 +63,24 @@ class tp_model(abc.ABC):
     
     def getitem_fn(self, meta_data, idx):
         item = meta_data[idx]
-        if "image" in item:
+        images = []
+        if "images" in item:
+            images = item["images"]
+            for img in images:
+                assert isinstance(img, PILImage.Image), f"Each image in 'images' must be a PIL Image, but got {type(img)}"
+        elif "image" in item:
             image = item["image"]
+            assert isinstance(image, PILImage.Image), f"'image' must be a PIL Image, but got {type(image)}"
+            images = [image]
         elif "image_path" in item:
             image = PILImage.open(item["image_path"])
+            images = [image]
         else:
             raise ValueError("Item must contain 'image' or 'image_path' key.")
         
         text = item["text"]
         item_idx = item["idx"]
-        res = dict(image=image, text=text, idx=item_idx)
+        res = dict(images=images, text=text, idx=item_idx)
         return res
     
     def set_generation_config(self, generation_configs: dict = None) -> None:

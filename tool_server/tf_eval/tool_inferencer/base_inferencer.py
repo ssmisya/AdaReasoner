@@ -83,9 +83,9 @@ class BaseToolInferencer(object):
         # 初始化工具管理器
         self.tool_manager = None
         
-        # 初始化图像历史字典，用于存储每个项目的图像历史
-        self.image_history = {}
+        self.image_keys = ["image","base_image","image_to_insert"]
         # remote_breakpoint(port=7119)
+    
         
         
 
@@ -148,18 +148,13 @@ class BaseToolInferencer(object):
                             
                         item.current_image = edited_image
 
-                        # 确保该项目有图像历史记录
-                        item_id = item.meta_data.get("idx", str(id(item)))
-                        if item_id not in self.image_history:
-                            # 初始化图像历史，原始图像为img_1
-                            self.image_history[item_id] = {
-                                "img_1": item.meta_data.get("image", None)
-                            }
                         
+               
                         # 添加新的编辑后图像到历史
-                        img_idx = len(self.image_history[item_id]) + 1
+                        assert item.image_history is not None, "item.image_history should not be None."
+                        img_idx = len(item.image_history) + 1
                         img_key = f"img_{img_idx}"
-                        self.image_history[item_id][img_key] = edited_image
+                        item.image_history[img_key] = edited_image
                         
                         # 根据模型模式处理图像格式
                         if self.model_mode == "llava_plus": 
@@ -176,7 +171,7 @@ class BaseToolInferencer(object):
                     if "edited_image" in tool_response:
                         # 将tool_response中的"edited_image"删除
                         tool_response.pop("edited_image", None)
-                        tool_response_text = f"{tool_response} New image generated and saved as: img_{len(self.image_history[item_id])}."
+                        tool_response_text = f"{tool_response} New image generated and saved as: img_{len(item.image_history)}."
                     else:
                         tool_response_text = tool_response
                 
@@ -217,11 +212,7 @@ class BaseToolInferencer(object):
 
             # 确保该项目有图像历史记录
             item_id = item.meta_data["idx"]
-            if item_id not in self.image_history:
-                # 初始化图像历史，原始图像为img_1
-                self.image_history[item_id] = {
-                    "img_1": item.meta_data.get("image", None)
-                }
+            assert item.image_history
 
             # 如果存在工具配置，调用相应的工具
             if tool_cfg is not None and len(tool_cfg) > 0:
@@ -247,42 +238,59 @@ class BaseToolInferencer(object):
                     image_param = None
                     
                     # 检查参数中是否包含image参数，并且是否符合img_n格式
-                    if "image" in api_params and isinstance(api_params["image"], str) and api_params["image"].startswith("img_"):
-                        img_key = api_params["image"]
-                        # 从图像历史中获取对应图像
-                        if img_key in self.image_history[item_id]:
-                            image = self.image_history[item_id][img_key]
-                            # 如果是需要图像的工具，确保图像格式正确
-                            # if api_name in ["Point","SegmentRegionAroundPoint","Crop","GroundingDINO","DrawLine","OCR","GetSubplotInfo","GetBarInfo", "DrawShape", "HighlightBox", "MaskBox", "LanguageModel"]:
+                    continue_flag = False
+                    for image_key in self.image_keys:
+                        
+                        if image_key in api_params:
+                            img_key = api_params[image_key]
+                            image = item.image_history.get(img_key, None)
                             if image is not None:
                                 image = load_image(image)
                                 image = pil_to_base64(image)
                                 # 更新参数中的图像
-                                api_params["image"] = image
-                        else:
-                            # 如果找不到请求的图像，记录错误
-                            logger.error(f"Image {img_key} not found in history for item {item_id}")
-                            item.tool_response.append(dict(text=f"Image {img_key} not found in history.",status="failed"))
-                            continue
-                    # 如果没有指定图像或不是img_n格式，使用当前图像或元数据中的图像
-                    # elif api_name in ["Point","SegmentRegionAroundPoint","Crop","GroundingDINO","DrawLine","OCR","GetSubplotInfo","GetBarInfo", "DrawShape", "HighlightBox", "MaskBox", "LanguageModel"]:
-                    elif "image" in api_params:    
-                        # 确定当前使用的图像：优先使用当前图像，否则使用元数据中的图像
-                        if item.current_image is not None:
-                            image = item.current_image
-                        else:
-                            image = item.meta_data.get("image", None)
-                        
-                        if image is not None:
-                            image = load_image(image)
-                            image = pil_to_base64(image)
-                            # 设置图像参数
-                            api_params["image"] = image
-                        else:
-                            # 如果找不到图像，记录错误
-                            logger.error(f"No image available for tool {api_name}")
-                            item.tool_response.append(dict(text=f"No image available for tool {api_name}.",status="failed"))
-                            continue
+                                api_params[image_key] = image
+                            else:
+                                # 如果找不到请求的图像，记录错误
+                                logger.error(f"Image {img_key} not found in history for item {item_id}")
+                                item.tool_response.append(dict(text=f"Image {img_key} not found in history.",status="failed"))
+                                continue_flag = True
+                                
+                    if continue_flag:
+                        continue
+                                
+                        # if image_key in api_params and isinstance(api_params[image_key], str) and api_params[image_key].startswith("img_"):
+                        #     img_key = api_params[image_key]
+                        #     # 从图像历史中获取对应图像
+                        #     if img_key in item.image_history:
+                        #         image = item.image_history[img_key]
+                        #         if image is not None:
+                        #             image = load_image(image)
+                        #             image = pil_to_base64(image)
+                        #             # 更新参数中的图像
+                        #             api_params[image_key] = image
+                        #     else:
+                        #         # 如果找不到请求的图像，记录错误
+                        #         logger.error(f"Image {img_key} not found in history for item {item_id}")
+                        #         item.tool_response.append(dict(text=f"Image {img_key} not found in history.",status="failed"))
+                        #         continue
+
+                        # elif image_key in api_params:    
+                        #     # 确定当前使用的图像：优先使用当前图像，否则使用元数据中的图像
+                        #     if item.current_image is not None:
+                        #         image = item.current_image
+                        #     else:
+                        #         image = item.meta_data.get(image_key, None)
+                            
+                        #     if image is not None:
+                        #         image = load_image(image)
+                        #         image = pil_to_base64(image)
+                        #         # 设置图像参数
+                        #         api_params[image_key] = image
+                        #     else:
+                        #         # 如果找不到图像，记录错误
+                        #         logger.error(f"No image available for tool {api_name}")
+                        #         item.tool_response.append(dict(text=f"No image available for tool {api_name}.",status="failed"))
+                        #         continue
                     
                     # 设置默认参数和用户提供的参数
                     api_paras = {
@@ -442,7 +450,6 @@ class BaseToolInferencer(object):
                 final_model_output = item_dict["model_response"][-1]
                 final_answer = self.manager.extract_final_answer(final_model_output)
                 item_dict["final_answer"] = final_answer
-                item_dict["image_history"] = self.image_history.get(item_id, {})
                 item_dict.pop("current_image", None) 
                 
                 # 记录要移除的item_id
@@ -452,12 +459,6 @@ class BaseToolInferencer(object):
             else:
                 new_batch.append(item)
         
-        # 清理已完成项目的image_history
-        for item_id in removed_item_ids:
-            self.image_history.pop(item_id, None)  # 使用pop避免KeyError
-            # if item_id in self.image_history:
-            #     del self.image_history[item_id]
-                # logger.info(f"Cleaned up image history for item {item_id}")
         
         self.manager.dynamic_batch = new_batch
         return res

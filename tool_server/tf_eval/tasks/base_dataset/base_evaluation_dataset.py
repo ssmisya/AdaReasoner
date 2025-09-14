@@ -74,10 +74,12 @@ class BaseEvalDataset(Dataset):
             print(f"DEBUG: 开始从checkpoint恢复，路径: {self.load_ckpt_path}")
             self.resume_from_ckpt(self.load_ckpt_path)
             print(f"DEBUG: checkpoint恢复完成，剩余meta_data长度: {len(self.meta_data)}")
+
         
         if task_args.save_to_ckpt and self.task_name in self.task_args.save_to_ckpt:
             logger.info(f"save to ckpt path: {self.task_args.save_to_ckpt}")
             self.save_ckpt_path = self.task_args.save_to_ckpt[self.task_name]
+            os.makedirs(os.path.dirname(self.save_ckpt_path), exist_ok=True)
         #     logger.info(f"设置检查点保存路径: {self.save_ckpt_path}")
         # else:
         #     logger.info(f"未设置检查点保存路径 - task_args.save_to_ckpt: {getattr(task_args, 'save_to_ckpt', None)}, task_name: {self.task_name}")

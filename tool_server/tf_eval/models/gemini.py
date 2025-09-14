@@ -14,6 +14,7 @@ from .template_instruct import *
 from ..utils.log_utils import get_logger
 from tool_server.utils.prompts import *
 from tool_server.utils.utils import *
+from tool_server.utils.debug import remote_breakpoint
 
 inferencer_id = str(uuid.uuid4())[:6]
 logger = get_logger(__name__)
@@ -43,13 +44,16 @@ class GeminiModels(tp_model):
             "max_new_tokens": 2048,
             "temperature": temperature if temperature is not None else 0.0
         }
+        # remote_breakpoint(port=7119)
+        
+        
     def to(self, *args, **kwargs):
         pass
 
     def eval(self):
         pass
     
-    def generate_conversation_fn(self, text, image, role="user"):
+    def generate_conversation_fn(self, text, images, role="user"):
         # 与VLLM保持一致：强制要求system_prompt必须先设置
         assert self.system_prompt, "System prompt must be set before generating conversation."
         
@@ -71,41 +75,41 @@ class GeminiModels(tp_model):
             first_round_parts = [types.Part.from_text(text=text)]
 
             # 处理图像 - 修复：添加对bytes类型的支持
-            if image:
-                
-                # 修复：添加对bytes类型的处理
-                if isinstance(image, bytes):
-                    try:
-                        # 直接使用bytes数据
-                        part = types.Part.from_bytes(
-                            mime_type="image/jpeg",
-                            data=image
-                        )
-                        first_round_parts.append(part)
-                    except Exception as e:
-                        print(f"ERROR: 处理bytes图像失败: {e}")
-                elif isinstance(image, str):
-                    try:
-                        part = types.Part.from_bytes(
-                            mime_type="image/jpeg",
-                            data=base64.b64decode(image)
-                        )
-                        first_round_parts.append(part)
-                    except Exception as e:
-                        print(f"ERROR: 处理base64图像失败: {e}")
-                elif isinstance(image, Image.Image):
-                    try:
-                        image = pil_to_base64(image)
-                        part = types.Part.from_bytes(
-                            mime_type="image/jpeg",
-                            data=base64.b64decode(image)
-                        )
-                        first_round_parts.append(part)
-                    except Exception as e:
-                        print(f"ERROR: 处理PIL图像失败: {e}")
-                else:
-                    print(f"ERROR: 不支持的图像类型: {type(image)}")
-                    
+            if images:
+                for image in images:
+                    # 修复：添加对bytes类型的处理
+                    if isinstance(image, bytes):
+                        try:
+                            # 直接使用bytes数据
+                            part = types.Part.from_bytes(
+                                mime_type="image/jpeg",
+                                data=image
+                            )
+                            first_round_parts.append(part)
+                        except Exception as e:
+                            print(f"ERROR: 处理bytes图像失败: {e}")
+                    elif isinstance(image, str):
+                        try:
+                            part = types.Part.from_bytes(
+                                mime_type="image/jpeg",
+                                data=base64.b64decode(image)
+                            )
+                            first_round_parts.append(part)
+                        except Exception as e:
+                            print(f"ERROR: 处理base64图像失败: {e}")
+                    elif isinstance(image, Image.Image):
+                        try:
+                            image = pil_to_base64(image)
+                            part = types.Part.from_bytes(
+                                mime_type="image/jpeg",
+                                data=base64.b64decode(image)
+                            )
+                            first_round_parts.append(part)
+                        except Exception as e:
+                            print(f"ERROR: 处理PIL图像失败: {e}")
+                    else:
+                        print(f"ERROR: 不支持的图像类型: {type(image)}")
+                        
             contents.append(
                 types.Content(
                     role=role,

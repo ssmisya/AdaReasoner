@@ -1,0 +1,15 @@
+task_name: "jigsaw_subtasks"
+dataset_path_dict:
+  direct_comparison: /mnt/petrelfs/songmingyang/songmingyang/data/vl_reasoning/tool_dataset/jigsaw/jigsaw_metadata_v1/splits/test/subtask_direct.json
+  with_insertion: /mnt/petrelfs/songmingyang/songmingyang/data/vl_reasoning/tool_dataset/jigsaw/jigsaw_metadata_v1/splits/test/subtask_insertion.json
+
+image_dir: "/mnt/petrelfs/share_data/songmingyang/data/vl_reasoning/tool_dataset"
+dataset_type: "unique"  # 自定义数据加载逻辑
+
+tasks:
+  - "direct_comparison"   # 第一个子任务：判断子图是否是缺失部分
+  - "with_insertion"      # 第二个子任务：判断插入后是否正确
+
+generation_config:
+  max_length: 2048
+  temperature: 0.2

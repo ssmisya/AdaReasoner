@@ -30,7 +30,7 @@
             "port": 7119,
             "program": "/mnt/petrelfs/songmingyang/code/tools/lmms-eval/lmms_eval/models/qwen2_vl.py",
             //"secret": "my_secret",
-            "host": "SH-IDC1-10-140-37-6",
+            "host": "SH-IDC1-10-140-37-14",
             "justMyCode": false
         }
     ]

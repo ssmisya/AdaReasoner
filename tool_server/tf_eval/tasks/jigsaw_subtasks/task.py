@@ -25,19 +25,19 @@ Your final answer should be formatted as \\boxed{Yes} or \\boxed{No}.
 """
 
 # 插入判断任务说明 - 判断插入后的图像是否正确
-# INSERTION_COMPARISON_INSTRUCTION = """
-# Look at the first image (img_1) with one part missing, the second image (img_2), and the third image (img_3) 
-# where the second image has been placed in the missing area of the first image. 
-# Does the second image correctly fill the missing part? Carefully observe if it fits well and completes the picture properly.
-
-# Your final answer should be formatted as \\boxed{Yes} or \\boxed{No}.
-# """
-
 INSERTION_COMPARISON_INSTRUCTION = """
-Please check whether this image shows any signs of manipulation, such as cropping, splicing, or insertion. In other words, determine whether it is a natural photo or one that has been artificially stitched or altered.
+Examine the three images provided: the first image (img_1) with a missing region, the second image (img_2) as a candidate sub-image, and the third image (img_3) where img_2 has been inserted into the missing region of img_1.
+
+Determine whether img_2 is indeed the correct piece that fills the missing part of img_1. Check img_3 carefully to see if the inserted part aligns seamlessly with the surrounding areas in terms of edges, colors, and overall content.
 
 Your final answer should be formatted as \\boxed{Yes} or \\boxed{No}.
 """
+
+# INSERTION_COMPARISON_INSTRUCTION = """
+# Please check whether this image shows any signs of manipulation, such as cropping, splicing, or insertion. In other words, determine whether it is a natural photo or one that has been artificially stitched or altered.
+
+# Your final answer should be formatted as \\boxed{Yes} or \\boxed{No}.
+# """
 
 def load_data_function():
     """加载Jigsaw子任务数据集"""
@@ -184,7 +184,7 @@ def process_insertion_comparison_data(raw_data, task_type, img_dir):
         processed_data.append({
             "idx": item["id"],
             "original_id": item.get("original_id", item["id"]),
-            "images": [inserted_image],  # 基础图像、选择图像和插入后图像
+            "images": [base_image, choice_image, inserted_image],  # 基础图像、选择图像和插入后图像
             "text": text_prompt,
             "answer": item["correct_answer"],  # "Yes" 或 "No"
             "task_type": task_type,

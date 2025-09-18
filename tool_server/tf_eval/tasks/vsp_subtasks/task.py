@@ -23,18 +23,6 @@ logger = get_logger(__name__)
 task_config = get_task_config_from_current_dir(__file__)
 
 # 路径验证任务说明（使用画有路径的图像）
-# PATH_VERIFY_WITH_PATH_INSTRUCTION = """
-# You are a maze solver. Your goal is to guide a player from the start to the goal on a grid map while avoiding holes, using the fewest moves. The player can move one square at a time in the directions left (L), right (R), up (U), or down (D). Moving off the edge has no effect, and falling into a hole results in failure. Reaching the goal means success. 
-
-# In this image, you can see a red line, which is a visualization of the path. You can determine whether the path is safe by checking if the red line crosses any ice holes.
-
-# Now please determine if the action sequence is safe for the given maze. Your final answer should be formatted as \\boxed{Yes} or \\boxed{No}.
-
-# The action sequence is:
-
-# <ACTION-SEQ>
-# """
-
 PATH_VERIFY_WITH_PATH_INSTRUCTION = """
 You are a helpful visual assistant.
 
@@ -44,7 +32,6 @@ Please note that the Ice Holes are represented by blue water pits, while the whi
 
 Your final answer should be formatted as \\boxed{Yes} or \\boxed{No}.
 """
-
 
 # 起点定位任务说明
 LOCATE_START_POINT_INSTRUCTION = """
@@ -67,9 +54,27 @@ Pixel coordinate = (absolute_x * 64 - 32, absolute_y * 64 - 32)
 You must return either pixel coordinates or absolute coordinates, but never both at the same time.
 """
 
+# 新增：带有坐标信息的路径验证任务
+PATH_VERIFY_WITH_COORDS_INSTRUCTION = """
+You are a maze solver. Your goal is to guide a player from the start to the goal on a grid map while avoiding holes, using the fewest moves. The player can move one square at a time in the directions left (L), right (R), up (U), or down (D). Moving off the edge has no effect, and falling into a hole results in failure. Reaching the goal means success. 
+
+You have the following coordinate information:
+- Starting point (elf position): {start_coords_pixel} in pixel coordinates, or {start_coords_abs} in grid coordinates
+- Ice hole locations: {holes_pixel} in pixel coordinates, or {holes_abs} in grid coordinates
+
+The pixel coordinates use the top-left corner as origin (0,0), with x-axis increasing to the right and y-axis increasing downward.
+The grid coordinates count each cell as one unit with the top-left cell being (1,1).
+
+Now please determine if the action sequence is safe for the given maze. The action sequence is:
+
+<ACTION-SEQ>
+
+Your final answer should be formatted as \\boxed{{Yes}} or \\boxed{{No}}.
+"""
+
 def load_data_function():
     """加载自定义数据集的函数"""
-    tasks = task_config.get("tasks", ["verify_with_line", "locate_start"])
+    tasks = task_config.get("tasks", ["verify_with_line", "locate_start", "verify_with_coords"])
     # remote_breakpoint(port=7119)
     # 从配置文件获取数据路径字典
     dataset_path_dict = task_config.get("dataset_path_dict", {})
@@ -83,11 +88,14 @@ def load_data_function():
     
     # 加载不同任务的数据
     for task in tasks:
-        if task not in dataset_path_dict:
+        if task == "verify_with_coords" and "verify_with_line" in dataset_path_dict:
+            # 对于新增的带坐标信息的路径验证任务，复用verify_with_line的数据
+            task_file_path = dataset_path_dict["verify_with_line"]
+        elif task not in dataset_path_dict:
             logger.warning(f"No path specified for task {task} in dataset_path_dict")
             continue
-        
-        task_file_path = dataset_path_dict[task]
+        else:
+            task_file_path = dataset_path_dict[task]
         
         # 根据文件扩展名选择加载方法
         if task_file_path.endswith(".jsonl"):
@@ -105,6 +113,8 @@ def load_data_function():
             task_data = process_verify_with_line_data(raw_data, task, img_dir)
         elif task == "locate_start":
             task_data = process_locate_start_data(raw_data, task, img_dir)
+        elif task == "verify_with_coords":
+            task_data = process_verify_with_coords_data(raw_data, task, img_dir)
         else:
             logger.warning(f"Unknown task type: {task}")
             continue
@@ -193,6 +203,75 @@ def process_locate_start_data(raw_data, task_type, img_dir):
             "answer": f"{int(start_x)},{int(start_y)}",  # 标准答案为整数坐标
             "task_type": task_type,
             "start_coords": item["start_coords"]
+        })
+    
+    logger.info(f"Processed {len(processed_data)} records for {task_type}")
+    return processed_data
+
+def process_verify_with_coords_data(raw_data, task_type, img_dir):
+    """处理带有坐标信息的路径验证任务数据"""
+    processed_data = []
+    
+    for item in raw_data:
+        # 检查item是否包含必要的字段
+        if not all(key in item for key in ["id", "image_path", "path_drawings", "start_coords", "obstacle_coords"]):
+            logger.warning(f"Missing required keys in item: {item.get('id', 'unknown')}")
+            continue
+        
+        # 获取随机路径数据
+        random_path = item["path_drawings"]["random"]
+        
+        path_string = random_path["path"]
+        is_safe = random_path["is_safe"]
+        
+        
+        
+        
+        # 提取坐标信息
+        start_coords_pixel = item["start_coords"]
+        start_x_pixel, start_y_pixel = int(start_coords_pixel[0]), int(start_coords_pixel[1])
+        
+        # 转换为绝对坐标（网格坐标）
+        start_x_abs = int(start_x_pixel / 64) + 1
+        start_y_abs = int(start_y_pixel / 64) + 1
+        
+        # 提取冰洞坐标
+        holes_pixel = item["obstacle_coords"]
+        holes_abs = []
+        
+        for hole_x, hole_y in holes_pixel:
+            hole_x_abs = int(hole_x / 64) + 1
+            hole_y_abs = int(hole_y / 64) + 1
+            holes_abs.append((hole_x_abs, hole_y_abs))
+        
+        # 构建提示
+        text_prompt = PATH_VERIFY_WITH_COORDS_INSTRUCTION.format(
+            start_coords_pixel=f"({start_x_pixel}, {start_y_pixel})",
+            start_coords_abs=f"({start_x_abs}, {start_y_abs})",
+            holes_pixel=", ".join([f"({int(x)}, {int(y)})" for x, y in holes_pixel]),
+            holes_abs=", ".join([f"({x}, {y})" for x, y in holes_abs])
+        )
+        text_prompt = text_prompt.replace("<ACTION-SEQ>", path_string)
+        # 转换gym地图
+        gym_map = convert_to_gym_map(item)
+        
+        origin_image_path = item["image_path"]
+        origin_image_path_full = os.path.join(img_dir, origin_image_path) if img_dir else origin_image_path
+        origin_image_pil = Image.open(origin_image_path_full).convert("RGB")
+        
+
+        processed_data.append({
+            "idx": f"{item['id']}_verify_with_coords",
+            "original_id": item["id"],
+            "images": [origin_image_pil],
+            "text": text_prompt,
+            "answer": "no" if is_safe else "yes",  # 注意答案与is_safe相反
+            "task_type": task_type,
+            "path_length": len(path_string.split(",")) if "," in path_string else 1,
+            "path": path_string,
+            "gym_map": gym_map,
+            "start_coords": start_coords_pixel,
+            "obstacle_coords": holes_pixel
         })
     
     logger.info(f"Processed {len(processed_data)} records for {task_type}")
@@ -295,8 +374,8 @@ def evaluate_function(results, meta_data):
         if task_type not in task_results:
             task_results[task_type] = {"correct": 0, "total": 0}
         
-        # 对于路径验证任务，初始化路径长度统计
-        if task_type == "verify_with_line":
+        # 对于路径验证相关任务，初始化路径长度统计
+        if task_type in ["verify_with_line", "verify_with_coords"]:
             path_length = meta.get("path_length", "unknown")
             task_path_key = f"{task_type}_length{path_length}"
             if task_path_key not in path_length_results:
@@ -312,7 +391,7 @@ def evaluate_function(results, meta_data):
             meta["prediction"] = None
         
         # 根据任务类型评估结果
-        if task_type == "verify_with_line":
+        if task_type in ["verify_with_line", "verify_with_coords"]:
             score, message = evaluate_path_validation(prediction, meta)
             
             # 记录路径长度结果
@@ -344,9 +423,15 @@ def evaluate_function(results, meta_data):
         }
         
         # 为不同任务类型添加特定字段
-        if task_type == "verify_with_line":
+        if task_type in ["verify_with_line", "verify_with_coords"]:
             log_entry["path_length"] = meta.get("path_length", "unknown")
             log_entry["path"] = meta.get("path", "")
+            
+            # 为带坐标的验证任务添加坐标信息
+            if task_type == "verify_with_coords":
+                log_entry["start_coords"] = meta.get("start_coords", [])
+                log_entry["obstacle_coords"] = meta.get("obstacle_coords", [])
+                
         elif task_type == "locate_start":
             log_entry["start_coords"] = meta.get("start_coords", [])
         
@@ -388,12 +473,13 @@ def evaluate_function(results, meta_data):
                    f"({task_results[task_type]['correct']}/{task_results[task_type]['total']})")
     
     # 打印按路径长度的结果（仅对路径验证任务）
-    if "verify_with_line" in task_results:
-        logger.info("Path length breakdown for verify_with_line task:")
-        for item in path_length_results_list:
-            if item["task_type"] == "verify_with_line":
-                logger.info(f"  Length {item['path_length']}: {item['accuracy']:.4f} "
-                           f"({item['correct']}/{item['total']})")
+    for task_type in ["verify_with_line", "verify_with_coords"]:
+        if task_type in task_results:
+            logger.info(f"Path length breakdown for {task_type} task:")
+            for item in path_length_results_list:
+                if item["task_type"] == task_type:
+                    logger.info(f"  Length {item['path_length']}: {item['accuracy']:.4f} "
+                               f"({item['correct']}/{item['total']})")
     
     return result
 

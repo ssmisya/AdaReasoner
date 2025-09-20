@@ -440,7 +440,7 @@ class BaseToolInferencer(object):
                 item_id = item_dict["meta_data"].get("idx", str(id(item)))
                 
                 final_model_output = item_dict["model_response"][-1]
-                final_answer = self.manager.extract_final_answer(final_model_output)
+                final_answer = self.manager.extract_final_answer(final_model_output, task_name=self.dataset.task_name)
                 item_dict["final_answer"] = final_answer
                 item_dict["image_history"] = self.image_history.get(item_id, {})
                 item_dict.pop("current_image", None) 

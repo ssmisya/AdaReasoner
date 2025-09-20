@@ -38,7 +38,7 @@ class DynamicBatchManager():
         self.generate_conversation_fn = generate_conversation_fn
         self.if_use_tool = if_use_tool
     
-    def extract_final_answer(self, final_response: str):
+    def extract_final_answer(self, final_response: str, task_name: str):
         # 根据新的prompt格式，最终答案在<response>标签中
         response_content = final_response
         if "<response>" in final_response and "</response>" in final_response:
@@ -46,31 +46,40 @@ class DynamicBatchManager():
             response_content = final_response.split("<response>")[-1].split("</response>")[0].strip()
         else:
             response_content = final_response.strip()
-        
-        if "\\boxed{" in response_content:
-            # 如果包含\boxed{}，则提取其中的内容
-            response_content = response_content.split("\\boxed{")[-1].split("}")[0].strip()
-        
-        return response_content
-    
-        
-    def pop_qualified_items(self):
-        res = []
-        new_batch = []
-        for idx,item in enumerate(self.dynamic_batch):
-            if item.status == "finished":
-                item = asdict(item)
-                item = remove_pil_objects(item)
-                
-                final_model_output = item["model_response"][-1]
-                final_answer = self.extract_final_answer(final_model_output)
-                item["final_answer"] = final_answer
-                
-                res.append(item)
+        # 如果是web的任务，则不提取boxed内容
+        print(f"啊啊啊啊啊啊DEBUG: task_name: {task_name}")
+        if "web" not in task_name:
+            print(f"啊啊啊啊啊啊DEBUG: task_name不是web，提取boxed内容")
+            if "\\boxed{" in response_content:
+                # 如果包含\boxed{}，则提取其中的内容
+                response_content = response_content.split("\\boxed{")[-1].split("}")[0].strip()
+                return response_content
             else:
-                new_batch.append(item)
-        self.dynamic_batch = new_batch
-        return res
+                return response_content
+        else:
+            print(f"啊啊啊啊啊啊DEBUG: task_name是web，不提取boxed内容")
+            return response_content
+        
+    
+    # 这个好像从来没有被使用过，因为inferencer中都有这个方法
+    # def pop_qualified_items(self):
+    #     res = []
+    #     new_batch = []
+    #     for idx,item in enumerate(self.dynamic_batch):
+    #         if item.status == "finished":
+    #             item = asdict(item)
+    #             item = remove_pil_objects(item)
+                
+    #             final_model_output = item["model_response"][-1]
+    #             # 我感觉task_name=item["meta_data"]["task_name"]不对，是cursor写的
+    #             final_answer = self.extract_final_answer(final_model_output, task_name=item["meta_data"]["task_name"])
+    #             item["final_answer"] = final_answer
+                
+    #             res.append(item)
+    #         else:
+    #             new_batch.append(item)
+    #     self.dynamic_batch = new_batch
+    #     return res
     
     def append_item(self, meta_data: Dict):
         # breakpoint()

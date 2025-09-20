@@ -1,6 +1,5 @@
-task_name: "web"
-dataset_path: /mnt/petrelfs/sunhaoyu/visual-code/datasets/GUIChat/sft_v1
-num_sample: 1500
+task_name: "texthalubench"
+dataset_path: /mnt/petrelfs/sunhaoyu/visual-code/datasets/texthalubench/TextHalu-Bench/parquet_file
 dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv
 generation_config:
   max_length: 8192

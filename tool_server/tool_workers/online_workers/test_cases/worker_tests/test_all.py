@@ -1056,7 +1056,7 @@ def main():
     
     # 通用参数
     parser.add_argument(
-        "--controller_addr", type=str, default="http://SH-IDC1-10-140-37-82:50001",
+        "--controller_addr", type=str, default="http://SH-IDC1-10-140-37-82:30002",
         help="控制器地址"
     )
     parser.add_argument(
@@ -1081,7 +1081,7 @@ def main():
     tools_to_test = AVAILABLE_TOOLS if "all" in args.tools else args.tools
 
     # tools_to_test = ["OCR", "DrawShape","Crop","Point","GroundingDINO","SegmentRegionAroundPoint","DrawLine","HighlightBox","MaskBox"]
-    tools_to_test = ["OCR"]
+    tools_to_test = ["OCR","Point"]
     
     # 为不同工具设置合适的测试图像
     image_dict = {

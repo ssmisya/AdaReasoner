@@ -76,6 +76,7 @@ class BaseInferencer(object):
         
         for idx, item in enumerate(self.manager.get_current_batch()):
             if item.status == "finished":
+                image_history = item.image_history
                 item_dict = asdict(item)
                 item_dict = remove_pil_objects(item_dict)
                 item_dict = remove_non_serializable(item_dict)
@@ -83,7 +84,7 @@ class BaseInferencer(object):
                 final_model_output = item_dict["model_response"][-1]
                 final_answer = self.manager.extract_final_answer(final_model_output, task_name=self.dataset.task_name)
                 item_dict["final_answer"] = final_answer
-                
+                item_dict["image_history"] = image_history
                 # Record item_id to be removed
                 item_id = item_dict["meta_data"].get("idx", str(id(item)))
                 removed_item_ids.append(item_id)

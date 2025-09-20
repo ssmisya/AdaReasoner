@@ -1,0 +1,17 @@
+task_name: "vsp_subtasks"
+# dataset_path: "/mnt/petrelfs/share_data/songmingyang/data/vl_reasoning/tool_dataset/frozen_lake_metadata_v2"
+# data_dir: "/mnt/petrelfs/share_data/songmingyang/data/vl_reasoning/tool_dataset/frozen_lake_metadata_v2/metadata_split"
+image_dir: "/mnt/petrelfs/songmingyang/code/reasoning/tool_util_code/frozen_lake/data_curation"
+dataset_type: "unique" 
+dataset_path_dict:
+  verify_with_line: /mnt/petrelfs/songmingyang/code/reasoning/tool_util_code/frozen_lake/data_curation/frozen_lake_metadata_v2/metadata_split/path_verify/test.jsonl
+  locate_start: /mnt/petrelfs/songmingyang/code/reasoning/tool_util_code/frozen_lake/data_curation/frozen_lake_metadata_v2/metadata_split/path_verify/test.jsonl
+  verify_with_coords: /mnt/petrelfs/songmingyang/code/reasoning/tool_util_code/frozen_lake/data_curation/frozen_lake_metadata_v2/metadata_split/path_verify/test.jsonl
+
+tasks:
+  - "verify_with_line"  # 第一个测试目标：使用画有路径的图像
+  - "locate_start"      # 第二个测试目标：起点定位任务
+  - "verify_with_coords" # 第三个测试目标：带有坐标信息的路径验证任务
+
+generation_config:
+  max_length: 2048

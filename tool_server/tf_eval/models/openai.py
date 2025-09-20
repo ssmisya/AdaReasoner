@@ -56,20 +56,22 @@ class OpenaiModels(tp_model):
             "max_new_tokens": 2048,
             "temperature": self.temperature
         }
-
+        # remote_breakpoint(port=7119)
+        
+        
     def to(self, *args, **kwargs):
         pass
 
     def eval(self):
         pass
     
-    def generate_conversation_fn(self, text, image, role="user"):
+    def generate_conversation_fn(self, text, images, role="user"):
         # 与VLLM保持一致：强制要求system_prompt必须先设置
         assert self.system_prompt, "System prompt must be set before generating conversation."
         
         # 添加 "Question: " 前缀，与 VLLM 保持一致
         text = "Question: " + text
-            
+        
         try:
             # 构建消息列表
             messages = [
@@ -88,15 +90,16 @@ class OpenaiModels(tp_model):
             ]
             
             # 处理图像
-            if image:
-                image_data = self._process_image(image)
-                if image_data:
-                    user_content.append({
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{image_data}"
-                        }
-                    })
+            if images:
+                for image in images:
+                    image_data = self._process_image(image)
+                    if image_data:
+                        user_content.append({
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_data}"
+                            }
+                        })
             
             messages.append({
                 "role": role,

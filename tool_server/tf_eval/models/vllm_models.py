@@ -45,7 +45,7 @@ class VllmModels(tp_model):
     def generate_conversation_fn(
         self,
         text,                # Input text
-        image,               # Input image
+        images,               # Input image
         role = "user",       # Conversation role, default is user
     ):  
         """
@@ -64,8 +64,31 @@ class VllmModels(tp_model):
         assert self.system_prompt, "System prompt must be set before generating conversation."  # Ensure system prompt is set
 
         # 先确保图像是PIL Image格式，然后转换为base64
-        image = load_image(image)  # 使用load_image函数处理各种图像类型
-        image = pil_to_base64(image)  # Convert PIL image to base64 encoding
+        image_messages = []
+        if images:
+            for img in images:
+                img = load_image(img)  # 使用load_image函数处理各种图像类型
+                img = pil_to_base64(img)  # Convert PIL image to base64 encoding
+                image_messages.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{img}"
+                        },
+                    }
+                )
+        else:
+            logger.warning("No images provided in generate_conversation_fn.")
+            
+        first_user_content = [
+            {
+                "type": "text",
+                "text": text,
+            },
+        ]
+        
+        first_user_content.extend(image_messages)  # Combine text and image messages
+
         messages = [
             {
                 "role": "system",
@@ -78,18 +101,7 @@ class VllmModels(tp_model):
             },
             {
                 "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": text,
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{image}"
-                        },
-                    },
-                ],
+                "content": first_user_content
             }
         ]
 
@@ -133,7 +145,7 @@ class VllmModels(tp_model):
                     ],
                 }
             ]
-        else:  # Only text, no image
+        else:
             new_messages=[
                 {
                     "role": role,

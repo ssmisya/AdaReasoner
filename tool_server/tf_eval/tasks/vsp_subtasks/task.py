@@ -265,7 +265,7 @@ def process_verify_with_coords_data(raw_data, task_type, img_dir):
             "original_id": item["id"],
             "images": [origin_image_pil],
             "text": text_prompt,
-            "answer": "no" if is_safe else "yes",  # 注意答案与is_safe相反
+            "answer": "yes" if is_safe else "no",  # 注意答案与is_safe相反
             "task_type": task_type,
             "path_length": len(path_string.split(",")) if "," in path_string else 1,
             "path": path_string,
@@ -362,6 +362,14 @@ def evaluate_function(results, meta_data):
     # 按任务类型和路径长度统计结果（仅对路径验证任务）
     path_length_results = {}
     
+    # 添加合规输出统计
+    compliance_stats = {
+        "overall": {"compliant": 0, "total": 0, "correct_if_compliant": 0},
+        "verify_with_line": {"compliant": 0, "total": 0, "correct_if_compliant": 0},
+        "verify_with_coords": {"compliant": 0, "total": 0, "correct_if_compliant": 0},
+        "locate_start": {"compliant": 0, "total": 0, "correct_if_compliant": 0}
+    }
+    
     overall_correct = 0
     overall_total = 0
     
@@ -392,17 +400,38 @@ def evaluate_function(results, meta_data):
         
         # 根据任务类型评估结果
         if task_type in ["verify_with_line", "verify_with_coords"]:
-            score, message = evaluate_path_validation(prediction, meta)
+            score, message, is_compliant = evaluate_path_validation(prediction, meta)
             
             # 记录路径长度结果
             if task_path_key in path_length_results:
                 path_length_results[task_path_key]["correct"] += score
                 path_length_results[task_path_key]["total"] += 1
+                
+            # 更新合规性统计
+            compliance_stats[task_type]["total"] += 1
+            compliance_stats["overall"]["total"] += 1
+            if is_compliant:
+                compliance_stats[task_type]["compliant"] += 1
+                compliance_stats["overall"]["compliant"] += 1
+                if score == 1:  # 如果答案正确
+                    compliance_stats[task_type]["correct_if_compliant"] += 1
+                    compliance_stats["overall"]["correct_if_compliant"] += 1
         
         elif task_type == "locate_start":
-            score, message = evaluate_locate_start(prediction, meta)
+            score, message, is_compliant = evaluate_locate_start(prediction, meta)
+            
+            # 更新合规性统计
+            compliance_stats[task_type]["total"] += 1
+            compliance_stats["overall"]["total"] += 1
+            if is_compliant:
+                compliance_stats[task_type]["compliant"] += 1
+                compliance_stats["overall"]["compliant"] += 1
+                if score == 1:  # 如果答案正确
+                    compliance_stats[task_type]["correct_if_compliant"] += 1
+                    compliance_stats["overall"]["correct_if_compliant"] += 1
         else:
             score, message = 0, "Unknown task type"
+            is_compliant = False
         
         # 记录任务类型结果
         task_results[task_type]["correct"] += score
@@ -419,7 +448,8 @@ def evaluate_function(results, meta_data):
             "gold": meta["answer"],
             "pred": prediction,
             "score": score,
-            "message": message
+            "message": message,
+            "is_compliant": is_compliant
         }
         
         # 为不同任务类型添加特定字段
@@ -451,6 +481,27 @@ def evaluate_function(results, meta_data):
         else:
             path_length_results[key]["accuracy"] = 0
     
+    # 计算合规率和合规答案的准确率
+    compliance_rates = {}
+    for task_type, stats in compliance_stats.items():
+        if stats["total"] > 0:
+            compliance_rate = stats["compliant"] / stats["total"]
+        else:
+            compliance_rate = 0
+            
+        if stats["compliant"] > 0:
+            compliant_accuracy = stats["correct_if_compliant"] / stats["compliant"]
+        else:
+            compliant_accuracy = 0
+            
+        compliance_rates[task_type] = {
+            "compliance_rate": compliance_rate,
+            "compliant_accuracy": compliant_accuracy,
+            "compliant_count": stats["compliant"],
+            "total_count": stats["total"],
+            "correct_if_compliant": stats["correct_if_compliant"]
+        }
+    
     # 将结果转换为列表，便于按路径长度排序
     path_length_results_list = list(path_length_results.values())
     path_length_results_list.sort(key=lambda x: (x["task_type"], x["path_length"]))
@@ -462,6 +513,7 @@ def evaluate_function(results, meta_data):
         "overall_accuracy": overall_accuracy,
         "task_results": task_results,
         "path_length_results": path_length_results_list,
+        "compliance_stats": compliance_rates,
         "compare_logs": compare_logs
     }
     
@@ -481,23 +533,39 @@ def evaluate_function(results, meta_data):
                     logger.info(f"  Length {item['path_length']}: {item['accuracy']:.4f} "
                                f"({item['correct']}/{item['total']})")
     
+    # 打印合规性统计
+    logger.info("\nCompliance statistics:")
+    for task_type, stats in compliance_rates.items():
+        logger.info(f"{task_type}:")
+        logger.info(f"  Compliance rate: {stats['compliance_rate']:.4f} ({stats['compliant_count']}/{stats['total_count']})")
+        logger.info(f"  Accuracy if compliant: {stats['compliant_accuracy']:.4f} ({stats['correct_if_compliant']}/{stats['compliant_count']})")
+    
     return result
 
 def evaluate_path_validation(prediction, meta):
     """评估路径验证任务"""
     if prediction is None:
-        return 0, "No prediction"
+        return 0, "No prediction", False
     
     # 预处理预测结果
     yes_pattern = r'\\boxed\s*{\s*yes\s*}|boxed\s*{\s*yes\s*}|boxed{yes}|boxed\(\s*yes\s*\)|yes'
     no_pattern = r'\\boxed\s*{\s*no\s*}|boxed\s*{\s*no\s*}|boxed{no}|boxed\(\s*no\s*\)|no'
     
     prediction = prediction.lower().strip()
-    if prediction in ["yes", "no"]:
-        pred_answer = prediction
+    
+    # 判断是否合规
+    is_compliant = False
+    pred_answer = None
+    
+    # 检查是否只包含yes或no答案
+    if prediction in ["yes", "no", "yes.", "no."]:
+        is_compliant = True
+        pred_answer = "yes" if prediction.startswith("yes") else "no"
     elif re.search(yes_pattern, prediction, re.IGNORECASE) and not re.search(no_pattern, prediction, re.IGNORECASE):
+        is_compliant = True
         pred_answer = "yes"
     elif re.search(no_pattern, prediction, re.IGNORECASE) and not re.search(yes_pattern, prediction, re.IGNORECASE):
+        is_compliant = True
         pred_answer = "no"
     else:
         # 尝试从最后一段文本中提取答案
@@ -507,28 +575,31 @@ def evaluate_path_validation(prediction, meta):
         elif "no" in last_paragraph.lower() and "yes" not in last_paragraph.lower():
             pred_answer = "no"
         else:
-            return 0, "Invalid prediction format: cannot determine yes/no"
+            return 0, "Invalid prediction format: cannot determine yes/no", False
     
     # 获取正确答案
     gold_answer = meta["answer"].lower().strip()
     
     # 比较答案
     if pred_answer == gold_answer.lower():
-        return 1, "Correct"
+        return 1, "Correct", is_compliant
     else:
-        return 0, f"Incorrect. Expected: {gold_answer}, Got: {pred_answer}"
+        return 0, f"Incorrect. Expected: {gold_answer}, Got: {pred_answer}", is_compliant
 
 def evaluate_locate_start(prediction, meta):
     """评估起点定位任务"""
     if prediction is None:
-        return 0, "No prediction"
+        return 0, "No prediction", False
     
     # 尝试从预测中提取坐标
     coord_pattern = r'\\boxed\s*{\s*(\d+)\s*,\s*(\d+)\s*}|boxed\s*{\s*(\d+)\s*,\s*(\d+)\s*}|(\d+)\s*,\s*(\d+)'
     matches = re.search(coord_pattern, prediction)
     
-    if not matches:
-        return 0, "No valid coordinates found in prediction"
+    # 判断是否合规（是否有有效的坐标格式）
+    is_compliant = matches is not None
+    
+    if not is_compliant:
+        return 0, "No valid coordinates found in prediction", False
     
     # 提取预测的x,y坐标
     groups = matches.groups()
@@ -538,7 +609,7 @@ def evaluate_locate_start(prediction, meta):
             pred_y = int(groups[i+1])
             break
     else:
-        return 0, "Could not parse coordinates from prediction"
+        return 0, "Could not parse coordinates from prediction", False
     
     # 获取正确答案
     true_x, true_y = meta["start_coords"]
@@ -547,11 +618,23 @@ def evaluate_locate_start(prediction, meta):
     # 允许±32像素的误差
     tolerance = 32
     
-    # 计算欧几里德距离
-    distance_x = math.sqrt((pred_x - true_x)**2 )
-    distance_y = math.sqrt((pred_y - true_y)**2 )
+
+    distance_x = math.sqrt((pred_x - true_x)**2)
+    distance_y = math.sqrt((pred_y - true_y)**2)
     
     if distance_x <= tolerance and distance_y <= tolerance:
-        return 1, f"Correct within tolerance. Distance X: {distance_x:.2f}px Distance Y: {distance_y:.2f}px"
+        qualify = True
     else:
-        return 0, f"Incorrect. Expected: {true_x},{true_y}, Got: {pred_x},{pred_y},  Distance X: {distance_x:.2f}px Distance Y: {distance_y:.2f}px"
+        pred_x = pred_x*64 - 32
+        pred_y = pred_y*64 - 32
+        distance_x = math.sqrt((pred_x - true_x)**2)
+        distance_y = math.sqrt((pred_y - true_y)**2)
+        if distance_x <= tolerance and distance_y <= tolerance:
+            qualify = True
+        else:
+            qualify = False
+    
+    if qualify:
+        return 1, f"Correct within tolerance. Distance X: {distance_x:.2f}px Distance Y: {distance_y:.2f}px", True
+    else:
+        return 0, f"Incorrect. Expected: {true_x},{true_y}, Got: {pred_x},{pred_y}, Distance X: {distance_x:.2f}px Distance Y: {distance_y:.2f}px", True

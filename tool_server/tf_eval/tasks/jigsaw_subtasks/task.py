@@ -205,6 +205,13 @@ def evaluate_function(results, meta_data):
     # 按任务类型和正确答案类型统计结果
     answer_type_results = {}
     
+    # 添加合规输出统计
+    compliance_stats = {
+        "overall": {"compliant": 0, "total": 0, "correct_if_compliant": 0},
+        "direct_comparison": {"compliant": 0, "total": 0, "correct_if_compliant": 0},
+        "with_insertion": {"compliant": 0, "total": 0, "correct_if_compliant": 0}
+    }
+    
     overall_correct = 0
     overall_total = 0
     
@@ -233,7 +240,7 @@ def evaluate_function(results, meta_data):
             meta["prediction"] = None
         
         # 评估结果
-        score, message = evaluate_yes_no_answer(prediction, meta)
+        score, message, is_compliant = evaluate_yes_no_answer(prediction, meta)
         
         # 记录答案类型结果
         answer_type_results[task_answer_key]["correct"] += score
@@ -247,6 +254,16 @@ def evaluate_function(results, meta_data):
         overall_correct += score
         overall_total += 1
         
+        # 更新合规性统计
+        compliance_stats[task_type]["total"] += 1
+        compliance_stats["overall"]["total"] += 1
+        if is_compliant:
+            compliance_stats[task_type]["compliant"] += 1
+            compliance_stats["overall"]["compliant"] += 1
+            if score == 1:  # 如果答案正确
+                compliance_stats[task_type]["correct_if_compliant"] += 1
+                compliance_stats["overall"]["correct_if_compliant"] += 1
+        
         # 日志记录
         log_entry = {
             "idx": idx,
@@ -256,7 +273,8 @@ def evaluate_function(results, meta_data):
             "gold": meta["answer"],
             "pred": prediction,
             "score": score,
-            "message": message
+            "message": message,
+            "is_compliant": is_compliant
         }
         
         compare_logs.append(log_entry)
@@ -275,6 +293,27 @@ def evaluate_function(results, meta_data):
         else:
             answer_type_results[key]["accuracy"] = 0
     
+    # 计算合规率和合规答案的准确率
+    compliance_rates = {}
+    for task_type, stats in compliance_stats.items():
+        if stats["total"] > 0:
+            compliance_rate = stats["compliant"] / stats["total"]
+        else:
+            compliance_rate = 0
+            
+        if stats["compliant"] > 0:
+            compliant_accuracy = stats["correct_if_compliant"] / stats["compliant"]
+        else:
+            compliant_accuracy = 0
+            
+        compliance_rates[task_type] = {
+            "compliance_rate": compliance_rate,
+            "compliant_accuracy": compliant_accuracy,
+            "compliant_count": stats["compliant"],
+            "total_count": stats["total"],
+            "correct_if_compliant": stats["correct_if_compliant"]
+        }
+    
     # 将结果转换为列表，便于排序
     answer_type_results_list = list(answer_type_results.values())
     answer_type_results_list.sort(key=lambda x: (x["task_type"], x["answer_type"]))
@@ -286,6 +325,7 @@ def evaluate_function(results, meta_data):
         "overall_accuracy": overall_accuracy,
         "task_results": task_results,
         "answer_type_results": answer_type_results_list,
+        "compliance_stats": compliance_rates,
         "compare_logs": compare_logs
     }
     
@@ -302,23 +342,39 @@ def evaluate_function(results, meta_data):
         logger.info(f"  {item['task_type']} - {item['answer_type']}: {item['accuracy']:.4f} "
                    f"({item['correct']}/{item['total']})")
     
+    # 打印合规性统计
+    logger.info("\nCompliance statistics:")
+    for task_type, stats in compliance_rates.items():
+        logger.info(f"{task_type}:")
+        logger.info(f"  Compliance rate: {stats['compliance_rate']:.4f} ({stats['compliant_count']}/{stats['total_count']})")
+        logger.info(f"  Accuracy if compliant: {stats['compliant_accuracy']:.4f} ({stats['correct_if_compliant']}/{stats['compliant_count']})")
+    
     return result
 
 def evaluate_yes_no_answer(prediction, meta):
     """评估是/否回答"""
     if prediction is None:
-        return 0, "No prediction"
+        return 0, "No prediction", False
     
     # 预处理预测结果
-    yes_pattern = r'\\boxed\s*{\s*yes\s*}|boxed\s*{\s*yes\s*}|boxed{yes}|boxed\(\s*yes\s*\)|yes'
-    no_pattern = r'\\boxed\s*{\s*no\s*}|boxed\s*{\s*no\s*}|boxed{no}|boxed\(\s*no\s*\)|no'
+    yes_pattern = r'\\boxed\s*{\s*yes\s*}|boxed\s*{\s*yes\s*}|boxed{yes}|boxed\(\s*yes\s*\)'
+    no_pattern = r'\\boxed\s*{\s*no\s*}|boxed\s*{\s*no\s*}|boxed{no}|boxed\(\s*no\s*\)'
     
     prediction = prediction.lower().strip()
-    if prediction in ["yes", "no"]:
-        pred_answer = prediction
+    
+    # 判断是否合规
+    is_compliant = False
+    pred_answer = None
+    
+    # 检查是否只包含yes或no答案
+    if prediction in ["yes", "no", "yes.", "no."]:
+        is_compliant = True
+        pred_answer = "yes" if prediction.startswith("yes") else "no"
     elif re.search(yes_pattern, prediction, re.IGNORECASE) and not re.search(no_pattern, prediction, re.IGNORECASE):
+        is_compliant = True
         pred_answer = "yes"
     elif re.search(no_pattern, prediction, re.IGNORECASE) and not re.search(yes_pattern, prediction, re.IGNORECASE):
+        is_compliant = True
         pred_answer = "no"
     else:
         # 尝试从最后一段文本中提取答案
@@ -328,13 +384,13 @@ def evaluate_yes_no_answer(prediction, meta):
         elif "no" in last_paragraph.lower() and "yes" not in last_paragraph.lower():
             pred_answer = "no"
         else:
-            return 0, "Invalid prediction format: cannot determine yes/no"
+            return 0, "Invalid prediction format: cannot determine yes/no", False
     
     # 获取正确答案
     gold_answer = meta["answer"].lower().strip()
     
     # 比较答案
     if pred_answer == gold_answer.lower():
-        return 1, "Correct"
+        return 1, "Correct", is_compliant
     else:
-        return 0, f"Incorrect. Expected: {gold_answer}, Got: {pred_answer}"
+        return 0, f"Incorrect. Expected: {gold_answer}, Got: {pred_answer}", is_compliant

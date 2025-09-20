@@ -24,7 +24,7 @@ def get_tool_generate_fn(tool_name):
 
 def get_tool_instruction(tool_name):
     """
-    获取工具的指令说明
+    获取工具的指令说明mei
     
     Args:
         tool_name (str): 工具名称

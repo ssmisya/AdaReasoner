@@ -516,7 +516,9 @@ def main():
 
 
             # 9.20日晚
-            "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat/7b_400_rl_output.jsonl"
+            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat/7b_400_rl_output.jsonl"
+            "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichatv1/v1_400_rl_output.jsonl",
+            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmuv1/v1_400_rl_output.jsonl",
             
 
         ]

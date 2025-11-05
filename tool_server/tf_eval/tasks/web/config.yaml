@@ -1,5 +1,5 @@
 task_name: "web"
-dataset_path: /mnt/petrelfs/sunhaoyu/visual-code/datasets/GUIChat/sft_v1
+dataset_path:  /mnt/petrelfs/share_data/sunhaoyu/datasets/web_evaluation/GUIChat/sft_v1
 # num_sample: 1100
 dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv
 generation_config:

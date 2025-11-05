@@ -66,6 +66,10 @@ class ParallelPointArguments(WorkerArguments):
         default=0,
         metadata={"help": "Port for this worker"}
     )
+    error_file_dir: Optional[str] = field(
+        default="/tmp",
+        metadata={"help": "Directory to store error flag files"}
+    )
 
 
 class PointWorkerController(BaseToolWorker):
@@ -78,6 +82,7 @@ class PointWorkerController(BaseToolWorker):
         self.port = args.port
         self.controller_addr = args.controller_addr
         self.model_name = args.model_name or "Point"
+        self.error_file_dir = args.error_file_dir
         # remote_breakpoint(port=7119)
         
         # 确定GPU数量和ID
@@ -124,7 +129,9 @@ class PointWorkerController(BaseToolWorker):
         
         super().__init__(args)
          # 存储worker进程和URL
-        self.worker_processes = []
+        # self.worker_processes = []
+        self.worker_processes = [None] * self.worker_count  # 初始化为None的列表
+        
         
         worker_addr_list = self.worker_addr.split(":")
         if len(worker_addr_list) == 1:
@@ -198,8 +205,7 @@ class PointWorkerController(BaseToolWorker):
             logger.info(f"Command: {' '.join(cmd)}")
             
             # 启动进程
-            process = subprocess.Popen(cmd, env=env)
-            self.worker_processes.append(process)
+            self.start_worker_process(i, cmd, env)
         
         # 等待worker启动完成
         logger.info("Waiting for workers to initialize...")
@@ -207,6 +213,130 @@ class PointWorkerController(BaseToolWorker):
         
         # 启动健康检查线程
         self.start_health_check()
+        
+        # 启动worker监控线程（用于检测崩溃并重启）
+        self.start_worker_monitor()
+
+    def start_worker_process(self, worker_idx, cmd, env):
+        """启动单个worker进程"""
+        process = subprocess.Popen(cmd, env=env)
+        self.worker_processes[worker_idx] = process
+        logger.info(f"Worker {worker_idx} started with PID {process.pid}")
+
+    def restart_worker(self, worker_idx):
+        """重启指定的worker进程"""
+        logger.info(f"Restarting worker {worker_idx}...")
+        
+        # 标记worker为不健康
+        self.worker_health[worker_idx] = False
+        
+        # 获取旧进程信息
+        old_process = self.worker_processes[worker_idx]
+        
+        try:
+            # 尝试终止旧进程
+            if old_process:
+                old_process.terminate()
+                try:
+                    old_process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    old_process.kill()
+        except Exception as e:
+            logger.error(f"Error terminating worker {worker_idx}: {e}")
+        
+        # 获取当前脚本路径和端口
+        script_path = os.path.abspath(__file__)
+        port = self.worker_ports[worker_idx]
+        gpu_id = self.gpu_ids[worker_idx]
+        
+        # 构建命令
+        cmd = [
+            sys.executable,
+            script_path,
+            "--is_worker=True",
+            f"--worker_gpu_id=0",
+            f"--worker_port={port}",
+            f"--host={self.args.host}",
+            f"--port={port}",
+            f"--model_path={self.args.model_path}",
+            f"--model_base={self.args.model_base}",
+            f"--model_name={self.args.model_name}",
+            f"--max_concurrency={self.args.max_concurrency}",
+            f"--load_8bit={self.args.load_8bit}",
+            f"--load_4bit={self.args.load_4bit}",
+            "--no_register=True"
+        ]
+        
+        # 设置环境变量
+        env = os.environ.copy()
+        env["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+        
+        # 启动新进程
+        self.start_worker_process(worker_idx, cmd, env)
+        
+        # 重置健康状态
+        self.health_check_failed_times[worker_idx] = 0
+        
+        # 等待worker启动
+        time.sleep(15)  # 给进程足够时间启动和加载模型
+        
+        # 检查worker是否健康
+        self.check_specific_worker_health(worker_idx)
+
+    def start_worker_monitor(self):
+        """启动worker监控线程，检测崩溃或错误并重启"""
+        def monitor_loop():
+            while True:
+                # 检查所有worker进程
+                for i, process in enumerate(self.worker_processes):
+                    if process is None:
+                        continue
+                    
+                    # 检查进程是否存活
+                    if process.poll() is not None:
+                        logger.warning(f"Worker {i} crashed (exit code {process.poll()}), restarting...")
+                        self.restart_worker(i)
+                    
+                    # 检查是否有CUDA错误标志文件
+                    error_file = f"{self.error_file_dir}/point_worker_cuda_error_{process.pid}.flag"
+                    if os.path.exists(error_file):
+                        logger.warning(f"Worker {i} reported CUDA error, restarting...")
+                        # 删除错误标志文件
+                        try:
+                            os.remove(error_file)
+                        except:
+                            pass
+                        self.restart_worker(i)
+                
+                time.sleep(5)  # 检查间隔
+        
+        # 启动监控线程
+        self.worker_monitor_thread = threading.Thread(
+            target=monitor_loop,
+            daemon=True,
+            name="WorkerMonitor"
+        )
+        self.worker_monitor_thread.start()
+
+    def check_specific_worker_health(self, worker_idx):
+        """检查特定worker的健康状态"""
+        url = self.worker_urls[worker_idx]
+        try:
+            response = requests.post(
+                f"{url}/worker_get_status",
+                timeout=30
+            )
+            if response.status_code == 200:
+                logger.info(f"Worker {worker_idx} is now healthy")
+                self.worker_health[worker_idx] = True
+                self.health_check_failed_times[worker_idx] = 0
+                return True
+            else:
+                logger.warning(f"Worker {worker_idx} health check failed: HTTP {response.status_code}")
+                return False
+        except Exception as e:
+            logger.warning(f"Worker {worker_idx} health check failed: {e}")
+            return False
     
     def start_health_check(self):
         """启动worker健康检查线程"""
@@ -303,36 +433,7 @@ class PointWorkerController(BaseToolWorker):
                         "error_code": TOOL_RUN_FAILED
                     }, status_code=500)
                     
-        # @self.app.post("/worker_generate_batch")
-        # async def api_generate_batch(request: Request):
-        #     """批量处理多个请求的API端点"""
-        #     batch_params = await request.json()
-        #     if not isinstance(batch_params, list):
-        #         return JSONResponse({"status": "failed", "message": "Expected a list of parameter objects"})
-            
-        #     results = []
-        #     futures = []
-            
-        #     # 提交所有任务到线程池
-        #     for params in batch_params:
-        #         future = self.thread_pool.submit(self.process_single_request, params)
-        #         futures.append(future)
-            
-        #     # 收集所有结果
-        #     for future in futures:
-        #         try:
-        #             result = future.result(timeout=120)
-        #             results.append(result)
-        #         except Exception as e:
-        #             logger.error(f"Error processing batch item: {e}")
-        #             results.append({
-        #                 "tool_response_from": self.model_name,
-        #                 "status": "failed",
-        #                 "message": f"Processing error: {str(e)}",
-        #                 "error_code": TOOL_RUN_FAILED
-        #             })
-            
-        #     return JSONResponse(results)
+
     
         @self.app.post("/worker_get_status")
         async def get_status(request: Request):
@@ -456,7 +557,7 @@ class OptimizedPointWorker(BaseToolWorker):
         # 添加计数器和锁
         self.global_counter = 0
         self.global_counter_lock = threading.Lock()
-        
+        self.error_file_dir = worker_arguments.error_file_dir 
         # 指令定义
         self.instruction = {
             "type": "function",
@@ -636,6 +737,24 @@ class OptimizedPointWorker(BaseToolWorker):
             
             text_prompt = f"Point to the {description} in the scene."
             
+            if description and "TRIGGER_CUDA_ERROR" in description:
+                logger.warning("触发模拟CUDA错误测试...")
+                # 模拟CUDA错误
+                error_msg = "CUDA error: device-side assert triggered"
+                logger.error(f"模拟CUDA错误: {error_msg}")
+                self.report_cuda_error()
+                
+                pred_dict = {
+                    "tool_response_from": self.model_name,
+                    "status": "failed",
+                    "message": f"Model inference failed: {error_msg}",
+                    "error_code": TOOL_RUN_FAILED,
+                    "tool_reward": tool_reward+correct_param_content_num/required_keys_num,
+                    "image_dimensions_pixels": image_dimensions
+                }
+                return pred_dict
+            
+            
             # 处理输入并运行模型
             try:
                 inputs = self.processor.process(
@@ -656,10 +775,17 @@ class OptimizedPointWorker(BaseToolWorker):
                     generated_tokens = output[0, inputs['input_ids'].size(1):]
                     response = self.processor.tokenizer.decode(generated_tokens, skip_special_tokens=True)
             except Exception as e:
+                error_msg = str(e)
+                # 检测 CUDA 错误
+                if "CUDA error" in error_msg and "device-side assert triggered" in error_msg:
+                    logger.error("检测到CUDA设备错误，标记需要重启")
+                    # 将错误状态写入文件，以便主进程检测到并重启worker
+                    self.report_cuda_error()
+                    
                 pred_dict = {
                     "tool_response_from": self.model_name,
                     "status": "failed",
-                    "message": f"Model inference failed: {str(e)}",
+                    "message": f"Model inference failed: {error_msg}",
                     "error_code": TOOL_RUN_FAILED,
                     "tool_reward": tool_reward+correct_param_content_num/required_keys_num,
                     "image_dimensions_pixels": image_dimensions
@@ -734,6 +860,25 @@ class OptimizedPointWorker(BaseToolWorker):
             logger.error(traceback.format_exc())
             return pred_dict
 
+    def report_cuda_error(self):
+        """报告CUDA错误，以便控制器可以重启worker"""
+        try:
+            # 创建一个错误标记文件
+            error_file = f"{self.error_file_dir}/point_worker_cuda_error_{os.getpid()}.flag"
+            with open(error_file, 'w') as f:
+                f.write(f"{time.time()}")
+            logger.error(f"CUDA error reported, created flag file: {error_file}")
+            
+            # 尝试优雅地关闭，让控制器重启
+            if hasattr(self, 'thread_pool'):
+                self.thread_pool.shutdown(wait=False)
+            
+            # 主动退出进程，让控制器重启它
+            os._exit(1)
+        except Exception as e:
+            logger.error(f"Failed to report CUDA error: {e}")
+            
+            
     def generate_gate(self, params):
         """覆盖父类方法，使用线程池处理请求"""
         try:
@@ -742,6 +887,12 @@ class OptimizedPointWorker(BaseToolWorker):
             ret = future.result(timeout=580)  # 设置超时时间
             return ret
         except Exception as e:
+            error_msg = str(e)
+            # 检测 CUDA 错误
+            if "CUDA error" in error_msg and "device-side assert triggered" in error_msg:
+                logger.error("generate_gate检测到CUDA设备错误，标记需要重启")
+                self.report_cuda_error()
+            
             logger.error(f"Error in generate_gate: {e}")
             return {
                 "tool_response_from": self.model_name,

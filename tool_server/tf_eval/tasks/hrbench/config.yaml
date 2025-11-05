@@ -1,0 +1,13 @@
+task_name: "hrbench"
+dataset_path: "DreamMr/HR-Bench"
+dataset_name: "hrbench_version_split"
+test_split: "hrbench_4k"  # 可以改为 "hrbench_8k"
+# num_sample: 1000  # 完整测试集
+# num_sample: 50    # 用于调试
+dataset_type: "unique" # 需要单独实现数据加载逻辑
+generation_config:
+  max_length: 256
+  temperature: 0
+  top_p: 1.0
+  num_beams: 1
+  do_sample: false

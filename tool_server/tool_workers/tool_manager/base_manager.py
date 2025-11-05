@@ -3,7 +3,7 @@ import requests
 
 from ..offline_workers import get_tool_generate_fn, get_available_tools, get_all_tool_instructions
 from ..offline_workers import get_tool_instruction as get_offline_tool_instruction
-from tool_server.utils.utils import load_json_file
+from tool_server.utils.utils import load_json_file, load_image, base64_to_pil
 from tool_server.utils.server_utils import build_logger
 from tool_server.utils.prompts import (
     one_tool_call_wo_toollist, 
@@ -272,6 +272,12 @@ class ToolManager(object):
                     ret_message = {"text": f"Failed to call tool {tool_name}: {e}", "error_code": 1}
             else:
                 ret_message = {"text": f"Tool {tool_name} not found.", "error_code": 1}
+            edited_image = ret_message.get("edited_image", None)
+            if edited_image:
+                edited_image_pil = load_image(edited_image)
+                width, height = edited_image_pil.size
+                if width < 28 or height < 28:
+                    ret_message.pop("edited_image")
             signal.alarm(0)
         except TimeoutException as te:
             logger.error(f"Timeout calling tool {tool_name}: {te}")

@@ -1,7 +1,14 @@
+# task_name: "vstar"
+# dataset_path: /mnt/petrelfs/sunhaoyu/visual-code/datasets/vstar_bench
+# # num_sample: 191
+# # num_sample: 2
+# dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv
+# answer_comparator_path: /mnt/petrelfs/share_data/sunhaoyu/weights/paraphrase-MiniLM-L6-v2
+# generation_config:
+#   max_length: 2048
+#   # temperature: 0.6
 task_name: "vstar"
-dataset_path: /mnt/petrelfs/sunhaoyu/visual-code/datasets/vstar_bench
-# num_sample: 191
-# num_sample: 2
+dataset_path: /mnt/petrelfs/share_data/songmingyang/data/vl_reasoning/tool_dataset/v_star/vstar_bench
 dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv
 answer_comparator_path: /mnt/petrelfs/share_data/sunhaoyu/weights/paraphrase-MiniLM-L6-v2
 generation_config:

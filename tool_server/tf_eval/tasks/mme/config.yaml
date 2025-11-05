@@ -1,0 +1,11 @@
+task_name: "mme"
+dataset_path: "lmms-lab/MME"
+# num_sample: 2374 # 完整测试集
+# num_sample: 50   # 用于调试
+dataset_type: "unique" # 需要单独实现数据加载逻辑
+generation_config:
+  max_length: 16
+  temperature: 0
+  top_p: 1.0
+  num_beams: 1
+  do_sample: false

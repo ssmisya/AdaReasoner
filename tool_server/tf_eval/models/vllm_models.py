@@ -249,15 +249,24 @@ class VllmModels(tp_model):
         
         inputs = self.form_input_from_dynamic_batch(batch)  # Extract inputs from batch
 
-        response = self.model.chat(inputs, sampling_params)  # Call model for parallel response generation, VLLM library's parallel inference
+        try:
+            response = self.model.chat(inputs, sampling_params)  # Call model for parallel response generation, VLLM library's parallel inference
 
 
-        for item, output_item in zip(batch, response):
-            output_text = output_item.outputs[0].text  # Get generated text
-            item.model_response.append(output_text)  # Add response to model response list
-            self.append_conversation_fn(
-                item.conversation, output_text, None, "assistant"  # 将模型回复添加到对话历史
-            )
+            for item, output_item in zip(batch, response):
+                output_text = output_item.outputs[0].text  # Get generated text
+                item.model_response.append(output_text)  # Add response to model response list
+                self.append_conversation_fn(
+                    item.conversation, output_text, None, "assistant"  # 将模型回复添加到对话历史
+                )
+        except Exception as e:
+            logger.error(f"Error during Vllm Inference: {e}")
+            output_sentence = f"<think> </think><response> Vllm failed to generate response due to {e}. </response>"
+            for item in batch:
+                item.model_response.append(output_sentence)
+                self.append_conversation_fn(
+                    item.conversation, output_sentence, None, "assistant"
+                )
             
     def to(self, *args, **kwargs):
         return self

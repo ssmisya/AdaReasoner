@@ -106,7 +106,7 @@ def test_point(args):
     test_cases = [
         {
             "name": "具体物体",
-            "description": "the zebra's nose",
+            "description": "TRIGGER_CUDA_ERROR",
             "output_file": "point_result_zebra_nose.png"
         },
         {
@@ -1056,7 +1056,7 @@ def main():
     
     # 通用参数
     parser.add_argument(
-        "--controller_addr", type=str, default="http://SH-IDC1-10-140-37-82:30002",
+        "--controller_addr", type=str, default="http://SH-IDC1-10-140-37-6:21112",
         help="控制器地址"
     )
     parser.add_argument(

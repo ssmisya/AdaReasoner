@@ -71,6 +71,7 @@ class BaseToolInferencer(object):
         self.max_rounds = 1 if not if_use_tool else max_rounds
         self.stop_token = stop_token
         self.controlller_addr = controller_addr
+        # remote_breakpoint()
         
         # 初始化动态批处理管理器
         self.manager = DynamicBatchManager(
@@ -250,12 +251,13 @@ class BaseToolInferencer(object):
                                 # 更新参数中的图像
                                 api_params[image_key] = image
                             else:
-                                # 如果找不到请求的图像，记录错误
-                                logger.error(f"Image {img_key} not found in history for item {item_id}")
-                                item.tool_response.append(dict(text=f"Image {img_key} not found in history.",status="failed"))
+                                
                                 continue_flag = True
                                 
                     if continue_flag:
+                        # 如果找不到请求的图像，记录错误
+                        logger.error(f"Image {img_key} not found in history for item {item_id}")
+                        item.tool_response.append(dict(text=f"Image {img_key} not found in history.",status="failed"))
                         continue
                                 
                         # if image_key in api_params and isinstance(api_params[image_key], str) and api_params[image_key].startswith("img_"):

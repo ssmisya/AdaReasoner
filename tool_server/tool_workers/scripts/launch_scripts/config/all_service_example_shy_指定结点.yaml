@@ -2,7 +2,7 @@
 # log_folder: ../../logs/server_log
 base_dir: /mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers
 log_folder: /mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/logs/server_log
-partition: "ai_moe"
+partition: "ai_moe2"
 default_calculate_gpus: 1
 default_calculate_cpus: 12
 default_control_cpus: 2
@@ -15,7 +15,7 @@ controller_config:
   job_name: controller
   calculate_type: control
   srun_kwargs:
-    w: "SH-IDC1-10-140-37-6"  # 指定固定节点
+    w: "SH-IDC1-10-140-37-24"  # 指定固定节点
   cmd:
     script-addr: ./online_workers/controller.py
     port: 21112
@@ -25,19 +25,19 @@ controller_config:
 # 比如model-path会转义成model_path
 
 tool_worker_config:
-  - Point:
-      worker_name: Point
-      job_name: point
-      calculate_type: control
-      conda_env: "tool-server"
-      srun_kwargs:
-        w: "SH-IDC1-10-140-37-82"
-      cuda_visible_devices: "0,1,2,3"
-      cmd:
-        script-addr: tool_server.tool_workers.online_workers.point_worker_parallel
-        port: 40003
-        host: "0.0.0.0"
-        model_path: "/mnt/petrelfs/share_data/songmingyang/model/mm/tools/Molmo-7B-D-0924"
+  # - Point:
+  #     worker_name: Point
+  #     job_name: point
+  #     calculate_type: control
+  #     conda_env: "tool-server"
+  #     srun_kwargs:
+  #       w: "SH-IDC1-10-140-37-82"
+  #     cuda_visible_devices: "0,1,2,3"
+  #     cmd:
+  #       script-addr: tool_server.tool_workers.online_workers.point_worker_parallel
+  #       port: 40003
+  #       host: "0.0.0.0"
+  #       model_path: "/mnt/petrelfs/share_data/songmingyang/model/mm/tools/Molmo-7B-D-0924"
   
   - Crop:
       worker_name: Crop
@@ -52,15 +52,15 @@ tool_worker_config:
       worker_name: OCR
       job_name: ocr
       calculate_type: calculate
-      node_list: "SH-IDC1-10-140-37-82"
-      cuda_visible_devices: "4,5,6,7"
+      node_list: "SH-IDC1-10-140-37-24"
+      cuda_visible_devices: "0,1,4,5"
       use_apptainer: true
       apptainer_image: "/mnt/petrelfs/sunhaoyu/visual-code/tool-server.sif"
       cmd:
         script-addr: tool_server.tool_workers.online_workers.ocr_worker
         port: 20009
         host: "0.0.0.0"
-        gpu_ids: "4,5,6,7"  # 指定使用的GPU ID
+        gpu_ids: "0,1,4,5"  # 指定使用的GPU ID
         enable_multi_gpu: true  # 启用多GPU推理
         max_concurrency: 5  # 增加并发数以支持多GPU
 

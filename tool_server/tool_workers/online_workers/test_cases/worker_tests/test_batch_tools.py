@@ -404,4 +404,4 @@ if __name__ == "__main__":
 # python test_batch_tools.py --tools OCR GetBarInfo --controller_addr http://SH-IDC1-10-140-37-6:21112
 # python test_batch_tools.py --tools OCR --controller_addr http://SH-IDC1-10-140-37-6:21112
 # python test_batch_tools.py --tools OCR --controller_addr http://SH-IDC1-10-140-37-82:30012
-# python test_batch_tools.py --tools Point --controller_addr http://SH-IDC1-10-140-37-82:30012
+# python test_batch_tools.py --tools Point --controller_addr http://SH-IDC1-10-140-37-6:21112

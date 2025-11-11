@@ -82,7 +82,7 @@ class BaseInferencer(object):
                 item_dict = remove_non_serializable(item_dict)
                 
                 final_model_output = item_dict["model_response"][-1]
-                final_answer = self.manager.extract_final_answer(final_model_output)
+                final_answer = self.manager.extract_final_answer(final_model_output, task_name=self.dataset.task_name)
                 item_dict["final_answer"] = final_answer
                 item_dict["image_history"] = image_history
                 # Record item_id to be removed

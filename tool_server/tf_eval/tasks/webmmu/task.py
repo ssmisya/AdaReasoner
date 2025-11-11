@@ -38,7 +38,9 @@ def load_data_function():
     for idx,item in enumerate(dataset):
         item_id = f"webmmu_{idx}"
         image = item["image"]
-        text = item["question"]
+        # webmmu这个任务特殊的prompt
+        prompt = "Analyze the website screenshot and provide a detailed answer to the question. If the question involves locating or interacting with specific elements on the screen, include the bounding box coordinates [x_min, y_min, x_max, y_max] in your response."
+        text = prompt + "\n" + item["question"]
         answer = item["ground_truth"]
         category = item["question_type"]
         meta_data.append({"idx":item_id, "image":image, "text":text, "answer":answer, "category":category})

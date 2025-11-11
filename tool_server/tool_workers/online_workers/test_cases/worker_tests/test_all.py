@@ -106,19 +106,19 @@ def test_point(args):
     test_cases = [
         {
             "name": "具体物体",
-            "description": "TRIGGER_CUDA_ERROR",
-            "output_file": "point_result_zebra_nose.png"
+            "description": "Gift",
+            "output_file": "Gift.png"
         },
         {
-            "name": "中心点",
-            "description": "center of the image",
-            "output_file": "point_result_image_center.png"
+            "name": "具体物体",
+            "description": "Elf",
+            "output_file": "Elf.png"
         },
         {
-            "name": "相对位置",
-            "description": "the rightmost zebra",
-            "output_file": "point_result_rightmost_zebra.png"
-        }
+            "name": "具体物体",
+            "description": "Ice Holes",
+            "output_file": "Ice_Holes.png"
+        },
     ]
     
     for test_case in test_cases:
@@ -1081,14 +1081,14 @@ def main():
     tools_to_test = AVAILABLE_TOOLS if "all" in args.tools else args.tools
 
     # tools_to_test = ["OCR", "DrawShape","Crop","Point","GroundingDINO","SegmentRegionAroundPoint","DrawLine","HighlightBox","MaskBox"]
-    tools_to_test = ["OCR","Point"]
+    tools_to_test = ["Point"]
     
     # 为不同工具设置合适的测试图像
     image_dict = {
         "default":"/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
         # "GroundingDINO": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/truck.jpg",
         # "SegmentRegionAroundPoint": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/zebra.jpg",
-        # "Point": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/zebra.jpg",
+        "Point": "/mnt/petrelfs/share_data/songmingyang/data/vl_reasoning/tool_dataset/frozen_lake_metadata_v2/shy_draw_pictures/selected_pictures/lake_s8_1128_99d20ad8.png",
         # "LanguageModel": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots1.jpg",
         # "GetSubplotInfo": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots2.jpg",
         # "GetBarInfo": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/bars1.jpg"

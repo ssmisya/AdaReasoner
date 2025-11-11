@@ -64,19 +64,50 @@ class tp_model(abc.ABC):
     def getitem_fn(self, meta_data, idx):
         item = meta_data[idx]
         images = []
+
         if "images" in item:
-            images = item["images"]
-            for img in images:
-                assert isinstance(img, PILImage.Image), f"Each image in 'images' must be a PIL Image, but got {type(img)}"
+            # 处理 "images" 列表
+            raw_images = item["images"]
+            for i, img_data in enumerate(raw_images):
+                img = img_data
+                
+                # [关键修复]：检查是否为 bytes，如果是则转换
+                if isinstance(img, bytes):
+                    try:
+                        img = PILImage.open(io.BytesIO(img))
+                    except Exception as e:
+                        # 如果转换失败，抛出更详细的错误
+                        raise ValueError(f"Failed to open image {i} from bytes for idx {idx}. Error: {e}")
+                
+                # 断言检查
+                assert isinstance(img, PILImage.Image), f"Each image in 'images' must be a PIL Image, but got {type(img)} for image {i}, idx {idx}"
+                images.append(img)
+
         elif "image" in item:
+            # 处理单个 "image"
             image = item["image"]
-            assert isinstance(image, PILImage.Image), f"'image' must be a PIL Image, but got {type(image)}"
+            
+            # [关键修复]：检查是否为 bytes，如果是则转换
+            if isinstance(image, bytes):
+                try:
+                    image = PILImage.open(io.BytesIO(image))
+                except Exception as e:
+                    raise ValueError(f"Failed to open image from bytes for idx {idx}. Error: {e}")
+
+            # 断言检查
+            assert isinstance(image, PILImage.Image), f"'image' must be a PIL Image, but got {type(image)} for idx {idx}"
             images = [image]
+
         elif "image_path" in item:
-            image = PILImage.open(item["image_path"])
-            images = [image]
+            # 处理 "image_path"
+            try:
+                image = PILImage.open(item["image_path"])
+                images = [image]
+            except Exception as e:
+                raise ValueError(f"Failed to open image from path: {item['image_path']} for idx {idx}. Error: {e}")
+        
         else:
-            raise ValueError("Item must contain 'image' or 'image_path' key.")
+            raise ValueError(f"Item (idx {idx}) must contain 'image', 'images', or 'image_path' key.")
         
         text = item["text"]
         item_idx = item["idx"]

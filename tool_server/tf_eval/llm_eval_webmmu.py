@@ -168,6 +168,8 @@ def append_result_to_summary(file_result, summary_path):
 def process_and_save_jsonl(jsonl_path, client, model_name):
     """
     处理单个 jsonl 文件：读取、评分、计算平均分并保存到新文件。
+    如果路径包含 'charxiv'，则额外计算并保存分类平均分。
+    如果路径包含 'vstar'，则额外计算并保存分类平均分。
     """
     print(f"--- 开始处理文件: {jsonl_path} ---")
     
@@ -182,18 +184,25 @@ def process_and_save_jsonl(jsonl_path, client, model_name):
     except (KeyError, IndexError):
         print(f"错误: 在 {jsonl_path} 的第一行中未找到 'compare_logs' 键。", file=sys.stderr)
         return
-
+    
+    is_charxiv = 'charxiv' in jsonl_path
+    is_vstar = 'vstar' in jsonl_path
     is_webmmu = 'webmmu' in jsonl_path
 
     # 初始化分数追踪器
     updated_data = []
     all_scores = []
+    descriptive_scores = [] if is_charxiv else None
+    reasoning_scores = [] if is_charxiv else None
+    direct_attributes_scores = [] if is_vstar else None
+    relative_position_scores = [] if is_vstar else None
     functional_scores = [] if is_webmmu else None
     general_image_understanding_scores = [] if is_webmmu else None
     complex_reasoning_scores = [] if is_webmmu else None
     
     # 使用 tqdm 创建进度条
     for item in tqdm(compare_data, desc=f"评分 {Path(jsonl_path).name}"):
+        
         gold_answer = item.get('gold')
         pred_answer = item.get('pred') # pred_answer可能是None
         question = item.get('question')
@@ -206,6 +215,18 @@ def process_and_save_jsonl(jsonl_path, client, model_name):
         item['llm_score'] = score
         all_scores.append(score)
         
+        if is_charxiv:
+            item_type = item.get('Type')
+            if item_type == 'descriptive':
+                descriptive_scores.append(score)
+            elif item_type == 'reasoning':
+                reasoning_scores.append(score)
+        if is_vstar:
+            item_type = item.get('Type')
+            if item_type == 'direct_attributes':
+                direct_attributes_scores.append(score)
+            elif item_type == 'relative_position':
+                relative_position_scores.append(score)
         if is_webmmu:
             item_type = item.get('category')
             if item_type == 'Functional':
@@ -221,7 +242,19 @@ def process_and_save_jsonl(jsonl_path, client, model_name):
     average_score = _calculate_average(all_scores)
     avg_score_summary["average_llm_score"] = average_score
 
-    if is_webmmu:
+    if is_charxiv:
+        avg_descriptive = _calculate_average(descriptive_scores)
+        avg_reasoning = _calculate_average(reasoning_scores)
+        avg_score_summary["average_descriptive_score"] = avg_descriptive
+        avg_score_summary["average_reasoning_score"] = avg_reasoning
+        print(f"文件处理完成。总平均分: {average_score:.4f}, Descriptive 平均分: {avg_descriptive:.4f}, Reasoning 平均分: {avg_reasoning:.4f}")
+    elif is_vstar:
+        avg_direct_attributes = _calculate_average(direct_attributes_scores)
+        avg_relative_position = _calculate_average(relative_position_scores)
+        avg_score_summary["average_direct_attributes_score"] = avg_direct_attributes
+        avg_score_summary["average_relative_position_score"] = avg_relative_position
+        print(f"文件处理完成。总平均分: {average_score:.4f}, Direct Attributes 平均分: {avg_direct_attributes:.4f}, Relative Position 平均分: {avg_relative_position:.4f}")
+    elif is_webmmu:
         avg_functional = _calculate_average(functional_scores)
         avg_general_image_understanding = _calculate_average(general_image_understanding_scores)
         avg_complex_reasoning = _calculate_average(complex_reasoning_scores)
@@ -313,12 +346,18 @@ def process_and_save_jsonl_parallel(jsonl_path, client, model_name, num_threads=
         except (KeyError, IndexError):
             print(f"错误: 在 {jsonl_path} 的第一行中未找到 'compare_logs' 键。", file=sys.stderr)
             continue
-
+        
+        is_charxiv = task_name == "charxiv"
+        is_vstar = task_name == "vstar"
         is_webmmu = task_name == "webmmu"
         # 初始化线程安全的数据结构
         lock = threading.Lock()
         updated_data = []
         all_scores = []
+        descriptive_scores = [] if is_charxiv else None
+        reasoning_scores = [] if is_charxiv else None
+        direct_attributes_scores = [] if is_vstar else None
+        relative_position_scores = [] if is_vstar else None
         functional_scores = [] if is_webmmu else None
         general_image_understanding_scores = [] if is_webmmu else None
         complex_reasoning_scores = [] if is_webmmu else None
@@ -341,6 +380,20 @@ def process_and_save_jsonl_parallel(jsonl_path, client, model_name, num_threads=
                     with lock:
                         all_scores.append(score)
                         updated_data.append(updated_item)
+                        
+                        if is_charxiv:
+                            item_type = updated_item.get('Type')
+                            if item_type == 'descriptive':
+                                descriptive_scores.append(score)
+                            elif item_type == 'reasoning':
+                                reasoning_scores.append(score)
+                        
+                        if is_vstar:
+                            item_type = updated_item.get('category')
+                            if item_type == 'direct_attributes':
+                                direct_attributes_scores.append(score)
+                            elif item_type == 'relative_position':
+                                relative_position_scores.append(score)
                         if is_webmmu:
                             item_type = updated_item.get('category')
                             if item_type == 'Functional':
@@ -364,7 +417,19 @@ def process_and_save_jsonl_parallel(jsonl_path, client, model_name, num_threads=
         average_score = _calculate_average(all_scores)
         avg_score_summary["average_llm_score"] = average_score
 
-        if is_webmmu:
+        if is_charxiv:
+            avg_descriptive = _calculate_average(descriptive_scores)
+            avg_reasoning = _calculate_average(reasoning_scores)
+            avg_score_summary["average_descriptive_score"] = avg_descriptive
+            avg_score_summary["average_reasoning_score"] = avg_reasoning
+            print(f"文件处理完成。总平均分: {average_score:.4f}, Descriptive 平均分: {avg_descriptive:.4f}, Reasoning 平均分: {avg_reasoning:.4f}")
+        elif is_vstar:
+            avg_direct_attributes = _calculate_average(direct_attributes_scores)
+            avg_relative_position = _calculate_average(relative_position_scores)
+            avg_score_summary["average_direct_attributes_score"] = avg_direct_attributes
+            avg_score_summary["average_relative_position_score"] = avg_relative_position
+            print(f"文件处理完成。总平均分: {average_score:.4f}, Direct Attributes 平均分: {avg_direct_attributes:.4f}, Relative Position 平均分: {avg_relative_position:.4f}")
+        elif is_webmmu:
             avg_functional = _calculate_average(functional_scores)
             avg_general_image_understanding = _calculate_average(general_image_understanding_scores)
             avg_complex_reasoning = _calculate_average(complex_reasoning_scores)
@@ -383,8 +448,17 @@ def process_and_save_jsonl_parallel(jsonl_path, client, model_name, num_threads=
             'average_llm_score': average_score,
             'total_items': len(all_scores)
         }
-        
-        if is_webmmu:
+        if is_charxiv:
+            task_summary.update({
+                'average_descriptive_score': avg_descriptive,
+                'average_reasoning_score': avg_reasoning
+            })
+        elif is_vstar:
+            task_summary.update({
+                'average_direct_attributes_score': avg_direct_attributes,
+                'average_relative_position_score': avg_relative_position
+            })
+        elif is_webmmu:
             task_summary.update({
                 'average_functional_score': avg_functional,
                 'average_general_image_understanding_score': avg_general_image_understanding,
@@ -411,11 +485,12 @@ def main():
     parser = argparse.ArgumentParser(description="使用 LLM 评估 JSONL 文件中的预测结果。")
     # 让 jsonl_paths 成为可选参数，如果未提供，则使用硬编码的列表
     parser.add_argument('--jsonl_paths', nargs='*', help="一个或多个待处理的 .jsonl 文件的路径。如果未提供，将使用代码中定义的默认路径。")
-    parser.add_argument('--api_url', type=str, default="http://SH-IDC1-10-140-37-71:16113/v1", help="vLLM 服务的 API base URL。")
+    parser.add_argument('--api_url', type=str, default="http://SH-IDC1-10-140-37-132:16113/v1", help="vLLM 服务的 API base URL。")
     # parser.add_argument('--api_url', type=str, default="http://SH-IDC1-10-140-37-82:16113/v1", help="vLLM 服务的 API base URL。")
     parser.add_argument('--api_key', type=str, default="not-needed", help="API key")
     parser.add_argument('--model_name', type=str, default="/mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-72B-Instruct", help="要使用的模型名称或路径。")
     parser.add_argument("--num_threads", type=int, default=64, help="并行处理时使用的线程数。")
+    parser.add_argument("--summary_path", type=str, default="/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/lm_as_a_judge/llm_eval_summary", help="汇总结果保存路径。如果未提供，将使用基于时间戳的默认文件名。")
     
     args = parser.parse_args()
 
@@ -425,103 +500,31 @@ def main():
     else:
         print("未从命令行接收到路径，使用代码中预设的路径列表。")
         # 运行记得关代理
-        jsonl_paths = [
-            # # # webmmu
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/72b_wo_tool_output.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/claude4_output.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_output.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_tool_rl_output_250.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/7b_350_rl_output.jsonl",
+        # jsonl_paths = [
+        #     "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichatv1/v1_400_rl_output.jsonl",
+        # ]
+        jsonl_paths = ["/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/frozen_lake/zs7b/web_raw_res.jsonl"]
+        base_dir = "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/unified/sec4_all_3tasks"
 
-            # # # webguichat
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/72b_wo_tool_output.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_tool_rl_output_250.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/claude4_output.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat/7b_350_rl_output.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat/7b_wo_tool_output.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_output.jsonl"
-
-            # # 补充测试
-            # # webguichat
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/32b_wo_tool_output.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/72b_wo_tool_output.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/vl3_output.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/gpt5_output.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/gemini2_5flash_output.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_output.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_tool_rl_output_100.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_tool_rl_output_150.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_tool_rl_output_200.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_tool_rl_output_250.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_tool_rl_output_300.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_tool_rl_output_350.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_tool_rl_output_400.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_tool_sft_output.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_tool_sft_rl_output_100.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_tool_sft_rl_output_150.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_tool_sft_rl_output_200.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_tool_sft_rl_output_250.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_tool_sft_rl_output_300.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_tool_sft_rl_output_350.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_tool_sft_rl_output_400.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_wo_tool_direct_rl_output.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat1/3b_wo_tool_direct_sft_output.jsonl",
-            # # webguichat缺少的
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat/7b_output.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat/7b_wo_tool_direct_rl_output.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat/7b_wo_tool_direct_sft_output.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat/7b_v1_output.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat/7b_v1_200_output.jsonl"
-
-
-
-            # # # webmmu
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_output.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_tool_rl_output_100.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_tool_rl_output_150.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_tool_rl_output_200.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_tool_rl_300_output.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_tool_rl_350_output.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_tool_rl_400_output.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_tool_sft_output.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_tool_sft_rl_output_100.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_tool_sft_rl_output_150.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_tool_sft_rl_output_200.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_tool_sft_rl_output_250.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_tool_sft_rl_output_300.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_tool_sft_rl_output_350.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_tool_sft_rl_output_400.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_wo_tool_direct_rl_output.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/3b_wo_tool_direct_sft_output.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/7b_300_rl_output.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/7b_350_rl_output.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/7b_400_rl_output.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/7b_v1_200_output.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/v1_250_rl_output.jsonl",
-            # # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu1/vl3_output.jsonl"
-
-            # # 集中测试7b_sft_rl的crop+ocr数据的结果
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat3/7b_tool_sft_rl_output_300.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat3/7b_tool_sft_rl_output_350.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat3/7b_tool_sft_rl_output_400.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat3/7b_tool_sft_rl_output_450.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat3/7b_tool_sft_rl_output_500.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat3/7b_tool_sft_rl_output_550.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu3/7b_tool_sft_rl_output_300.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu3/7b_tool_sft_rl_output_350.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu3/7b_tool_sft_rl_output_400.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu3/7b_tool_sft_rl_output_450.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu3/7b_tool_sft_rl_output_500.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu3/7b_tool_sft_rl_output_550.jsonl"
-
-
-            # 9.20日晚
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat/7b_400_rl_output.jsonl"
-            "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichatv1/v1_400_rl_output.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmuv1/v1_400_rl_output.jsonl",
+        # sub_dirs = os.listdir(base_dir)
+        # for sub_dir in tqdm(sub_dirs):
+        #     full_sub_dir = os.path.join(base_dir, sub_dir)
+        #     if not os.path.isdir(full_sub_dir):
+        #         continue
+        #     if not "web_raw_res.jsonl" in os.listdir(full_sub_dir):
+        #         continue
+        #     jsonl_paths.append(os.path.join(full_sub_dir, "web_raw_res.jsonl"))
             
-
-        ]
+        # base_dir = "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/unified"
+        
+        # sub_dirs = os.listdir(base_dir)
+        # for sub_dir in tqdm(sub_dirs):
+        #     full_sub_dir = os.path.join(base_dir, sub_dir)
+        #     if not os.path.isdir(full_sub_dir):
+        #         continue
+        #     if not "web_raw_res.jsonl" in os.listdir(full_sub_dir):
+        #         continue
+        #     jsonl_paths.append(os.path.join(full_sub_dir, "web_raw_res.jsonl"))
     
     if len(jsonl_paths) == 1 and os.path.isdir(jsonl_paths[0]):
         # 如果只有一个路径且它是目录，则获取该目录下的所有 .jsonl 文件
@@ -543,6 +546,8 @@ def main():
 
     # 生成汇总文件路径（在开始处理前就确定文件名）
     summary_filename = generate_timestamp_filename("test_results_summary", ".json")
+    summary_filename = os.path.join(args.summary_path, summary_filename) if args.summary_path else summary_filename
+    
     summary_path = Path(summary_filename)
     print(f"汇总结果将保存到: {summary_path}")
     

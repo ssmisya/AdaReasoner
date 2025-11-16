@@ -4,6 +4,7 @@ from tool_server.tool_workers.offline_workers.draw_path import Draw2DPath
 from tool_server.tool_workers.offline_workers.turn_into_text_map import TurnCoordinateIntoTextMap
 from tool_server.tool_workers.offline_workers.detect_black_area_experiment import DetectBlackArea
 from tool_server.tool_workers.offline_workers.insert_image import InsertImage
+from tool_server.tool_workers.offline_workers.get_weather import GetWeather
 
 # 工具实例注册表
 offline_tool_instances = {
@@ -11,6 +12,7 @@ offline_tool_instances = {
     "Draw2DPath": Draw2DPath(),
     "DetectBlackArea": DetectBlackArea(),
     "InsertImage": InsertImage(),
+    "GetWeather": GetWeather(),
     # "TurnCoordinateIntoTextMap": TurnCoordinateIntoTextMap(),
     # 其他工具实例...
 }

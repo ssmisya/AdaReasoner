@@ -15,6 +15,7 @@ import warnings
 import requests
 import pandas as pd
 from PIL import Image
+from tool_server.utils.debug import remote_breakpoint
 
 # 禁用相关库的日志
 logging.getLogger('datasets').setLevel(logging.ERROR)

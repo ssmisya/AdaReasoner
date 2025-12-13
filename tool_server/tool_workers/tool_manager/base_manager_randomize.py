@@ -370,8 +370,74 @@ def generate_random_name(length=6, prefix=""):
     return f"{prefix}{random_str}"
 
 
+
+
+import hashlib
+
+def generate_deterministic_seed(deterministic_id: str) -> int:
+    """
+    基于确定性ID生成固定的随机种子
+    
+    Args:
+        deterministic_id: 确定性标识符
+        
+    Returns:
+        int: 确定性的随机种子
+    """
+    hash_obj = hashlib.md5(deterministic_id.encode('utf-8'))
+    # 取哈希值的前8位作为种子
+    return int(hash_obj.hexdigest()[:8], 16)
+
+def generate_deterministic_name(seed_str: str, length=6, prefix=""):
+    """
+    基于种子字符串生成确定性的随机名称
+    
+    Args:
+        seed_str: 种子字符串，用于生成确定性的随机名称
+        length: 生成名称的长度
+        prefix: 前缀
+    
+    Returns:
+        str: 确定性的随机名称
+    """
+    # 使用MD5哈希生成确定性的"随机"字符串
+    hash_obj = hashlib.md5(seed_str.encode('utf-8'))
+    hex_str = hash_obj.hexdigest()
+    
+    # 将十六进制字符串转换为所需的字符集
+    chars = string.ascii_lowercase + string.digits
+    result = ""
+    
+    for i in range(length):
+        # 使用哈希的不同部分作为索引
+        char_index = int(hex_str[i % len(hex_str)], 16) % len(chars)
+        result += chars[char_index]
+    
+    return f"{prefix}{result}"
+
+def generate_deterministic_choice(choices: List[str], seed_str: str):
+    """
+    基于种子字符串从列表中确定性地选择一个元素
+    
+    Args:
+        choices: 选择列表
+        seed_str: 种子字符串
+    
+    Returns:
+        选中的元素
+    """
+    if not choices:
+        return None
+    
+    # 使用MD5哈希生成确定性的索引
+    hash_obj = hashlib.md5(seed_str.encode('utf-8'))
+    hash_int = int(hash_obj.hexdigest(), 16)
+    index = hash_int % len(choices)
+    return choices[index]
+
 class ToolManager(object):
-    def __init__(self, controller_url_location=None, tools=None, randomize=False, random_seed=None):
+    def __init__(self, controller_url_location=None, tools=None, randomize=False, 
+                 random_seed=None, deterministic_id=None):
         """
         初始化工具管理器
         
@@ -380,25 +446,40 @@ class ToolManager(object):
             tools (list, optional): 指定要初始化的工具列表，不指定则初始化全部工具
             randomize (bool): 是否随机化工具名称和描述
             random_seed (int, optional): 随机种子，确保每次初始化时的随机化结果一致
+            deterministic_id (str, optional): 确定性标识符，用于生成一致的随机映射
+            注意：deterministic_id优先级高于random_seed
         """
         self.controller_url_location = controller_url_location
-        self.tools = tools  # 保存用户指定的工具列表
+        self.tools = tools
         self.randomize = randomize
+        self.deterministic_id = deterministic_id
         self.headers = {"User-Agent": "LLaVA-Plus Client"}
         
-        # 设置随机种子（如果提供）
-        if random_seed is not None:
+        # 设置随机种子或确定性ID
+        if deterministic_id is not None:
+            # 使用确定性ID生成固定的随机种子
+            deterministic_seed = generate_deterministic_seed(deterministic_id)
+            random.seed(deterministic_seed)
+            logger.info(f"Using deterministic_id '{deterministic_id}' with seed {deterministic_seed}")
+        elif random_seed is not None:
             random.seed(random_seed)
+            logger.info(f"Using random_seed {random_seed}")
+        else:
+            # 如果启用随机化但没有提供种子，生成一个随机种子
+            if randomize:
+                generated_seed = random.randint(0, 2**32-1)
+                random.seed(generated_seed)
+                logger.info(f"Generated random seed: {generated_seed}")
         
         # 初始化映射表
-        self.randomized_to_original = {}  # 随机名称 -> 原始名称
-        self.original_to_randomized = {}  # 原始名称 -> 随机名称
-        self.tool_desc_map = {}  # 工具名称 -> 随机化的描述
-        self.param_desc_map = {}  # 参数名 -> {工具名: 随机化的描述}
+        self.randomized_to_original = {}
+        self.original_to_randomized = {}
+        self.tool_desc_map = {}
+        self.param_desc_map = {}
         
         # 缓存原始指令和随机化后的指令
-        self.original_instructions = {}  # 原始工具名 -> 原始指令
-        self.randomized_instructions = {}  # 随机化后的工具名 -> 随机化后的指令
+        self.original_instructions = {}
+        self.randomized_instructions = {}
         
         self.image_params = ["image","base_image","image_to_insert"]
         self.init_offline_tools(tools)
@@ -411,18 +492,16 @@ class ToolManager(object):
         
         # 如果启用随机化，生成映射表并随机化指令
         if self.randomize:
-            self._generate_randomization_maps()
+            self._generate_deterministic_randomization_maps()
             self._randomize_all_instructions()
         
         print("available_tools", self.available_tools)
         
         if self.tools is None:
-            # 如果未指定工具，检查所有常用工具
             required_tools = ["GroundingDINO", "OCR", "SegmentRegionAroundPoint", "Point", 
                              "Crop", "DrawLine", "DrawShape", "HighlightBox", "MaskBox", 
                              "GetSubplotInfo", "GetBarInfo"]
         else:
-            # 仅检查指定的常用工具
             required_tools = [tool for tool in self.tools]
                 
         miss_tool = [tool for tool in required_tools if tool not in self.available_tools]
@@ -431,9 +510,146 @@ class ToolManager(object):
         else:
             logger.info(f"Not all required online tools are prepared successfully, missing: {miss_tool}")     
             
-        logger.info(f"ToolManager is initialized. Randomize mode: {self.randomize}")
+        logger.info(f"ToolManager is initialized. Randomize mode: {self.randomize}, Deterministic ID: {self.deterministic_id}")
+    
+    def _generate_deterministic_randomization_maps(self):
+        """生成确定性的随机化映射表"""
+        logger.info("Generating deterministic randomization maps...")
         
+        # Step 1: 收集所有工具及其参数
+        tool_params_map = {}
         
+        for tool_name, instruction in self.original_instructions.items():
+            params = self._extract_all_params_from_instruction(instruction)
+            tool_params_map[tool_name] = params
+            logger.debug(f"Tool {tool_name} has parameters: {params}")
+        
+        # Step 2: 为工具名称生成确定性的随机映射
+        for tool_name in sorted(self.available_tools):  # 排序确保一致性
+            if self.deterministic_id:
+                # 使用确定性ID生成唯一的种子
+                seed_str = f"{self.deterministic_id}_tool_{tool_name}"
+                randomized_name = generate_deterministic_name(seed_str, length=6)
+            else:
+                randomized_name = generate_random_name(prefix="")
+            
+            self.original_to_randomized[tool_name] = randomized_name
+            self.randomized_to_original[randomized_name] = tool_name
+            
+            # 为工具描述生成确定性的随机映射
+            if tool_name in TOOL_DESCRIPTIONS and TOOL_DESCRIPTIONS[tool_name]:
+                if self.deterministic_id:
+                    desc_seed = f"{self.deterministic_id}_tool_desc_{tool_name}"
+                    self.tool_desc_map[tool_name] = generate_deterministic_choice(
+                        TOOL_DESCRIPTIONS[tool_name], desc_seed
+                    )
+                else:
+                    self.tool_desc_map[tool_name] = random.choice(TOOL_DESCRIPTIONS[tool_name])
+            
+            logger.debug(f"Tool mapping: {tool_name} -> {randomized_name}")
+        
+        # Step 3: 收集所有唯一的参数名并排序
+        all_params = set()
+        for params in tool_params_map.values():
+            all_params.update(params)
+        all_params = sorted(list(all_params))  # 排序确保一致性
+        
+        logger.info(f"Found {len(all_params)} unique parameters across all tools: {all_params}")
+        
+        # Step 4: 为每个参数生成确定性的随机映射
+        for param_name in all_params:
+            if self.deterministic_id:
+                param_seed = f"{self.deterministic_id}_param_{param_name}"
+                randomized_param = generate_deterministic_name(param_seed, length=6)
+            else:
+                randomized_param = generate_random_name(prefix="")
+                
+            self.original_to_randomized[param_name] = randomized_param
+            self.randomized_to_original[randomized_param] = param_name
+            
+            logger.debug(f"Param mapping: {param_name} -> {randomized_param}")
+            
+            # 为参数描述生成确定性的随机映射
+            for tool_name, params in tool_params_map.items():
+                if param_name in params:
+                    if (tool_name in TOOL_PARAM_DESCRIPTIONS and 
+                        param_name in TOOL_PARAM_DESCRIPTIONS[tool_name] and 
+                        TOOL_PARAM_DESCRIPTIONS[tool_name][param_name]):
+                        
+                        if param_name not in self.param_desc_map:
+                            self.param_desc_map[param_name] = {}
+                        
+                        if self.deterministic_id:
+                            param_desc_seed = f"{self.deterministic_id}_param_desc_{tool_name}_{param_name}"
+                            self.param_desc_map[param_name][tool_name] = generate_deterministic_choice(
+                                TOOL_PARAM_DESCRIPTIONS[tool_name][param_name], param_desc_seed
+                            )
+                        else:
+                            self.param_desc_map[param_name][tool_name] = random.choice(
+                                TOOL_PARAM_DESCRIPTIONS[tool_name][param_name]
+                            )
+        
+        # 更新image_params
+        renew_image_params = []
+        for param in self.image_params:
+            if param in self.original_to_randomized:
+                renew_image_params.append(self.original_to_randomized[param])
+        self.image_params = renew_image_params
+        
+        logger.info(f"Deterministic randomization complete:")
+        logger.info(f"  - {len(self.available_tools)} tools randomized")
+        logger.info(f"  - {len(all_params)} parameters randomized")
+        logger.info(f"  - {len(self.tool_desc_map)} tool descriptions randomized")
+        logger.info(f"  - {sum(len(v) for v in self.param_desc_map.values())} parameter descriptions randomized")
+    
+    def get_deterministic_info(self) -> Dict[str, Any]:
+        """
+        获取确定性信息（用于调试和验证一致性）
+        
+        Returns:
+            dict: 包含确定性信息的字典
+        """
+        info = {
+            "deterministic_id": self.deterministic_id,
+            "randomize": self.randomize,
+        }
+        
+        if self.randomize:
+            info.update({
+                "tool_mappings": self.original_to_randomized,
+                "tool_descriptions": self.tool_desc_map,
+                "param_descriptions": self.param_desc_map,
+                "num_cached_original_instructions": len(self.original_instructions),
+                "num_cached_randomized_instructions": len(self.randomized_instructions)
+            })
+        
+        return info
+    
+    def save_randomization_mapping(self, filepath: str):
+        """
+        保存随机化映射到文件（用于调试和验证）
+        
+        Args:
+            filepath: 保存路径
+        """
+        if not self.randomize:
+            logger.warning("Randomization is not enabled, nothing to save")
+            return
+        
+        mapping_data = {
+            "deterministic_id": self.deterministic_id,
+            "tool_mappings": self.original_to_randomized,
+            "tool_descriptions": self.tool_desc_map,
+            "param_descriptions": self.param_desc_map,
+            "available_tools": self.available_tools
+        }
+        
+        import json
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(mapping_data, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f"Randomization mapping saved to {filepath}")
+      
     
     def get_tool_real_name(self,tool_name):
         """获取工具的原始名称"""
@@ -455,15 +671,19 @@ class ToolManager(object):
                     
             # 获取在线工具指令
             elif tool_name in self.available_online_tools:
-                # 先尝试从在线工具获取指令
                 instruction = self.get_online_tool_instruction(tool_name)
-                # 如果无法从在线工具获取，尝试从预定义字典获取
                 if not instruction and tool_name in tool_desc_dict:
                     instruction = tool_desc_dict[tool_name]
             
-            # 缓存原始指令
+            # 缓存原始指令 - 使用深拷贝避免被修改
             if instruction:
-                self.original_instructions[tool_name] = instruction
+                import copy
+                if isinstance(instruction, str):
+                    # 字符串可以直接赋值(不可变)
+                    self.original_instructions[tool_name] = instruction
+                else:
+                    # 字典需要深拷贝
+                    self.original_instructions[tool_name] = copy.deepcopy(instruction)
                 logger.debug(f"Loaded instruction for {tool_name}")
             else:
                 logger.warning(f"No instruction found for tool {tool_name}")
@@ -587,14 +807,16 @@ class ToolManager(object):
         随机化单个工具的指令
         
         Args:
-            instruction: 原始指令（可能是JSON字符串或Python dict字符串）
-            tool_name: 工具名称（原始）
+            instruction: 原始指令(可能是JSON字符串或Python dict字符串)
+            tool_name: 工具名称(原始)
             
         Returns:
-            str: 随机化后的指令（保持原格式）
+            str: 随机化后的指令(保持原格式)
         """
         if not instruction:
             return instruction
+        
+        import copy  # 添加 copy 导入
         
         try:
             # 检测是Python dict还是JSON格式
@@ -608,6 +830,9 @@ class ToolManager(object):
                     inst_dict = json.loads(instruction)
             else:
                 inst_dict = instruction
+            
+            # 深拷贝以避免修改原始数据
+            inst_dict = copy.deepcopy(inst_dict)
             
             # 替换工具名称
             if "function" in inst_dict and "name" in inst_dict["function"]:
@@ -628,6 +853,9 @@ class ToolManager(object):
                         # 获取新参数名
                         new_param_name = self.original_to_randomized.get(param_name, param_name)
                         
+                        # 深拷贝参数信息以避免修改原始数据
+                        param_info = copy.deepcopy(param_info)
+                        
                         # 替换参数描述
                         if "description" in param_info:
                             if param_name in self.param_desc_map and tool_name in self.param_desc_map[param_name]:
@@ -647,11 +875,10 @@ class ToolManager(object):
             if is_python_dict:
                 return str(inst_dict)
             else:
-                return json.dumps(inst_dict)
+                return json.dumps(inst_dict, ensure_ascii=False)
             
         except Exception as e:
             logger.error(f"Failed to randomize instruction for {tool_name}: {e}")
-            # 如果解析失败，使用正则替换作为后备方案
             randomized = instruction
             
             # 替换工具名称
@@ -872,13 +1099,95 @@ class ToolManager(object):
         
         return prompt
     
-    def call_tool(self, tool_name, params):
+    # def call_tool(self, tool_name, params):
+    #     """
+    #     调用工具并返回结果
+        
+    #     Args:
+    #         tool_name: 工具名称（如果randomize=True，则为随机化后的名称）
+    #         params: 工具参数（如果randomize=True，则参数名为随机化后的名称）
+            
+    #     Returns:
+    #         dict: 工具执行结果
+    #     """
+    #     timeout_sec = 300  # timeout per attempt
+    #     ret_message = {"text": f"Failed to call tool {tool_name} for unknown reason", "error_code": 1}
+        
+    #     # 如果启用了随机化，需要转换回原始名称
+    #     if self.randomize:
+    #         # 转换工具名称
+    #         original_tool_name = self.randomized_to_original.get(tool_name, tool_name)
+            
+    #         # 转换参数名称
+    #         original_params = {}
+    #         for param_name, param_value in params.items():
+    #             original_param_name = self.randomized_to_original.get(param_name, param_name)
+    #             original_params[original_param_name] = param_value
+            
+    #         logger.info(f"Converting randomized call: {tool_name}({list(params.keys())}) -> {original_tool_name}({list(original_params.keys())})")
+    #     else:
+    #         original_tool_name = tool_name
+    #         original_params = params
+        
+    #     try:
+    #         signal.alarm(timeout_sec)
+            
+    #         if original_tool_name in self.available_offline_tools:
+    #             try:
+    #                 tool_generate_fn = get_tool_generate_fn(original_tool_name)
+    #                 if tool_generate_fn is None:
+    #                     ret_message = {"text": f"Tool {tool_name} not found.", "error_code": 1}
+    #                 else:
+    #                     ret_message = tool_generate_fn(original_params)
+    #             except Exception as e:
+    #                 logger.error(f"Failed to call tool {tool_name}: {e}")
+    #                 ret_message = {"text": f"Failed to call tool {tool_name}: {e}", "error_code": 1}
+                
+    #         elif original_tool_name in self.available_online_tools:
+    #             try:
+    #                 tool_worker_addr = self.online_tool_addr_dict[original_tool_name]
+    #                 with self.disable_proxy():
+    #                     session = requests.Session()
+    #                     session.trust_env = False
+    #                     ret = session.post(tool_worker_addr + "/worker_generate", 
+    #                                       headers=self.headers, json=original_params, proxies={},
+    #                                       timeout=(300, 300))
+    #                 ret_message = ret.json()
+    #             except Exception as e:
+    #                 logger.error(f"Failed to call tool {tool_name}: {e}")
+    #                 ret_message = {"text": f"Failed to call tool {tool_name}: {e}", "error_code": 1}
+    #         else:
+    #             ret_message = {"text": f"Tool {tool_name} not found.", "error_code": 1}
+                
+    #         edited_image = ret_message.get("edited_image", None)
+    #         if edited_image:
+    #             edited_image_pil = load_image(edited_image)
+    #             width, height = edited_image_pil.size
+    #             if width < 28 or height < 28:
+    #                 ret_message.pop("edited_image")
+    #         signal.alarm(0)
+            
+    #         # 将返回的工具名也随机化（如果需要）
+    #         if "tool_response_from" in ret_message and self.randomize:
+    #             ret_message["tool_response_from"] = tool_name
+                
+    #     except TimeoutException as te:
+    #         logger.error(f"Timeout calling tool {original_tool_name}: {te}")
+    #         ret_message = {"text": f"Timeout calling tool {original_tool_name}: {te}", "error_code": 1}
+    #     finally:
+    #         signal.alarm(0)
+    #         return ret_message
+    
+    
+    def call_tool(self, tool_name, params, randomized_to_original=None):
         """
         调用工具并返回结果
         
         Args:
             tool_name: 工具名称（如果randomize=True，则为随机化后的名称）
             params: 工具参数（如果randomize=True，则参数名为随机化后的名称）
+            randomized_to_original: 可选的映射字典，用于将随机化的名称映射回原始名称
+                                如果提供，将优先使用此字典进行映射
             
         Returns:
             dict: 工具执行结果
@@ -886,15 +1195,27 @@ class ToolManager(object):
         timeout_sec = 300  # timeout per attempt
         ret_message = {"text": f"Failed to call tool {tool_name} for unknown reason", "error_code": 1}
         
-        # 如果启用了随机化，需要转换回原始名称
-        if self.randomize:
+        # 确定使用哪个映射字典
+        if randomized_to_original is not None:
+            # 使用传入的映射字典（最高优先级）
+            mapping_dict = randomized_to_original
+            logger.info(f"Using provided randomized_to_original mapping for tool call")
+        elif self.randomize:
+            # 使用实例的映射字典
+            mapping_dict = self.randomized_to_original
+        else:
+            # 不需要映射
+            mapping_dict = None
+        
+        # 如果需要映射，转换工具名称和参数名称
+        if mapping_dict is not None:
             # 转换工具名称
-            original_tool_name = self.randomized_to_original.get(tool_name, tool_name)
+            original_tool_name = mapping_dict.get(tool_name, tool_name)
             
             # 转换参数名称
             original_params = {}
             for param_name, param_value in params.items():
-                original_param_name = self.randomized_to_original.get(param_name, param_name)
+                original_param_name = mapping_dict.get(param_name, param_name)
                 original_params[original_param_name] = param_value
             
             logger.info(f"Converting randomized call: {tool_name}({list(params.keys())}) -> {original_tool_name}({list(original_params.keys())})")
@@ -923,8 +1244,8 @@ class ToolManager(object):
                         session = requests.Session()
                         session.trust_env = False
                         ret = session.post(tool_worker_addr + "/worker_generate", 
-                                          headers=self.headers, json=original_params, proxies={},
-                                          timeout=(300, 300))
+                                        headers=self.headers, json=original_params, proxies={},
+                                        timeout=(300, 300))
                     ret_message = ret.json()
                 except Exception as e:
                     logger.error(f"Failed to call tool {tool_name}: {e}")
@@ -941,7 +1262,7 @@ class ToolManager(object):
             signal.alarm(0)
             
             # 将返回的工具名也随机化（如果需要）
-            if "tool_response_from" in ret_message and self.randomize:
+            if "tool_response_from" in ret_message and mapping_dict is not None:
                 ret_message["tool_response_from"] = tool_name
                 
         except TimeoutException as te:
@@ -950,7 +1271,7 @@ class ToolManager(object):
         finally:
             signal.alarm(0)
             return ret_message
-            
+                
     @contextmanager
     def disable_proxy(self):
         """临时禁用代理设置的上下文管理器"""

@@ -43,6 +43,7 @@ class tp_model(abc.ABC):
         text,
         images, 
         role = "user",
+        **kwargs
     ):
         raise NotImplementedError
     
@@ -51,7 +52,8 @@ class tp_model(abc.ABC):
         conversation, 
         text, 
         image, 
-        role
+        role,
+        **kwargs
     ):
         raise  NotImplementedError
     

@@ -252,7 +252,7 @@ class ToolManager(object):
                     if tool_generate_fn is None:
                         ret_message = {"text": f"Tool {tool_name} not found.", "error_code": 1}
                     else:
-                        ret_message = tool_generate_fn(params)
+                        ret_message = tool_generate_fn(params, tool_manager=self)
                 except Exception as e:
                     logger.error(f"Failed to call tool {tool_name}: {e}")
                     ret_message = {"text": f"Failed to call tool {tool_name}: {e}", "error_code": 1}

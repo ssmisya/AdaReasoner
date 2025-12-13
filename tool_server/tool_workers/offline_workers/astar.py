@@ -35,6 +35,10 @@ class AStarWithPixelCoordinate(BaseOfflineWorker):
                     "obstacles": {
                         "type": "array",
                         "description": "Array of obstacle coordinates [[x1, y1], [x2, y2], ...] in pixels, e.g., [[150, 150], [200, 250], [300, 300]]"
+                    },
+                    "cell_size": {
+                        "type": "integer",
+                        "description": "Size of each grid cell in pixels (default is 64)",
                     }
                 },
                 "required": ["start", "goal", "obstacles"]
@@ -78,10 +82,11 @@ class AStarWithPixelCoordinate(BaseOfflineWorker):
             start = tuple(params["start"])
             goal = tuple(params["goal"])
             obstacles = [tuple(obs) for obs in params["obstacles"]]
+            cell_size = params.get("cell_size", 64)
             
             # 执行A*算法，固定cell_size为64
             path_string, path_coords = self.astar_search(
-                start, goal, obstacles
+                start, goal, obstacles, cell_size
             )
             
             formatted_path = self._format_path_string(path_string)
@@ -114,7 +119,7 @@ class AStarWithPixelCoordinate(BaseOfflineWorker):
                 "error_code": TOOL_RUN_FAILED
             }
     
-    def astar_search(self, start, goal, obstacles):
+    def astar_search(self, start, goal, obstacles, cell_size):
         """
         A* 搜索算法查找从起点到终点的最短路径，同时避开障碍物
         
@@ -126,7 +131,6 @@ class AStarWithPixelCoordinate(BaseOfflineWorker):
         Returns:
             tuple: (路径字符串（'l','r','u','d'）, 路径坐标列表)
         """
-        cell_size = 64  # 固定cell尺寸为64
         
         # 将像素坐标转换为网格坐标（从0开始）
         def pixel_to_grid(pixel_coord):
@@ -231,6 +235,11 @@ class AStarWithPixelCoordinate(BaseOfflineWorker):
                 if param not in params:
                     raise ValueError(f"Missing required parameter: {param}")
             
+            if "cell_size" in params:
+                cell_size = int(params["cell_size"])
+            else:
+                cell_size = 64
+            
             # 验证并转换 start 参数
             start = params["start"]
             if isinstance(start, str):
@@ -285,7 +294,8 @@ class AStarWithPixelCoordinate(BaseOfflineWorker):
             new_params = {
                 "start": [float(x) for x in start],
                 "goal": [float(x) for x in goal],
-                "obstacles": [[float(x) for x in obs] for obs in obstacles]
+                "obstacles": [[float(x) for x in obs] for obs in obstacles],
+                "cell_size": cell_size
             }
             
             # 验证通过，返回成功结果

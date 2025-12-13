@@ -47,6 +47,7 @@ class VllmModels(tp_model):
         text,                # Input text
         images,               # Input image
         role = "user",       # Conversation role, default is user
+        **kwargs
     ):  
         """
         Function to generate conversation format, combines text and image into message format accepted by the model
@@ -88,7 +89,9 @@ class VllmModels(tp_model):
         ]
         
         first_user_content.extend(image_messages)  # Combine text and image messages
-
+        
+        fs = kwargs.get("few_shot", None)
+        
         messages = [
             {
                 "role": "system",
@@ -104,6 +107,20 @@ class VllmModels(tp_model):
                 "content": first_user_content
             }
         ]
+        
+        if fs:
+            if isinstance(fs,str):
+                messages.insert(1, {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": fs,
+                        },
+                    ],
+                })
+            else:
+                raise ValueError("few_shot should be a string.")
 
         return messages
     
@@ -113,7 +130,8 @@ class VllmModels(tp_model):
         conversation,  # Existing conversation history
         text,          # Text to add
         image,         # Image to add (optional)
-        role           # Conversation role
+        role,           # Conversation role
+        **kwargs
     ):
         """
         Append new message to existing conversation

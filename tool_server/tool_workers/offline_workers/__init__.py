@@ -5,6 +5,12 @@ from tool_server.tool_workers.offline_workers.turn_into_text_map import TurnCoor
 from tool_server.tool_workers.offline_workers.detect_black_area_experiment import DetectBlackArea
 from tool_server.tool_workers.offline_workers.insert_image import InsertImage
 from tool_server.tool_workers.offline_workers.get_weather import GetWeather
+from tool_server.tool_workers.offline_workers.get_start_point_worker import GetStartPoint
+from tool_server.tool_workers.offline_workers.get_end_point_worker import GetEndPoint
+from tool_server.tool_workers.offline_workers.get_obstacles_worker import GetObstacles
+from tool_server.tool_workers.offline_workers.draw_dash_line_path import DrawDashLinePath
+from tool_server.tool_workers.offline_workers.rotate_image import RotateImage
+
 
 # 工具实例注册表
 offline_tool_instances = {
@@ -13,6 +19,11 @@ offline_tool_instances = {
     "DetectBlackArea": DetectBlackArea(),
     "InsertImage": InsertImage(),
     "GetWeather": GetWeather(),
+    "GetStartPoint": GetStartPoint(),
+    "GetEndPoint": GetEndPoint(),
+    "GetObstacles": GetObstacles(),
+    "DrawDashLinePath": DrawDashLinePath(),
+    "RotateImage": RotateImage(),
     # "TurnCoordinateIntoTextMap": TurnCoordinateIntoTextMap(),
     # 其他工具实例...
 }

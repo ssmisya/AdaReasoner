@@ -187,7 +187,7 @@ class Gemini_openai_Models(tp_model):
     def eval(self):
         pass
     
-    def generate_conversation_fn(self, text, images, role="user"):
+    def generate_conversation_fn(self, text, images, role="user",**kwargs):
         # 与VLLM保持一致：强制要求system_prompt必须先设置
         assert self.system_prompt, "System prompt must be set before generating conversation."
         
@@ -258,7 +258,7 @@ class Gemini_openai_Models(tp_model):
             traceback.print_exc()
             raise
     
-    def append_conversation_fn(self, conversation, text, image, role):
+    def append_conversation_fn(self, conversation, text, image, role,**kwargs):
         parts = [types.Part.from_text(text=text)]
         
         # 处理图像 - 修复：添加对bytes类型的支持

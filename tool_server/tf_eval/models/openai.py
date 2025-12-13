@@ -65,7 +65,7 @@ class OpenaiModels(tp_model):
     def eval(self):
         pass
     
-    def generate_conversation_fn(self, text, images, role="user"):
+    def generate_conversation_fn(self, text, images, role="user",**kwargs):
         # 与VLLM保持一致：强制要求system_prompt必须先设置
         assert self.system_prompt, "System prompt must be set before generating conversation."
         
@@ -145,7 +145,7 @@ class OpenaiModels(tp_model):
             print(f"ERROR: 处理图像失败: {e}")
             return None
     
-    def append_conversation_fn(self, conversation, text, image, role):
+    def append_conversation_fn(self, conversation, text, image, role,**kwargs):
         """向对话历史中添加新消息"""
         content = [
             {

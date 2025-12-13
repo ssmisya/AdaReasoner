@@ -1,0 +1,8 @@
+# tf_eval/tasks/minigrid_nav/config.yaml
+task_name: "minigrid_nav"
+dataset_path: "/mnt/petrelfs/songmingyang/code/reasoning/tool_util_code/others/grid_bench/minigrid_empty_dataset/dataset.jsonl"
+dataset_type: "unique"  # 自定义数据加载逻辑
+num_sample: null  # null表示加载全部数据
+generation_config:
+  max_length: 2048
+  temperature: 0.0

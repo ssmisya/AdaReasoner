@@ -32,6 +32,7 @@ class Qwen2VL(tp_model):
         text,
         image, 
         role = "user",
+        **kwargs
     ):
         messages = [
             {
@@ -57,7 +58,8 @@ class Qwen2VL(tp_model):
         conversation, 
         text, 
         image, 
-        role
+        role,
+        **kwargs
     ):
         if image:
             new_messages = [

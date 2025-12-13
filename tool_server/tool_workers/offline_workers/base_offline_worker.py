@@ -42,7 +42,7 @@ class BaseOfflineWorker(ABC):
             }
         }
     
-    def generate(self, params):
+    def generate(self, params, tool_manager = None):
         """
         工具生成函数，与在线工具接口一致
         
@@ -87,6 +87,9 @@ class BaseOfflineWorker(ABC):
             else:
                 new_params = params_qualify_res["new_params"] 
             
+            if tool_manager:
+                new_params["tool_manager"] = tool_manager
+                
             # 执行工具核心逻辑
             result = self._execute(new_params)
             

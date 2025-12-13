@@ -93,10 +93,16 @@ class DynamicBatchManager():
                 status="pending"
             )
             # print(f"DEBUG: 开始生成conversation")
+            if self.if_use_tool:
+                few_shot = meta_data.get("tool_few_shot", None)
+            else:
+                few_shot = None
+                
             candidate_item.conversation = self.generate_conversation_fn(
                 text = meta_data["text"], 
                 images = meta_data["images"],
-                role = "user"
+                role = "user",
+                few_shot = few_shot,
             )
             
             image_history = {}

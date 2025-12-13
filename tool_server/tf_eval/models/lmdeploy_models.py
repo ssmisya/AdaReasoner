@@ -29,6 +29,7 @@ class LMDeployModels(tp_model):
         text,
         image, 
         role = "user",
+        **kwargs
     ):  
         # import pdb; pdb.set_trace()
         text = fs_cota + "\n" + "Question: " + text
@@ -60,7 +61,8 @@ class LMDeployModels(tp_model):
         conversation, 
         text, 
         image, 
-        role
+        role,
+        **kwargs
     ):
         if image:
             new_messages=[

@@ -493,7 +493,7 @@ def main():
     parser.add_argument("--summary_path", type=str, default="/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/lm_as_a_judge/llm_eval_summary", help="汇总结果保存路径。如果未提供，将使用基于时间戳的默认文件名。")
     
     args = parser.parse_args()
-
+    
     # 如果命令行没有提供路径，则使用您预设的列表
     if args.jsonl_paths:
         jsonl_paths = args.jsonl_paths
@@ -503,7 +503,11 @@ def main():
         # jsonl_paths = [
         #     "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichatv1/v1_400_rl_output.jsonl",
         # ]
-        jsonl_paths = ["/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/frozen_lake/zs7b/web_raw_res.jsonl"]
+        jsonl_paths = [
+            "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/unified/sec4_all_3tasks/qwen25vl72b_wtools",
+        ]
+
+        jsonl_paths = [os.path.join(p, "web_raw_res.jsonl") for p in jsonl_paths]
         base_dir = "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/unified/sec4_all_3tasks"
 
         # sub_dirs = os.listdir(base_dir)

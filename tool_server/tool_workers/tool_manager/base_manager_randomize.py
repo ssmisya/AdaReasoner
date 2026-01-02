@@ -482,6 +482,7 @@ class ToolManager(object):
         self.randomized_instructions = {}
         
         self.image_params = ["image","base_image","image_to_insert"]
+        self.origin_image_params = self.image_params.copy()
         self.init_offline_tools(tools)
         self.init_online_tools(self.controller_url_location)
         self.init_online_tool_addr_dict()
@@ -1192,7 +1193,7 @@ class ToolManager(object):
         Returns:
             dict: 工具执行结果
         """
-        timeout_sec = 300  # timeout per attempt
+        timeout_sec = 500  # timeout per attempt
         ret_message = {"text": f"Failed to call tool {tool_name} for unknown reason", "error_code": 1}
         
         # 确定使用哪个映射字典
@@ -1210,12 +1211,12 @@ class ToolManager(object):
         # 如果需要映射，转换工具名称和参数名称
         if mapping_dict is not None:
             # 转换工具名称
-            original_tool_name = mapping_dict.get(tool_name, tool_name)
+            original_tool_name = mapping_dict.get(tool_name, f"Unknown_Tool_{random.randint(1000,9999)}")
             
             # 转换参数名称
             original_params = {}
             for param_name, param_value in params.items():
-                original_param_name = mapping_dict.get(param_name, param_name)
+                original_param_name = mapping_dict.get(param_name, f"Unknown_Param_{random.randint(1000,9999)}")
                 original_params[original_param_name] = param_value
             
             logger.info(f"Converting randomized call: {tool_name}({list(params.keys())}) -> {original_tool_name}({list(original_params.keys())})")

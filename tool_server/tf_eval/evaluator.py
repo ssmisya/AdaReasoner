@@ -31,6 +31,7 @@ class TFEvaluator():
         
         self.model = get_model(self.model_args.model)(**self.model_args.model_args)
         self.if_use_tool = self.script_args.if_use_tool
+        self.if_randomize_tool = self.script_args.if_randomize_tool
         self.model.set_enable_tool(self.if_use_tool)
         
         max_rounds = self.model_args.max_rounds
@@ -66,6 +67,7 @@ class TFEvaluator():
                 stop_token = stop_token,
                 controller_addr = self.script_args.controller_addr,
                 if_use_tool = self.if_use_tool,
+                if_randomize_tool = self.if_randomize_tool,
             )
         else:
             self.inferencer = BaseInferencer(

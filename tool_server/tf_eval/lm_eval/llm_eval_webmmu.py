@@ -485,7 +485,7 @@ def main():
     parser = argparse.ArgumentParser(description="使用 LLM 评估 JSONL 文件中的预测结果。")
     # 让 jsonl_paths 成为可选参数，如果未提供，则使用硬编码的列表
     parser.add_argument('--jsonl_paths', nargs='*', help="一个或多个待处理的 .jsonl 文件的路径。如果未提供，将使用代码中定义的默认路径。")
-    parser.add_argument('--api_url', type=str, default="http://SH-IDC1-10-140-37-132:16113/v1", help="vLLM 服务的 API base URL。")
+    parser.add_argument('--api_url', type=str, default="http://SH-IDC1-10-140-37-111:16113/v1", help="vLLM 服务的 API base URL。")
     # parser.add_argument('--api_url', type=str, default="http://SH-IDC1-10-140-37-82:16113/v1", help="vLLM 服务的 API base URL。")
     parser.add_argument('--api_key', type=str, default="not-needed", help="API key")
     parser.add_argument('--model_name', type=str, default="/mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-72B-Instruct", help="要使用的模型名称或路径。")
@@ -503,10 +503,21 @@ def main():
         # jsonl_paths = [
         #     "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichatv1/v1_400_rl_output.jsonl",
         # ]
-        jsonl_paths = [
-            "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/unified/sec4_all_3tasks/qwen25vl72b_wtools",
-        ]
 
+        jsonl_paths = [
+            "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/unified/randomize/unified_jigsaw_randomized_sft_randomized_rl_3tasks_7b_s700",
+            "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/unified/randomize/unified_jigsaw_randomized_sft_randomized_rl_3tasks_7b_s500",
+            "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/unified/randomize/unified_direct_rl_7b",
+            "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/unified/randomize/unified_jigsaw_7b",
+            "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/unified/randomize/unified_jigsaw_7b_sft",
+            "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/unified/randomize/unified_jigsaw_randomized_7b",
+            "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/unified/randomize/unified_jigsaw_randomized_7b_sft",
+        ]
+        # tgt_dirs = [
+        #     "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/frozen_lake_zs/gemini25flash",
+        #     "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b",
+        #     "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/unified/unified_jigsaw_randomized_sft_randomized_rl_3tasks_7b"
+        # ]
         jsonl_paths = [os.path.join(p, "web_raw_res.jsonl") for p in jsonl_paths]
         base_dir = "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/unified/sec4_all_3tasks"
 

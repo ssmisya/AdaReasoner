@@ -27,10 +27,10 @@
             ],
             "localRoot": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent",
             "remoteRoot": "/mnt/petrelfs/songmingyang/code/reasoning/tool-agent",
-            "port": 7119,
+            "port": 5678,
             "program": "/mnt/petrelfs/songmingyang/code/tools/lmms-eval/lmms_eval/models/qwen2_vl.py",
             //"secret": "my_secret",
-            "host": "SH-IDC1-10-140-37-127",
+            "host": "SH-IDC1-10-140-37-93",
             "justMyCode": false
         }
     ]

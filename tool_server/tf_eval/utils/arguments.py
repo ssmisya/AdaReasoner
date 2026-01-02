@@ -90,6 +90,7 @@ class ScriptArguments:
     output_path: Optional[str] = field(default="output")
     controller_addr: Optional[str] = field(default=None)
     if_use_tool: Optional[bool] = field(default=True)
+    if_randomize_tool: Optional[bool] = field(default=False)
 
 def parse_str_into_dict(args_str: str) -> Dict:
     """

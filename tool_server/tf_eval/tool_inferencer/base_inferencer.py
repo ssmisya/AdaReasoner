@@ -19,7 +19,7 @@ from ..models.abstract_model import tp_model
 from .dynamic_batch_manager import DynamicBatchManager
 from ..utils.utils import *
 from ..utils.log_utils import get_logger
-from ...tool_workers.tool_manager.base_manager import ToolManager
+from ...tool_workers.tool_manager.base_manager_randomize import ToolManager
 import torch.distributed as dist
 from dataclasses import asdict
 from PIL import Image
@@ -44,9 +44,11 @@ class BaseToolInferencer(object):
         stop_token: str = "<stop>",  # 停止标记
         controller_addr: str = None,  # 控制器地址
         if_use_tool: bool = True,  # 是否使用工具
+        if_randomize_tool: bool = False,
         min_image_size: int = 30,  # 最小图像尺寸
         max_image_size: int = 9000,  # 最大图像尺寸（用于调整图像大小时的比例限制）
         max_ratio = 150,  # 最大比例（用于调整图像大小时的比例限制）
+        
     ):
         # 初始化加速器
         self.min_image_size = min_image_size
@@ -66,11 +68,12 @@ class BaseToolInferencer(object):
 
         self.batch_size = batch_size
         self.if_use_tool = if_use_tool
+        self.if_randomize_tool = if_randomize_tool
         print(f"初始化后的self.if_use_tool: {self.if_use_tool}, 类型: {type(self.if_use_tool)}")
         # 不使用工具时，将max_rounds设置为1，以确保在生成一次响应后完成
         self.max_rounds = 1 if not if_use_tool else max_rounds
         self.stop_token = stop_token
-        self.controlller_addr = controller_addr
+        self.controller_addr = controller_addr
         # remote_breakpoint()
         
         # 初始化动态批处理管理器
@@ -85,6 +88,7 @@ class BaseToolInferencer(object):
         self.tool_manager = None
         
         self.image_keys = ["image","base_image","image_to_insert"]
+        self.original_image_keys = self.image_keys.copy()
         # remote_breakpoint(port=7119)
     
         
@@ -568,9 +572,17 @@ class BaseToolInferencer(object):
         #     self.tool_selection = None
         else:
             raise ValueError("tool_selection should be a dictionary or a string.")
-        self.tool_manager = ToolManager(controller_url_location=self.controlller_addr, tools=self.tool_selection)
+        self.tool_manager = ToolManager(controller_url_location=self.controller_addr, tools=self.tool_selection, randomize=self.if_randomize_tool)
+        
         self.available_models = self.tool_manager.available_tools
         
         self.system_prompt = self.tool_manager.get_tool_prompt(prompt_type="one_tool_call")
         self.tp_model.set_system_prompt(self.system_prompt)
+        
+        if self.if_randomize_tool:
+            self.original_to_randomized = self.tool_manager.original_to_randomized
+            self.image_keys = [self.original_to_randomized.get(k, k) for k in self.original_image_keys]
+            self.available_models = [self.original_to_randomized.get(k, k) for k in self.available_models]
+        else:
+            self.original_to_randomized = None
     

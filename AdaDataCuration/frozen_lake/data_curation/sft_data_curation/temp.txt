@@ -1,0 +1,161 @@
+
+
+# Task Description
+You are a visual assistant skilled in solving visual reasoning problems, especially navigation tasks. Please help me construct data.
+I am building a dataset that uses tool calls to answer Frozen Lake problems. Please help me rephrase the input conversation. Concretely, you need to add the appropriate thinking content and response content into it.
+Please help me construct data for the following trajectory:
+
+The problem is to determine whether a given control path from the starting point (Elf) is correct (can reach the destination (Gift) without passing through dangerous ice holes (Ice Holes)).
+The trajectory to be constructed is:
+1. First call the Draw2DPath tool to draw the trajectory of the given control path
+2. Then judge whether this path is valid by looking at the image, and answer the question
+
+
+# Essential Information
+I will provide you with some essential information:
+### Original Problem Prompt:
+
+You are a maze-solving agent playing a pixelated maze videogame.
+Mazes are presented on grid maps, where each tile can be empty land, or contain a player, hole, or goal.
+Each of the above tile types are represented as square pixel art images.
+
+In this task, you will analyze a grid-based map and determine if a provided action plan is safe. A safe action plan avoids stepping into holes in the map.
+The following figure illustrates the appearances of the player, holes, lands, and the goal within the maze.
+
+<IMAGE-1>
+
+## Moving Rules
+- The action plan involves a series of moves: 'L' (left), 'R' (right), 'U' (up), or 'D' (down).
+- Each move transfers the player to the adjacent square in that direction, provided it is a safe square. The player cannot move more than one square at a time.
+- Moving off the edge of the map has no effect. The player will remain at the same square.
+- DO NOT MOVE INTO A HOLE! Falling into a hole results in defeat.
+- Locating at the grid containing the goal results in victory.
+We provide an example to further illustrate the rules.
+
+<IMAGE-2>
+
+In this provided example:
+- The player is at Row 1, Column 1;
+- The goal is at Row 4, Column 4;
+- There are two holes: one at Row 1, Column 2, and another at Row 4, Column 1.
+- The player can move DOWN. This is because moving down brings them to Row 2, Column 1, and this cell is safe (without holes).
+- Moving UP has no effects. This is because the player is already in the topmost row.
+- Similarly, moving LEFT has no effects because the player is already in the left-most column.
+- Moving RIGHT places the player at Row 1, Column 2. Since there is a hole at this grid, this move results in a loss.
+
+## Procedure and Output
+Your output should include the following parts:
+1. First, interpret map. List where the player is at now, where is the goal, and where are the holes.
+2. Then, reasoning by following the given action plan. At each step, you should check:
+    (a) Where the current move leads the player to (the row and column);
+    (b) What is in that grid. Is it a hole? Is it the goal? Is it an empty space?
+    (c) Determine if that is a safe action.
+3. Output if the action sequence is safe using "<Output> Yes" or "<Output> No". A safe action sequence should not include any unsafe actions.
+
+Now please determine if the action sequence is safe for this given maze:
+
+<TEST-IMAGE>
+
+The action sequence is:
+
+<ACTION-SEQ>
+
+
+### Tool Call Prompt, please follow the format requirements here:
+
+You are a visual assistant capable of solving visual reasoning problems. You can rely on your own capabilities or use external tools to assist in solving. 
+
+Available Tools  
+In your response, you can use the following tools:  
+{'type': 'function', 'function': {'name': 'AStarWithPixelCoordinate', 'description': 'Find the shortest path from start to goal while avoiding obstacles using A* algorithm', 'parameters': {'type': 'object', 'properties': {'start': {'type': 'array', 'description': 'Starting point coordinates [x, y] in pixels, e.g., [100, 200]'}, 'goal': {'type': 'array', 'description': 'Goal point coordinates [x, y] in pixels, e.g., [300, 400]'}, 'obstacles': {'type': 'array', 'description': 'Array of obstacle coordinates [[x1, y1], [x2, y2], ...] in pixels, e.g., [[150, 150], [200, 250], [300, 300]]'}}, 'required': ['start', 'goal', 'obstacles']}, 'returns': {'type': 'object', 'properties': {'status': {'type': 'string', 'description': "Status of the pathfinding operation ('success' or 'failed')"}, 'path': {'type': 'string', 'description': "Control sequence as comma-separated uppercase directions (L,R,U,D), e.g., 'R,R,U,L,D,D'"}, 'error_code': {'type': 'integer', 'description': 'Error code (0 for success)'}}}}}
+{'type': 'function', 'function': {'name': 'Draw2DPath', 'description': 'Draw a path on an image following a sequence of directional commands', 'parameters': {'type': 'object', 'properties': {'image': {'type': 'string', 'description': 'The image to draw on (base64 or path)'}, 'start_point': {'type': 'array', 'description': 'Starting point coordinates [x, y]'}, 'directions': {'type': 'string', 'description': "Direction sequence with 'u'=up, 'd'=down, 'l'=left, 'r'=right. Accepts both 'rruldd' format and comma-separated 'R,R,U,L,D,D' format."}, 'step': {'type': 'integer', 'description': 'Step size in pixels for each direction (default: 64)'}, 'pixel_coordinate': {'type': 'boolean', 'description': 'If true, start_point is in pixel coordinates; if false, in grid coordinates (default: true)'}, 'line_width': {'type': 'integer', 'description': 'Width of the drawn line (default: 3)'}, 'line_color': {'type': 'string', 'description': "Color of the line (default: 'red')"}}, 'required': ['image', 'start_point', 'directions']}}}
+{'type': 'function', 'function': {'name': 'TurnCoordinateIntoTextMap', 'description': 'Convert pixel coordinates into a text-based map representation', 'parameters': {'type': 'object', 'properties': {'start': {'type': 'array', 'description': 'Starting point coordinates [x, y] in pixels, e.g., [100, 200]'}, 'goal': {'type': 'array', 'description': 'Goal point coordinates [x, y] in pixels, e.g., [300, 400]'}, 'obstacles': {'type': 'array', 'description': 'Array of obstacle coordinates [[x1, y1], [x2, y2], ...] in pixels, e.g., [[150, 150], [200, 250], [300, 300]]'}, 'cell_size': {'type': 'integer', 'description': 'Size of each cell in pixels (default: 64)'}}, 'required': ['start', 'goal', 'obstacles']}}}
+{'type': 'function', 'function': {'name': 'Point', 'description': 'Identify a point in the image based on a natural language description.', 'parameters': {'type': 'object', 'properties': {'image': {'type': 'string', 'description': "The identifier of the image to edit, e.g., 'img_1'"}, 'description': {'type': 'string', 'description': "A natural language description of the point of interest, e.g., 'the dog's nose', 'center of the clock', 'the tallest tree'."}}, 'required': ['image', 'description']}}}
+
+Steps for Each Turn
+1. **Think:** First, silently analyze the user's request to understand the goal. This thinking process should be enclosed in <think> and </think> tags.
+2. **Decide Action:** Based on your thinking, decide on one of the following two actions:
+   - **If you need to use a tool:** Generate your tool call, enclosed between <tool_call> and </tool_call> tags. **Do not** generate a `<response>` in this turn.
+   - **If you have enough information to answer:** Generate your final, user-facing answer, enclosed between <response> and </response> tags. **Do not** generate a `<tool_call>` in this turn.
+
+Output Format:
+Your output must always begin with your thought process. After the `<think>` block, you must provide **either** a `<tool_call>` or a `<response>`, but **never both** in the same turn.
+**Case 1: Tool Use is Required**
+<think> Your thoughts and reasoning </think>  
+<tool_call>  
+{{"name": "Tool name", "parameters": {{"Parameter name": "Parameter content", "…": "…"}}}}
+</tool_call>  
+**Case 2: Ready to Respond to the User**
+<think> Your thoughts and reasoning </think>  
+<response> Your final response </response>
+
+Important Notes  
+1. You must always include the <think> field to outline your reasoning. Provide one of <tool_call> or <response>. You must not include both <tool_call> and <response> in the same turn because they are mutually exclusive. If tool usage is required, you must instead include both <think> and <tool_call>, and omit <response> for that turn. If no further tool usage is required and ready to answer the user's question, you can then use <think> to summarize your reasoning and include <response> with your final answer, and this indicates the ends of the conversation.
+
+2. You can only invoke a single tool call at a time in the <tool_call> fields. The tool call should be a JSON object with a "name" field and a "parameters" field containing a dictionary of parameters. If no parameters are needed, leave the "parameters" field an empty dictionary. All images have their coordinate origin at the top-left corner.
+
+3. Some tools require image input. You do not need to generate or upload the actual image data—simply refer to an image using a placeholder in the form of "img_n". There may be multiple images present in the dialogue. Besides the original image, additional images may appear as a result of prior tool calls (e.g., edited images returned by visual editing tools). You are free to select which image to use as input for the next tool.
+The index "n" in "img_n" refers to the image's position in the dialogue history:
+- The original image is always referred to as "img_1".
+- Each subsequent image, including those returned from tools, is assigned "img_2", "img_3", and so on, in the order they appear in the dialogue.
+For example:{{"parameters": {{"image": "img_1", "other_params": "other_values"}}}}
+
+4. All image coordinates used must be in absolute pixel values, not relative or normalized coordinates. 
+
+5. At the end, provide your final answer by placing it inside \boxed{{}}, and wrap the entire final output inside <response></response> tags.
+
+
+# Notes
+1. The tool inputs and outputs are provided. You need to add appropriate thinking content, i.e., content within <think></think> tags, response content, i.e., content within <response></response> tags, and connect them to form a complete dialogue.
+2. The dialogue follows OpenAI format, for example: {'role': 'user','content': [{'type':'text','text': 'a question'}, {'type':"image",'image': 'images/0-0.jpg'}]} 
+3. You can keep all image input or output as it was {'type':"image",'image': 'images/0-0.jpg'}
+4. You don't need to generate a system_prompt, the dialogue roles are only user and assistant
+
+
+
+[
+  {
+    "role": "user",
+    "content": [
+      {
+        "type": "text",
+        "text": "\nYou are a maze-solving agent playing a pixelated maze videogame.\nMazes are presented on grid maps, where each tile can be empty land, or contain a player, hole, or goal.\nEach of the above tile types are represented as square pixel art images.\n\nIn this task, you will analyze a grid-based map and determine if a provided action plan is safe. A safe action plan avoids stepping into holes in the map.\nThe following figure illustrates the appearances of the player, holes, lands, and the goal within the maze.\n\n<IMAGE-1>\n\n## Moving Rules\n- The action plan involves a series of moves: 'L' (left), 'R' (right), 'U' (up), or 'D' (down).\n- Each move transfers the player to the adjacent square in that direction, provided it is a safe square. The player cannot move more than one square at a time.\n- Moving off the edge of the map has no effect. The player will remain at the same square.\n- DO NOT MOVE INTO A HOLE! Falling into a hole results in defeat.\n- Locating at the grid containing the goal results in victory.\nWe provide an example to further illustrate the rules.\n\n<IMAGE-2>\n\nIn this provided example:\n- The player is at Row 1, Column 1;\n- The goal is at Row 4, Column 4;\n- There are two holes: one at Row 1, Column 2, and another at Row 4, Column 1.\n- The player can move DOWN. This is because moving down brings them to Row 2, Column 1, and this cell is safe (without holes).\n- Moving UP has no effects. This is because the player is already in the topmost row.\n- Similarly, moving LEFT has no effects because the player is already in the left-most column.\n- Moving RIGHT places the player at Row 1, Column 2. Since there is a hole at this grid, this move results in a loss.\n\n## Procedure and Output\nYour output should include the following parts:\n1. First, interpret map. List where the player is at now, where is the goal, and where are the holes.\n2. Then, reasoning by following the given action plan. At each step, you should check:\n    (a) Where the current move leads the player to (the row and column);\n    (b) What is in that grid. Is it a hole? Is it the goal? Is it an empty space?\n    (c) Determine if that is a safe action.\n3. Output if the action sequence is safe using \"<Output> Yes\" or \"<Output> No\". A safe action sequence should not include any unsafe actions.\n\nNow please determine if the action sequence is safe for this given maze:\n\n<TEST-IMAGE>\n\nThe action sequence is:\n\n<ACTION-SEQ>\n"
+      },
+      {
+        "type": "image",
+        "image": "./frozen_lake_point_dataset/images/lake_7x7_22_277a89b7.png"
+      }
+    ]
+  },
+  {
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "<think>[You need to implement this. Example: I need to verify if the given path is valid. First, I'll use the Draw2DPath tool to visualize the path on the map, starting from the Elf's position ([30, 34]) and following the provided directions (D,R,U,U,R,D,D,R,U,L,R,R,U,U). Then I can analyze if this path safely reaches the goal without falling into ice holes.]</think>\n\n<tool_call>\n{\"name\": \"Draw2DPath\", \"parameters\": {'image': 'img_1', 'start_point': [30, 34], 'directions': 'D,R,U,U,R,D,D,R,U,L,R,R,U,U'}}\n</tool_call>"
+      }
+    ]
+  },
+  {
+    "role": "user",
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"tool_response_from\": \"Draw2DPath\",\n  \"status\": \"success\",\n  \"message\": \"Path drawn successfully\",\n  \"execution_time\": 0.0046727657318115234\n}"
+      },
+      {
+        "type": "image",
+        "image": "./frozen_lake_point_dataset/images/lake_7x7_22_277a89b7_path_random.png"
+      }
+    ]
+  },
+  {
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "<think>[You need to implement this. Example: Now that I've drawn the path on the map, I can analyze whether it's valid. I need to check if the path avoids all ice holes and successfully reaches the goal from the start position. Based on the drawn path visualization, I can determine if this is a valid route.]</think>\n\n<response>[You need to implement this. Example: I've analyzed the path you provided: D,R,U,U,R,D,D,R,U,L,R,R,U,U\n\nAfter drawing this path on the map, I can determine that this path is **No**.\n\nThis path would cause the player to fall into an ice hole or fail to reach the endpoint.\n\n\\boxed{ No}]</response>"
+      }
+    ]
+  }
+]

@@ -1,75 +1,71 @@
 <div align="center">
   <img src="docs/logo.png" alt="Logo" width="300">
-  <h1 align="center">Use Vision Tools, Think with Images</h1>
+  <h1 align="center">Dynamic Tool Orchestration for Iterative Visual Reasoning</h1>
 
-  <a href="https://arxiv.org/pdf/2505.08617">
+  <!-- <a href="https://arxiv.org/pdf/2505.08617">
     <img src="https://img.shields.io/badge/paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white" alt="Paper">
   </a>
   <a href="docs/README.md">
     <img src="https://img.shields.io/badge/Document-000000?style=for-the-badge&logo=googledocs&logoColor=000&logoColor=white" alt="Github">
   </a>
   <a href="https://huggingface.co/collections/Warrieryes/openthinkimg-68244a63e97a24d9b7ffcde9">
-    <img src="https://img.shields.io/badge/OpenThinkIMG_Collection-fcd022?style=for-the-badge&logo=huggingface&logoColor=000" alt="Hugging Face Collection">
+    <img src="https://img.shields.io/badge/Data-fcd022?style=for-the-badge&logo=huggingface&logoColor=000" alt="Data">
+  </a>
+  <a href="https://huggingface.co/collections/Warrieryes/openthinkimg-68244a63e97a24d9b7ffcde9">
+    <img src="https://img.shields.io/badge/Model-fcd022?style=for-the-badge&logo=huggingface&logoColor=000" alt="Model">
   </a>
   <a href="https://x.com/suzhaochen0110/status/1922481570453074070?s=46">
-    <img src="https://img.shields.io/badge/Twitter-%23000000.svg?style=for-the-badge&logo=twitter&logoColor=white" alt="Twitter">
+    <img src="https://img.shields.io/badge/Demo-%23000000.svg?style=for-the-badge&logo=twitter&logoColor=white" alt="Demo">
+  </a> -->
+  <a href="https://arxiv.org/pdf/2505.08617">
+    <img src="https://img.shields.io/badge/Paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white" alt="Paper">
   </a>
+  <a href="docs/README.md">
+    <img src="https://img.shields.io/badge/Docs-1f6feb?style=for-the-badge&logo=readthedocs&logoColor=white" alt="Docs">
+  </a>
+  <a href="https://huggingface.co/collections/Warrieryes/openthinkimg-68244a63e97a24d9b7ffcde9">
+    <img src="https://img.shields.io/badge/Data-fcd022?style=for-the-badge&logo=huggingface&logoColor=000" alt="Data">
+  </a>
+  <a href="https://your-homepage-link-here">
+    <img src="https://img.shields.io/badge/Homepage-2ea44f?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Homepage">
+  </a>
+  <a href="https://huggingface.co/collections/Warrieryes/openthinkimg-68244a63e97a24d9b7ffcde9">
+    <img src="https://img.shields.io/badge/Model-fcd022?style=for-the-badge&logo=huggingface&logoColor=000" alt="Model">
+  </a>
+  <a href="https://your-gradio-demo-link-here">
+  <img src="https://img.shields.io/badge/Demo-FF7C00?style=for-the-badge&logo=gradio&logoColor=white" alt="Demo">
+  </a>
+  
 </div>
 
-
-## 👁️ Vision: "Thinking with Images"
-
-> *"The eye sees only what the mind is prepared to comprehend."* – Robertson Davies
-
-Humans don't just passively observe; we actively engage with visual information, sketching, highlighting, and manipulating it to understand. OpenThinkIMG aims to bring this interactive visual cognition to AI, enabling agents that can genuinely "think with images."
-
+## AdaReasoner: A Full-Stack Recipe for Intelligent Visual Agents
 
 <div align="center">
-  <img src="docs/v-toolrl.png" alt="Architecture Overview" width="800">
+  <img src="docs/proj_structure.jpeg" alt="structure" width="800">
   <br>
   <em>Overview of the OpenThinkIMG framework and V-ToolRL training process.</em>
 </div>
 
 
+
+## 🧩 Project Architecture Overview
+| **Module Name** | **Functionality** | **Location** |
+|---|---|---|
+| **Tool Server** | The central hub that hosts and orchestrates all tools, providing a unified interface for tool execution and coordination. Supports both online and offline tools. | [`tool_server/tool_workers/`](./tool_server/tool_workers/) |
+| **AdaDataCuration** | Constructs high-quality datasets for tool planning models, including both SFT data and RL trajectories. Acts as the data source for both AdaTC and AdaTG. | [`tool_server/ada_data_curation/`](./tool_server/ada_data_curation/) |
+| **AdaTC** | Performs Tool Cold Start (TC) of tool planning models using curated data, concretely, we are using LLaMA Factory as our backbone. | [LLaMA Factory](https://github.com/hiyouga/LLaMA-Factory) |
+| **AdaTG** | Trains tool planning models via reinforcement learning with tool interaction, improving long-horizon planning and decision-making. | [`AdaTG`](./AdaTG) |
+| **AdaEval** | A unified and extensible evaluation framework that supports arbitrary combinations of models and tasks for tool planning evaluation. | [`tool_server/tf_eval/`](./tool_server/tf_eval/) |
+
+---
+
+
 ## News
-- **[2025/06/01]** 🐳 We have released an official [Docker image](https://github.com/OpenThinkIMG/OpenThinkIMG?tab=readme-ov-file#-option-1-docker-image) of `tool server`.
-- **[2025/05/17]** Our work is reported by [Qubit (量子位)](https://mp.weixin.qq.com/s/BU1M6aOidMkr9mBiAKyA3Q)
-- **[2025/05/14]** Our work is reported by both [Deep Learning and NLP (深度学习自然语言处理)](https://mp.weixin.qq.com/s/_GCvkg7bb5-NiId_4s5cMg) and [Machine Learning and NLP (机器学习算法与自然语言处理)](https://mp.weixin.qq.com/s/p2OJzSp4BKSfGVjv2KWEFg).
 - **[2025/05/13]** The models and datasets are released on [HuggingFace](https://huggingface.co/collections/Warrieryes/openthinkimg-68244a63e97a24d9b7ffcde9).
 - **[2025/05/13]** OpenThinkIMG codebase is released along with evaluation scripts. Try it out!
 - **[2025/05/13]** OpenThinkIMG paper available on [arXiv](https://arxiv.org/pdf/2505.08617).
 
----
 
-## 🤔 What is OpenThinkIMG?
-
-OpenThinkIMG is an end-to-end open-source framework that empowers Large Vision-Language Models (LVLMs) to think with images. It features:
-*   Flexible vision tool management and easy integration of new tools.
-*   Efficient dynamic inference with distributed tool deployment.
-*   A streamlined SFT (Supervised Fine-Tuning) and Agent-RL (Reinforcement Learning) training pipeline, including our novel **V-ToolRL** method.
-
-Our goal is to enable AI agents to interactively use visual tools to decompose, analyze, and solve complex visual problems, moving beyond passive observation towards active visual cognition.
-
----
-
-## 🐚 Why OpenThinkIMG?
-
-Current LVLMs excel at many tasks but often struggle when:
-*   Deep, iterative visual reasoning is required, not just single-pass description.
-*   Precise interaction with visual content (e.g., reading specific chart values, identifying exact locations) is crucial.
-*   Generalizing learned tool-use to new scenarios dynamically.
-
-OpenThinkIMG addresses these challenges by:
-
-*   **Bridging the Gap to Human-like Visual Cognition**: We enable LVLMs to "think with images" by actively using a suite of visual tools, much like humans use sketches or highlights to understand complex scenes.
-*   **Standardizing a Fragmented Landscape**: The current ecosystem for vision tools lacks unification. OpenThinkIMG provides:
-    *   **Unified Tool Interfaces**: A standardized way to define and interact with diverse visual tools.
-    *   **Modular, Distributed Deployment**: Tools run as independent services, enhancing scalability, fault isolation, and resource management.
-*   **Moving Beyond Static SFT Limitations**: Supervised Fine-Tuning (SFT) on fixed trajectories often leads to poor generalization and lacks adaptability. We introduce:
-    *   **V-ToolRL for Adaptive Policies**: Our novel reinforcement learning framework allows agents to *autonomously discover optimal tool-usage strategies* by directly optimizing for task success through interaction and feedback. This leads to significantly better performance and adaptability compared to SFT-only approaches.
-*   **Driving Reproducible Research**: By open-sourcing the entire framework, we aim to provide a common platform for the community to build upon, experiment with, and advance the field of tool-augmented visual reasoning.
-
----
 
 ## 🚀 Quick Start
 This framework comprises three main components: the fundamental tool service supplier ``tool server``, the inference evaluation framework `TF EVAL`, and the RL work ``R1-V-TOOL``. Each component has its own environment requirements. The `tool server` serves as the foundation and must be successfully launched before performing any inference or training.
@@ -349,7 +345,7 @@ torchrun --nproc_per_node=${nproc_per_node} \
 
 > 📈  This helps the model learn **dynamic planning & tool invocation** using environment feedback.
 
-### 🧪 SFT: Supervised Fine-Tuning
+### 🧪 Tool Cold Start (TC)
 
 We also support supervised fine-tuning for training models on curated tool usage demonstrations. Modify the config according to your use case:
 
@@ -412,68 +408,8 @@ We welcome contributions and feedback to help us achieve these goals!
 | **SegmentRegionAroundPoint**| image + point coordinate         | localized mask                         | Refines segmentation around a specified point                                                    |
 > 💡 More vision tools are coming soon!
 
-## 📊 Results on Chart Reasoning (ChartGemma)
-Our V-ToolRL approach significantly boosts performance:
 
 
-| Model                          | Method       | Accuracy (%) |
-| :----------------------------- | :----------- | :----------- |
-| GPT-4.1       | Zero-shot    | 50.71        |
-| Gemini-2.0-flash-exp   | Zero-shot    | 68.20        |
-| ---                            | ---          | ---          |
-| CogCom                         |  SFT (CoM)    | 15.07        |
-| TACO                           | SFT (CoTA)   | 30.50        |
-| ---                            | ---          | ---          |
-| Qwen2-vl-2B                    | Zero-shot    | 29.56        |
-| Qwen2-vl-2B-SFT      | SFT          | 45.67        |
-| Text-based RL     | RL (No Vis)  | 51.63        |
-| **V-ToolRL**    | **V-ToolRL** | **59.39**    |
-
-V-ToolRL not only enhances our base model by +29.83 points but also outperforms other open-source tool-augmented agents and even strong closed-source models like GPT-4.1.
-
-
-## 📂 Case Studies
-
-
-<div align="center">
-  <img src="docs/case.png" width="700">
-  <br>
-  <em>An example demonstrating the step-by-step visual reasoning process of our V-ToolRL agent.</em>
-</div>
-
-## 🤝 Contributing
-
-We welcome contributions of all kinds! In our [Documentation](docs/README.md) you’ll find detailed guides for:
-
-- Importing custom models  
-- Defining and integrating new vision tools  
-- Extending the training pipeline  
-
-To contribute:
-
-1. **Fork** the repository and create a feature branch (e.g., `feature/new-vision-tool`).  
-2. **Implement** your changes, adding or updating tests under `tests/`.  
-4. **Submit** a pull request referencing the relevant issue, with clear descriptions and code snippets.  
-
-
-
-## 🙏 Acknowledgments
-
-We thank the [Visual Sketchpad](https://arxiv.org/abs/2406.09403) and [TACO](https://arxiv.org/abs/2402.05479) teams for inspiring our vision-driven reasoning paradigm.
-
-
-## 📖 Citation
-
-Please cite the following if you find OpenThinkIMG helpful:
-
-```
-@article{su2025openthinkimg,
-  title={OpenThinkIMG: Learning to Think with Images via Visual Tool Reinforcement Learning},
-  author={Su, Zhaochen and Li, Linjie and Song, Mingyang and Hao, Yunzhuo and Yang, Zhengyuan and Zhang, Jun and Chen, Guanjie and Gu, Jiawei and Li, Juntao and Qu, Xiaoye and others},
-  journal={arXiv preprint arXiv:2505.08617},
-  year={2025}
-}
-```
 
 
 

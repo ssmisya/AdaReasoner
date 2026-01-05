@@ -144,12 +144,11 @@ def compute_score(data_sources, solution_strs, ground_truths, extra_infos=None, 
     tasks_to_judge = []
 
     if extra_infos is not None and len(extra_infos) > 0:
-        print("啊啊啊啊啊extra_infos is not None")
         print(f"extra_infos type: {type(extra_infos)}")
         print(f"extra_infos length: {len(extra_infos)}")
         print(f"extra_infos first element: {extra_infos[0] if len(extra_infos) > 0 else 'Empty'}")
     else:
-        print("啊啊啊啊啊extra_infos is None or empty")
+        print("extra_infos is None or empty")
 
     print("开始预处理和准备评判任务...")
     # 3. 第一次遍历：预处理，分离需要LLM评判的任务

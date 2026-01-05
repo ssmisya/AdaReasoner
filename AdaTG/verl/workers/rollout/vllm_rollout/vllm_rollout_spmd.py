@@ -292,14 +292,14 @@ class vLLMRollout(BaseRollout):
                 # 而non_tensor_batch要求所有值都是np.ndarray
                 
             else:
-                print("啊啊啊啊啊activate_agent is False, 开始生成response")
+                print("activate_agent is False, 开始生成response")
                 outputs = self.inference_engine.generate(
                     prompts=vllm_inputs,  # because we have already convert it to prompt token id
                     sampling_params=self.sampling_params,
                     use_tqdm=True,
                 )
 
-                print("啊啊啊啊啊activate_agent is False, 生成response完成")
+                print("activate_agent is False, 生成response完成")
 
                 response = []
                 for output in outputs:

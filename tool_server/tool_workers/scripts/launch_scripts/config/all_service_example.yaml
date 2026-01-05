@@ -38,4 +38,4 @@ tool_worker_config:
         script-addr: tool_server.tool_workers.online_workers.point_worker_parallel
         port: 50002
         host: "0.0.0.0"
-        model_path: "/mnt/petrelfs/share_data/songmingyang/model/mm/tools/Molmo-7B-D-0924"
+        model_path: allenai/Molmo-7B-D-0924

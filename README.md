@@ -2,34 +2,19 @@
   <img src="docs/logo.png" alt="Logo" width="300">
   <h1 align="center">Dynamic Tool Orchestration for Iterative Visual Reasoning</h1>
 
-  <!-- <a href="https://arxiv.org/pdf/2505.08617">
-    <img src="https://img.shields.io/badge/paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white" alt="Paper">
-  </a>
-  <a href="docs/README.md">
-    <img src="https://img.shields.io/badge/Document-000000?style=for-the-badge&logo=googledocs&logoColor=000&logoColor=white" alt="Github">
-  </a>
-  <a href="https://huggingface.co/collections/Warrieryes/openthinkimg-68244a63e97a24d9b7ffcde9">
-    <img src="https://img.shields.io/badge/Data-fcd022?style=for-the-badge&logo=huggingface&logoColor=000" alt="Data">
-  </a>
-  <a href="https://huggingface.co/collections/Warrieryes/openthinkimg-68244a63e97a24d9b7ffcde9">
-    <img src="https://img.shields.io/badge/Model-fcd022?style=for-the-badge&logo=huggingface&logoColor=000" alt="Model">
-  </a>
-  <a href="https://x.com/suzhaochen0110/status/1922481570453074070?s=46">
-    <img src="https://img.shields.io/badge/Demo-%23000000.svg?style=for-the-badge&logo=twitter&logoColor=white" alt="Demo">
-  </a> -->
-  <a href="https://arxiv.org/pdf/2505.08617">
+  <a href="#">
     <img src="https://img.shields.io/badge/Paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white" alt="Paper">
   </a>
   <a href="docs/README.md">
     <img src="https://img.shields.io/badge/Docs-1f6feb?style=for-the-badge&logo=readthedocs&logoColor=white" alt="Docs">
   </a>
-  <a href="https://huggingface.co/collections/Warrieryes/openthinkimg-68244a63e97a24d9b7ffcde9">
+  <a href="https://huggingface.co/collections/hitsmy/adareasoner">
     <img src="https://img.shields.io/badge/Data-fcd022?style=for-the-badge&logo=huggingface&logoColor=000" alt="Data">
   </a>
   <a href="https://your-homepage-link-here">
     <img src="https://img.shields.io/badge/Homepage-2ea44f?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Homepage">
   </a>
-  <a href="https://huggingface.co/collections/Warrieryes/openthinkimg-68244a63e97a24d9b7ffcde9">
+  <a href="https://huggingface.co/hitsmy/AdaReasoner-7B">
     <img src="https://img.shields.io/badge/Model-fcd022?style=for-the-badge&logo=huggingface&logoColor=000" alt="Model">
   </a>
   <a href="https://your-gradio-demo-link-here">
@@ -38,12 +23,12 @@
   
 </div>
 
-## AdaReasoner: A Full-Stack Recipe for Intelligent Visual Agents
+<!-- ## AdaReasoner: A Full-Stack Recipe for Intelligent Visual Agents -->
 
 <div align="center">
-  <img src="docs/proj_structure.jpeg" alt="structure" width="800">
+  <img src="docs/proj_structure.png" alt="structure" width="800">
   <br>
-  <em>Overview of the OpenThinkIMG framework and V-ToolRL training process.</em>
+  <em>Overview of the AdaReasoner framework.</em>
 </div>
 
 
@@ -51,24 +36,25 @@
 ## 🧩 Project Architecture Overview
 | **Module Name** | **Functionality** | **Location** |
 |---|---|---|
-| **Tool Server** | The central hub that hosts and orchestrates all tools, providing a unified interface for tool execution and coordination. Supports both online and offline tools. | [`tool_server/tool_workers/`](./tool_server/tool_workers/) |
-| **AdaDataCuration** | Constructs high-quality datasets for tool planning models, including both SFT data and RL trajectories. Acts as the data source for both AdaTC and AdaTG. | [`tool_server/ada_data_curation/`](./tool_server/ada_data_curation/) |
-| **AdaTC** | Performs Tool Cold Start (TC) of tool planning models using curated data, concretely, we are using LLaMA Factory as our backbone. | [LLaMA Factory](https://github.com/hiyouga/LLaMA-Factory) |
-| **AdaTG** | Trains tool planning models via reinforcement learning with tool interaction, improving long-horizon planning and decision-making. | [`AdaTG`](./AdaTG) |
-| **AdaEval** | A unified and extensible evaluation framework that supports arbitrary combinations of models and tasks for tool planning evaluation. | [`tool_server/tf_eval/`](./tool_server/tf_eval/) |
+| **Tool Server** | Supports both online and offline tools and serves as the core of all components.| [`tool_server/tool_workers/`](./tool_server/tool_workers/) |
+| **AdaTC** | Performs Tool Cold Start (TC, SFT) of tool planning models, concretely, we are using LLaMA Factory as our backbone. | [LLaMA Factory](https://github.com/hiyouga/LLaMA-Factory) |
+| **AdaTG** | Performs Tool GRPO (TG, RL) with tool interaction. | [`AdaTG`](./AdaTG) |
+| **AdaEval** | An evaluation framework that supports any combinations of models and tasks for tool planning evaluation. | [`tool_server/tf_eval/`](./tool_server/tf_eval/) |
+| **AdaDataCuration** | Constructs data for SFT (TC), RL (TG), and evaluation (AdaEval). | [`tool_server/ada_data_curation/`](./tool_server/ada_data_curation/) |
 
 ---
 
 
 ## News
-- **[2025/05/13]** The models and datasets are released on [HuggingFace](https://huggingface.co/collections/Warrieryes/openthinkimg-68244a63e97a24d9b7ffcde9).
-- **[2025/05/13]** OpenThinkIMG codebase is released along with evaluation scripts. Try it out!
-- **[2025/05/13]** OpenThinkIMG paper available on [arXiv](https://arxiv.org/pdf/2505.08617).
+- **[2026/01]** AdaReasoner paper is now available on [arXiv](#).
+- **[2026/01]** The models and datasets are released on [HuggingFace](https://huggingface.co/collections/hitsmy/adareasoner).
+- **[2026/01]** AdaReasoner Toolkit codebase is released along with evaluation scripts. Try it out!
+
 
 
 
 ## 🚀 Quick Start
-This framework comprises three main components: the fundamental tool service supplier ``tool server``, the inference evaluation framework `TF EVAL`, and the RL work ``R1-V-TOOL``. Each component has its own environment requirements. The `tool server` serves as the foundation and must be successfully launched before performing any inference or training.
+This framework comprises three main components: the fundamental tool service supplier ``tool_server``, the inference evaluation framework `AdaEval`, and the RL work ``AdaRL``. Each component has its own environment requirements. The `tool_server` serves as the foundation and must be successfully launched before performing any inference or training.
 
 ### 🖥️ Step 1: Launch Vision Tool Server
 You can either run our tool server using the provided `Docker image` or launch the `tool_server` locally, depending on your environment preferences.

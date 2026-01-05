@@ -1,7 +1,11 @@
 task_name: "jigsaw_coco"
-dataset_path: "/mnt/petrelfs/share_data/songmingyang/data/vl_reasoning/tool_dataset/jigsaw/jigsaw_metadata_v1/splits/test/dataset_test.json"
-dataset_type: "unique"  # 自定义数据加载逻辑
-num_sample: null  # 设为null以使用全部数据，或者指定一个整数以限制样本数量
+dataset_repo: "hitsmy/AdaEval-Jigsaw-COCO"  
+dataset_type: "huggingface" 
+use_auth_token: false
+splits:
+  - "test"
+num_sample: null 
 generation_config:
   max_length: 2048
-  temperature: 0.2  # 低温度使生成更加确定性
+  temperature: 0.2  
+

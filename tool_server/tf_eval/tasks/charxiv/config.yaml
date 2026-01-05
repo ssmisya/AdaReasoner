@@ -1,5 +1,5 @@
 task_name: "charxiv"
-dataset_path: /mnt/petrelfs/sunhaoyu/visual-code/datasets/CharXiv
+dataset_path: princeton-nlp/CharXiv
 # num_sample: 2000 # 一共2000
 # num_sample: 50
 dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv

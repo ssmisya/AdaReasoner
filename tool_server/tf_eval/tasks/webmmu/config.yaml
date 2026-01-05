@@ -1,5 +1,5 @@
 task_name: "webmmu"
-dataset_path:  /mnt/petrelfs/share_data/sunhaoyu/datasets/web_evaluation/WebMMU
+dataset_path:  McGill-NLP/WebMMU
 dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv
 generation_config:
   max_length: 8192

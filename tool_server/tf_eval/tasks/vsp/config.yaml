@@ -1,12 +1,11 @@
 # config.yaml
 task_name: "vsp"
-dataset_path: "/mnt/petrelfs/songmingyang/code/reasoning/tool_util_code/frozen_lake/src/Visual-Spatial-Planning/VSP-main"  # 本地VSP数据集路径
-dataset_type: "unique"  # 自定义数据加载逻辑
+dataset_path: "hitsmy/AdaEval-VSP" 
+dataset_type: "hf" 
 tasks:
-  - "task-main"  # 路径验证任务
-  # - "task1"  # 地图感知任务
-  # - "task2"  # 空间关系任务
-  # - "task3"  # 障碍物感知任务
-  - "task4"  # 路径规划任务
+  - "verify_test"  
+  - "navigation_test"  
 generation_config:
   max_length: 2048
+  temperature: 0.7
+num_sample: null 

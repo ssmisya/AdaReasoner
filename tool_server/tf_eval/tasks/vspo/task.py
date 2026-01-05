@@ -14,6 +14,7 @@ from PIL import Image
 import io
 import base64
 from collections import defaultdict
+from datasets import load_dataset
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -39,7 +40,106 @@ Please generate action plan for the input maze image.
 """
 
 def load_data_function():
-    """加载自定义数据集的函数"""
+    """从Hugging Face Hub加载数据集"""
+    dataset_type = task_config.get("dataset_type", "unique")
+    
+    if dataset_type == "huggingface":
+        return load_data_from_huggingface()
+    else:
+        # 保留原有的加载逻辑作为备份
+        return load_data_from_local()
+
+def load_data_from_huggingface():
+    """从Hugging Face Hub加载数据集"""
+    dataset_repo = task_config.get("dataset_repo")
+    tasks = task_config.get("tasks", ["navigation-test", "verify-test"])
+    use_auth_token = task_config.get("use_auth_token", False)
+    hf_token = task_config.get("hf_token") or os.environ.get("HF_TOKEN")
+    
+    if not dataset_repo:
+        raise ValueError("dataset_repo must be specified in config when using huggingface dataset_type")
+    
+    logger.info(f"Loading dataset from Hugging Face Hub: {dataset_repo}")
+    
+    # 构建需要加载的split列表
+    splits_to_load = []
+    for task in tasks:
+        task_prefix, task_suffix = task.split("-")
+        split_name = f"{task_prefix}_{task_suffix}"
+        splits_to_load.append(split_name)
+    
+    meta_data = []
+    
+    # 加载每个split
+    for split_name in splits_to_load:
+        try:
+            logger.info(f"Loading split: {split_name}")
+            
+            # 从Hugging Face加载数据集
+            dataset = load_dataset(
+                dataset_repo,
+                split=split_name,
+                token=hf_token if use_auth_token else None
+            )
+            
+            logger.info(f"Loaded {len(dataset)} samples from split {split_name}")
+            
+            # 转换为meta_data格式
+            for item in dataset:
+                # 解析gym_map（从JSON字符串转回列表）
+                gym_map = json.loads(item['gym_map']) if isinstance(item['gym_map'], str) else item['gym_map']
+                
+                # 构建数据项
+                data_item = {
+                    'idx': item['idx'],
+                    'original_id': item['original_id'],
+                    'image': item['image'],  # PIL Image对象
+                    'text': item['text'],
+                    'answer': item['answer'],
+                    'task_type': item['task_type'],
+                    'split': item['split'],
+                    'size': item['size'],
+                    'gym_map': gym_map
+                }
+                
+                # 根据任务类型添加特定字段
+                if item['task_type'] == 'verify':
+                    if item['path_length'] is not None:
+                        data_item['path_length'] = item['path_length']
+                    if item['path'] is not None:
+                        data_item['path'] = item['path']
+                elif item['task_type'] == 'navigation':
+                    if item['start_coords'] is not None:
+                        data_item['start_coords'] = json.loads(item['start_coords']) if isinstance(item['start_coords'], str) else item['start_coords']
+                    if item['goal_coords'] is not None:
+                        data_item['goal_coords'] = json.loads(item['goal_coords']) if isinstance(item['goal_coords'], str) else item['goal_coords']
+                    if item['obstacle_coords'] is not None:
+                        data_item['obstacle_coords'] = json.loads(item['obstacle_coords']) if isinstance(item['obstacle_coords'], str) else item['obstacle_coords']
+                    if item['astar_path'] is not None:
+                        data_item['astar_path'] = item['astar_path']
+                
+                meta_data.append(data_item)
+                
+        except Exception as e:
+            logger.error(f"Error loading split {split_name}: {e}")
+            continue
+    
+    # 数据集统计信息
+    logger.info(f"Total data loaded from Hugging Face: {len(meta_data)}")
+    
+    # 统计各任务的数据量
+    task_counts = defaultdict(int)
+    for item in meta_data:
+        task_type = item.get("task_type", "unknown")
+        task_counts[task_type] += 1
+    
+    for task_type, count in task_counts.items():
+        logger.info(f"Task type: {task_type}, count: {count}")
+    
+    return meta_data
+
+def load_data_from_local():
+    """从本地加载数据集（原有逻辑，作为备份）"""
     dataset_path = task_config.get("dataset_path")
     tasks = task_config.get("tasks", ["navigation-test", "verify-test"])
     
@@ -66,10 +166,9 @@ def load_data_function():
             data_path = os.path.join(navigation_dir, f"{task_suffix}.jsonl")
             if os.path.exists(data_path):
                 meta_data.extend(load_path_navigation_data(data_path, task_prefix, task_suffix, img_dir))
-                    
     
     # 数据集统计信息
-    logger.info(f"Total data loaded: {len(meta_data)}")
+    logger.info(f"Total data loaded from local: {len(meta_data)}")
     
     # 统计各任务的数据量
     task_counts = defaultdict(int)

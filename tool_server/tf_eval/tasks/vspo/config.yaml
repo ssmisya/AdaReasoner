@@ -1,0 +1,15 @@
+task_name: "vspo"
+dataset_repo: "hitsmy/AdaEval-VSPO"  # HuggingFace dataset repository ID
+dataset_type: "huggingface"  # Use HuggingFace dataset
+use_auth_token: false  # Set to true and provide token if it's a private dataset
+
+# Task configuration
+tasks:
+  - "navigation-test"  
+  - "verify-test"
+
+generation_config:
+  max_length: 4096
+
+# Optional: If authentication token is needed to access private dataset
+# hf_token: "YOUR_HF_TOKEN"  # Or set environment variable HF_TOKEN

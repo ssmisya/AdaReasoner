@@ -1,0 +1,49 @@
+model_args:
+  model: vllm_models
+  model_args: pretrained=/mnt/petrelfs/songmingyang/songmingyang/runs/tool_factory/rl/v2/tool_rl/test_ckpts/unified_all_randomized_sft_randomized_rl_4tasks_7b/global_step_700/actor/huggingface,tensor_parallel=2,limit_mm_per_prompt=10
+  batch_size: 50
+  max_rounds: 11
+  model_mode: general
+
+
+# 对于chartgemma数据集
+task_args:
+  # task_name: jigsaw_coco,jigsaw_blink,vsp,vsp_test,web_guichat,webmmu
+  task_name: vstar,hrbench
+  tool_selection: Point,Draw2DPath,AStarWithPixelCoordinate,DetectBlackArea,InsertImage,OCR,Crop
+  resume_from_ckpt:
+    vsp: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/vsp.jsonl
+    vsp_test: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/vsp_test.jsonl
+    jigsaw_coco: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/jigsaw_coco.jsonl
+    jigsaw_blink: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/jigsaw_blink.jsonl
+    web: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/web.jsonl
+    web_guichat: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/web_guichat.jsonl
+    webmmu: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/webmmu.jsonl
+    webquest: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/webquest.jsonl
+    vstar: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/vstar.jsonl
+    hrbench: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/hrbench.jsonl
+
+  save_to_ckpt:
+    vsp: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/vsp.jsonl
+    vsp_test: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/vsp_test.jsonl
+    jigsaw_coco: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/jigsaw_coco.jsonl
+    jigsaw_blink: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/jigsaw_blink.jsonl
+    web: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/web.jsonl
+    web_guichat: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/web_guichat.jsonl
+    webmmu: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/webmmu.jsonl
+    webquest: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/webquest.jsonl
+    vstar: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/vstar.jsonl
+    hrbench: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/hrbench.jsonl
+
+  middle_images_save_dir:
+    vsp: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/middle_images
+    jigsaw_blink: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/middle_images_jigsaw_blink
+    web: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/middle_images_web
+    web_guichat: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/middle_images_web_guichat
+    webmmu: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/middle_images_webmmu
+    webquest: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/middle_images_webquest
+
+script_args:
+  verbosity: INFO
+  output_path: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/unified/unified_all_randomized_sft_randomized_rl_4tasks_7b_s700/qwen25_allres.jsonl
+  if_use_tool: True

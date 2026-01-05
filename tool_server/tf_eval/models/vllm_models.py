@@ -259,7 +259,7 @@ class VllmModels(tp_model):
             Generate model responses for each conversation in the batch and update conversation history
         """
         if not batch or len(batch) == 0:  # If batch is empty
-            print("batch is empty!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            logger.info("Batch is empty, returning.")
             return
         max_new_tokens = self.generation_config.get("max_new_tokens", 4096)  # Get maximum token generation count, default 2048
         temperature = self.generation_config.get("temperature", 0)

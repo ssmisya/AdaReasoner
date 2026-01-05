@@ -1,5 +1,5 @@
 task_name: "chartqa"
-dataset_path: /mnt/petrelfs/sunhaoyu/visual-code/datasets/ChartQA
+dataset_path: HuggingFaceM4/ChartQA
 # image_dir_path: /mnt/petrelfs/share_data/suzhaochen/datasets/chartqa/image
 # num_sample: 2500 # 最大2500
 # num_sample: 50

@@ -1,5 +1,5 @@
 task_name: "ocrbench"
-dataset_path: /mnt/petrelfs/share_data/sunhaoyu/datasets/OCRBench
+dataset_path: ling99/OCRBench_v2
 # num_sample: 1000 # 最大1000
 # num_sample: 50
 dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv

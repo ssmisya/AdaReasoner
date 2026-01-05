@@ -50,7 +50,7 @@ class BaseInferencer(object):
         self.batch_size = batch_size
         self.if_use_tool = if_use_tool
         assert self.if_use_tool == False, "BaseInferencer is designed for models that do not use tools. Please use BaseToolInferencer for models that use tools."
-        print(f"Initialized self.if_use_tool: {self.if_use_tool}, Type: {type(self.if_use_tool)}")
+        logger.debug(f"Initialized self.if_use_tool: {self.if_use_tool}, Type: {type(self.if_use_tool)}")
 
         
         # Initialize dynamic batch manager

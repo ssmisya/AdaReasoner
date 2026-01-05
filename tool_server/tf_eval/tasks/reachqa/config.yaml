@@ -1,5 +1,5 @@
 task_name: "reachqa"
-dataset_path: /mnt/petrelfs/sunhaoyu/visual-code/datasets/ReachQA
+dataset_path: hewei2001/ReachQA
 # num_sample: 2000 # testset
 # num_sample: 50
 dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv

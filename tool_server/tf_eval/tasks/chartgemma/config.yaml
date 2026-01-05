@@ -1,5 +1,5 @@
 task_name: "chartgemma"
-dataset_path: /mnt/petrelfs/sunhaoyu/visual-code/datasets/OpenThinkIMG-Chart-Test-994
+dataset_path: hitsmy/OpenThinkIMG-Chart-Test-994
 # num_sample: 1000 # 最大1000
 # num_sample: 50
 dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv

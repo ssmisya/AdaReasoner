@@ -11,7 +11,7 @@ from .utils.log_utils import get_logger, set_verbosity
 from .tool_inferencer import BaseToolInferencer
 from .tool_inferencer import BaseInferencer
 from pathlib import Path
-
+from tool_server.utils.debug import remote_breakpoint
 try:
     from math_verify import parse, verify
 except ImportError:
@@ -29,10 +29,13 @@ class TFEvaluator():
         self.script_args = script_args
         self.tasks = self.task_args.task_name
         
+        # remote_breakpoint(port=7119)
+        
         self.model = get_model(self.model_args.model)(**self.model_args.model_args)
         self.if_use_tool = self.script_args.if_use_tool
         self.if_randomize_tool = self.script_args.if_randomize_tool
         self.model.set_enable_tool(self.if_use_tool)
+        
         
         max_rounds = self.model_args.max_rounds
         stop_token = self.model_args.stop_token

@@ -1,0 +1,28 @@
+model_args:
+  model: gemini
+  model_args: pretrained=gemini-2.5-flash
+  batch_size: 1
+  max_rounds: 10
+  model_mode: general
+  
+
+# 对于chartgemma数据集
+task_args:
+  # task_name: chartgemma,chartqa,charxiv,docvqa,ocrbench,reachqa,vstar
+  task_name: jigsaw_blink,vsp,jigsaw_coco,vsp_test
+  resume_from_ckpt:
+    vsp: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/frozen_lake_zs/gemini25flash/vsp.jsonl
+    vsp_test: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/frozen_lake_zs/gemini25flash/vsp_test.jsonl
+    jigsaw_coco: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/jigsaw/zs/gemini25flash/jigsaw_coco.jsonl
+    jigsaw_blink: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/jigsaw/zs/gemini25flash/jigsaw_blink.jsonl
+
+  save_to_ckpt:
+    vsp: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/frozen_lake_zs/gemini25flash/vsp.jsonl
+    vsp_test: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/frozen_lake_zs/gemini25flash/vsp_test.jsonl
+    jigsaw_coco: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/jigsaw/zs/gemini25flash/jigsaw_coco.jsonl
+    jigsaw_blink: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/ckpt/jigsaw/zs/gemini25flash/jigsaw_blink.jsonl
+
+script_args:
+  verbosity: INFO
+  output_path: /mnt/petrelfs/songmingyang/code/reasoning/tool-agent/tool_server/tf_eval/scripts/logs/results/frozen_lake_zs/gemini25flash/qwen25_allres.jsonl
+  if_use_tool: False

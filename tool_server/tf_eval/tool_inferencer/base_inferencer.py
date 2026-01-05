@@ -1,7 +1,7 @@
 '''
-适配了工具接口
-实现了使用img_1进行索引
-但是应该round只能使用一个工具
+Adapted tool interface
+Implemented indexing using img_1
+But round should only use one tool
 '''
 
 import torch
@@ -31,37 +31,37 @@ logger = get_logger(__name__)
 
 class BaseToolInferencer(object):
     """
-    基础工具推理器类
-    用于管理模型推理过程中与工具交互的基础类
+    Base tool inferencer class
+    Used to manage the base class for tool interaction during model inference
     """
     def __init__(
         self,
-        tp_model: tp_model = None,  # 文本-图像处理模型
+        tp_model: tp_model = None,  # Text-image processing model
         # dataset: Dataset = None,
-        batch_size: int = 1,  # 批处理大小
-        model_mode: str = "general",  # 模型模式，支持general和llava_plus
-        max_rounds: int = 3,  # 最大对话轮数
-        stop_token: str = "<stop>",  # 停止标记
-        controller_addr: str = None,  # 控制器地址
-        if_use_tool: bool = True,  # 是否使用工具
+        batch_size: int = 1,  # Batch size
+        model_mode: str = "general",  # Model mode, supports general and llava_plus
+        max_rounds: int = 3,  # Maximum conversation rounds
+        stop_token: str = "<stop>",  # Stop token
+        controller_addr: str = None,  # Controller address
+        if_use_tool: bool = True,  # Whether to use tools
         if_randomize_tool: bool = False,
-        min_image_size: int = 30,  # 最小图像尺寸
-        max_image_size: int = 9000,  # 最大图像尺寸（用于调整图像大小时的比例限制）
-        max_ratio = 150,  # 最大比例（用于调整图像大小时的比例限制）
+        min_image_size: int = 30,  # Minimum image size
+        max_image_size: int = 9000,  # Maximum image size (for ratio limits when resizing images)
+        max_ratio = 150,  # Maximum ratio (for ratio limits when resizing images)
         
     ):
-        # 初始化加速器
+        # Initialize accelerator
         self.min_image_size = min_image_size
         self.max_image_size = max_image_size
         self.max_ratio = max_ratio
         self.accelerator = Accelerator()
         self.tp_model = tp_model
-        self.model_mode = model_mode # 模型模式，支持general和llava_plus，但是一般就是general
-        # 获取模型的对话生成函数和追加对话函数
+        self.model_mode = model_mode # Model mode, supports general and llava_plus, but generally just general
+        # Get model's conversation generation function and append conversation function
         self.generate_conversation_fn = self.tp_model.generate_conversation_fn
         self.append_conversation_fn = self.tp_model.append_conversation_fn
         
-        # 如果启用分布式训练且使用CUDA但不是vllm模型，则将模型移至当前设备并转换为bfloat16格式
+        # If distributed training is enabled and using CUDA but not vllm model, move model to current device and convert to bfloat16 format
         if dist.is_initialized() and self.accelerator.device.type == "cuda" and not 'vllm_models' in str(type(self.tp_model)):
             self.tp_model = self.tp_model.to(self.accelerator.device)
             self.tp_model = self.tp_model.to(torch.bfloat16)
@@ -69,53 +69,52 @@ class BaseToolInferencer(object):
         self.batch_size = batch_size
         self.if_use_tool = if_use_tool
         self.if_randomize_tool = if_randomize_tool
-        print(f"初始化后的self.if_use_tool: {self.if_use_tool}, 类型: {type(self.if_use_tool)}")
-        # 不使用工具时，将max_rounds设置为1，以确保在生成一次响应后完成
+        # When not using tools, set max_rounds to 1 to ensure completion after generating one response
         self.max_rounds = 1 if not if_use_tool else max_rounds
         self.stop_token = stop_token
         self.controller_addr = controller_addr
         # remote_breakpoint()
         
-        # 初始化动态批处理管理器
+        # Initialize dynamic batch manager
         self.manager = DynamicBatchManager(
             batch_size=self.batch_size, 
             max_rounds=self.max_rounds, 
             stop_token=self.stop_token,
             generate_conversation_fn = self.tp_model.generate_conversation_fn,
-            if_use_tool=self.if_use_tool,  # 将 if_use_tool 参数传递给 DynamicBatchManager
+            if_use_tool=self.if_use_tool,  # Pass if_use_tool parameter to DynamicBatchManager
         )
-        # 初始化工具管理器
+        # Initialize tool manager
         self.tool_manager = None
         
         self.image_keys = ["image","base_image","image_to_insert"]
         self.original_image_keys = self.image_keys.copy()
-        # remote_breakpoint(port=7119)
+        
     
         
         
 
     def batch_tool_response_to_next_round_input(self):
         """
-        将工具响应转换为下一轮输入
-        处理当前批次中的每个项目，将工具的响应添加到对话中
+        Convert tool responses to next round input
+        Process each item in the current batch, adding tool responses to the conversation
         """
         current_batch = self.manager.get_current_batch()
         
         for idx,item in enumerate(current_batch):
-            # 跳过未处理或状态不是processing的项目
+            # Skip unprocessed items or items with status not "processing"
             if item.model_response is None or item.status != "processing":
                 continue
             
             tool_cfg = item.tool_cfg[item.current_round-1]
             tool_response = item.tool_response[item.current_round-1]
-            # 确保工具配置和响应的数量与当前轮数一致
+            # Ensure the number of tool configs and responses matches the current round
             assert len(item.tool_cfg) == item.current_round 
             assert len(item.tool_response) == item.current_round 
             original_prompt = item.meta_data.get("text", "")
             
             if tool_response is not None:
                 try:
-                    # 如果工具响应包含编辑后的图像，则更新当前图像
+                    # If tool response contains edited image, update current image
                     if "edited_image" in tool_response:
                         edited_image = tool_response.pop("edited_image")
                         # Ensure edited image isn't too small (minimum dimension of 30px)
@@ -155,13 +154,13 @@ class BaseToolInferencer(object):
 
                         
                
-                        # 添加新的编辑后图像到历史
+                        # Add new edited image to history
                         assert item.image_history is not None, "item.image_history should not be None."
                         img_idx = len(item.image_history) + 1
                         img_key = f"img_{img_idx}"
                         item.image_history[img_key] = edited_image
                         
-                        # 根据模型模式处理图像格式
+                        # Process image format based on model mode
                         if self.model_mode == "llava_plus": 
                             edited_image = base64_to_pil(edited_image)
                         if self.model_mode == "general": 
@@ -170,32 +169,32 @@ class BaseToolInferencer(object):
                     else:
                         edited_image = None
                     
-                    # 获取工具响应文本
-                    # 如果工具中有"edited_image"，则去除，保留剩余的内容为tool_response_text
+                    # Get tool response text
+                    # If tool has "edited_image", remove it and keep remaining content as tool_response_text
                     tool_response.pop("tool_reward", None)  
                     if "edited_image" in tool_response:
-                        # 将tool_response中的"edited_image"删除
+                        # Remove "edited_image" from tool_response
                         tool_response.pop("edited_image", None)
                         tool_response_text = f"{tool_response} New image generated and saved as: img_{len(item.image_history)}."
                     else:
                         tool_response_text = tool_response
                 
-                    # 根据得到的响应构建新的响应文本
+                    # Build new response text based on the obtained response
                     new_round_prompt = f"{tool_response_text}\n"
                 except:
-                    # 异常处理：如果处理工具响应时出错，使用原始提示
+                    # Exception handling: if error occurs while processing tool response, use original prompt
                     edited_image = None
                     new_round_prompt = original_prompt
             else:
-                # 如果没有工具响应，使用原始提示
+                # If no tool response, use original prompt
                 edited_image = None
                 new_round_prompt = "Please continue with your response or call a tool."
             
-            # 创建新轮次输入并添加到项目中
-            # 将图片也添加到new_round_input中
+            # Create new round input and add to item
+            # Also add image to new_round_input
             new_round_input = dict(text=new_round_prompt,image=edited_image)
             item.new_round_input.append(new_round_input)
-            # 将新输入添加到对话中
+            # Add new input to conversation
             item.conversation = self.append_conversation_fn(
                 conversation=item.conversation, text=new_round_prompt, image=edited_image, role="user"
             )
@@ -203,46 +202,46 @@ class BaseToolInferencer(object):
     
     def batch_get_tool_response(self):
         """
-        批量获取工具响应
-        处理当前批次中的每个项目，调用相应的工具获取响应
+        Batch get tool responses
+        Process each item in the current batch, call corresponding tools to get responses
         """
         current_batch = self.manager.get_current_batch()
         for item in current_batch:
-            # 跳过未处理或状态不是processing的项目
+            # Skip unprocessed items or items with status not "processing"
             if item.model_response is None or item.status != "processing":
                 continue
             
             tool_cfg = item.tool_cfg[item.current_round-1]
             assert len(item.tool_cfg) == item.current_round
 
-            # 确保该项目有图像历史记录
+            # Ensure this item has image history
             item_id = item.meta_data["idx"]
             assert item.image_history
 
-            # 如果存在工具配置，调用相应的工具
+            # If tool config exists, call the corresponding tool
             if tool_cfg is not None and len(tool_cfg) > 0:
                 assert item.status == "processing"
                 try:
-                    # 目前只支持一个工具
+                    # Currently only supports one tool
                     assert len(tool_cfg) == 1, "Only one tool is supported for now, but got: {}".format(tool_cfg)
 
-                    # 获取API名称
+                    # Get API name
                     api_name = tool_cfg[0].get("API_name", tool_cfg[0].get("api_name", ""))
 
-                    # 检查API是否在可用模型列表中
+                    # Check if API is in available models list
                     if api_name not in self.available_models:
-                        # 记录错误并添加错误响应
+                        # Log error and add error response
                         logger.error(f"API_name {api_name} not in available models, {self.available_models}")
                         item.tool_response.append(dict(text=f"There is no tool names {api_name}.",status="failed"))
                         continue
 
-                    # 获取API参数
+                    # Get API parameters
                     api_params = tool_cfg[0].get("api_params", tool_cfg[0].get("API_params", {}))
                     
-                    # 处理图像参数
+                    # Process image parameters
                     image_param = None
                     
-                    # 检查参数中是否包含image参数，并且是否符合img_n格式
+                    # Check if parameters contain image parameter and if it matches img_n format
                     continue_flag = False
                     for image_key in self.image_keys:
                         
@@ -252,92 +251,58 @@ class BaseToolInferencer(object):
                             if image is not None:
                                 image = load_image(image)
                                 image = pil_to_base64(image)
-                                # 更新参数中的图像
+                                # Update image in parameters
                                 api_params[image_key] = image
                             else:
                                 
                                 continue_flag = True
                                 
                     if continue_flag:
-                        # 如果找不到请求的图像，记录错误
+                        # If requested image not found, log error
                         logger.error(f"Image {img_key} not found in history for item {item_id}")
                         item.tool_response.append(dict(text=f"Image {img_key} not found in history.",status="failed"))
                         continue
-                                
-                        # if image_key in api_params and isinstance(api_params[image_key], str) and api_params[image_key].startswith("img_"):
-                        #     img_key = api_params[image_key]
-                        #     # 从图像历史中获取对应图像
-                        #     if img_key in item.image_history:
-                        #         image = item.image_history[img_key]
-                        #         if image is not None:
-                        #             image = load_image(image)
-                        #             image = pil_to_base64(image)
-                        #             # 更新参数中的图像
-                        #             api_params[image_key] = image
-                        #     else:
-                        #         # 如果找不到请求的图像，记录错误
-                        #         logger.error(f"Image {img_key} not found in history for item {item_id}")
-                        #         item.tool_response.append(dict(text=f"Image {img_key} not found in history.",status="failed"))
-                        #         continue
-
-                        # elif image_key in api_params:    
-                        #     # 确定当前使用的图像：优先使用当前图像，否则使用元数据中的图像
-                        #     if item.current_image is not None:
-                        #         image = item.current_image
-                        #     else:
-                        #         image = item.meta_data.get(image_key, None)
-                            
-                        #     if image is not None:
-                        #         image = load_image(image)
-                        #         image = pil_to_base64(image)
-                        #         # 设置图像参数
-                        #         api_params[image_key] = image
-                        #     else:
-                        #         # 如果找不到图像，记录错误
-                        #         logger.error(f"No image available for tool {api_name}")
-                        #         item.tool_response.append(dict(text=f"No image available for tool {api_name}.",status="failed"))
-                        #         continue
                     
-                    # 设置默认参数和用户提供的参数
+                    # Set default parameters and user-provided parameters
                     api_paras = {
                         **api_params,
                     }
                     
-                    # 调用工具获取响应
+                    # Call tool to get response
                     tool_response = self.tool_manager.call_tool(api_name, api_paras)
                     tool_response_clone = copy.deepcopy(tool_response)
 
-                    # 记录工具调用结果
+                    # Log tool call result
                     if tool_response['status'] == "success":
                         logger.info(f"The {api_name} calls successfully!")
                     else:
                         logger.info(f"The {api_name} calls failed!")
                     
-                    # 将工具响应添加到项目中
+                    # Add tool response to item
                     item.tool_response.append(tool_response_clone)
                     continue
                 except Exception as e:
-                    # 异常处理：如果调用工具时出错，添加错误响应
+                    # Exception handling: if error occurs when calling tool, add error response
                     logger.info(f"Tool {api_name} failed to answer the question, tool_cfg is {tool_cfg}, error: {str(e)}")
                     item.tool_response.append(dict(text=f"Tool {api_name} failed to answer the question: {str(e)}",status="failed"))
                     continue
             else:
-                # 如果没有工具配置，添加空响应
+                # If no tool config, add empty response
                 item.tool_response.append(None)
                 continue
 
     def extract_tool_call(self, text: str):
         """
-        从模型响应文本中提取<tool_call>标签内的工具调用信息
+        Extract tool call information from <tool_call> tags in model response text
         
-        参数:
-            text (str): 包含tool_call的模型响应文本
+        Args:
+            text (str): Model response text containing tool_call
             
-        返回:
-            Optional[List[Dict]]: 解析后的工具调用列表，如果提取失败则返回None
+        Returns:
+            Optional[List[Dict]]: Parsed tool call list, returns None if extraction fails
         """
         try:
-            # 使用正则表达式查找<tool_call>标签内的内容
+            # Use regex to find content within <tool_call> tags
             tool_call_pattern = r'<tool_call>\s*(.*?)\s*</tool_call>'
             tool_call_match = re.search(tool_call_pattern, text, re.DOTALL)
             
@@ -346,9 +311,9 @@ class BaseToolInferencer(object):
                 
             tool_call_content = tool_call_match.group(1).strip()
             
-            # 尝试解析整个JSON数组
+            # Try to parse entire JSON array
             try:
-                # 首先尝试解析整个内容为JSON数组
+                # First try to parse entire content as JSON array
                 if tool_call_content.startswith('[') and tool_call_content.endswith(']'):
                     json_array = json.loads(tool_call_content)
                     if isinstance(json_array, list):
@@ -359,7 +324,7 @@ class BaseToolInferencer(object):
                         if valid_objects:
                             return valid_objects
                 
-                # 如果不是JSON数组，尝试解析为单个JSON对象
+                # If not JSON array, try to parse as single JSON object
                 if (tool_call_content.startswith('{') and tool_call_content.endswith('}')):
                     json_obj = json.loads(tool_call_content)
                     if "name" in json_obj and "parameters" in json_obj:
@@ -367,9 +332,9 @@ class BaseToolInferencer(object):
             except json.JSONDecodeError as e:
                 pass
             
-            # 如果上述方法失败，尝试提取单个JSON对象
+            # If above methods fail, try to extract single JSON object
             json_objects = []
-            # 使用正则表达式匹配所有JSON对象
+            # Use regex to match all JSON objects
             json_pattern = r'({[^{}]*(?:{[^{}]*}[^{}]*)*})'
             matches = re.finditer(json_pattern, tool_call_content, re.DOTALL)
             
@@ -392,55 +357,55 @@ class BaseToolInferencer(object):
        
     def batch_parse_tool_config(self):
         """
-        批量解析工具配置
-        从模型响应中提取工具配置信息
+        Batch parse tool configurations
+        Extract tool configuration information from model responses
         """
         current_batch = self.manager.get_current_batch()
         for item in current_batch:
             model_response = item.model_response[item.current_round-1]
             assert len(item.model_response) == item.current_round
             
-            # 跳过未处理或状态不是processing的项目
+            # Skip unprocessed items or items with status not "processing"
             if model_response is None or item.status != "processing":
                 continue
             
             try:
-                # 根据模型模式解析工具配置
+                # Parse tool config based on model mode
                 if self.model_mode == "general":
-                    # 添加调试信息
+                    # Add debug information
                     
-                    # 提取工具调用信息
+                    # Extract tool call information
                     tool_calls = self.extract_tool_call(model_response)
                     
                     if tool_calls is not None and len(tool_calls) > 0:
-                        # 只使用第一个工具调用，每个时间步只做一个操作
+                        # Only use the first tool call, one operation per time step
                         tool_call = tool_calls[0]
-                        # 确保tool_call包含name和parameters字段
+                        # Ensure tool_call contains name and parameters fields
                         assert 'name' in tool_call and 'parameters' in tool_call, "missing 'name' or 'parameters' in the parsed tool_call."
                         
-                        # 构建工具配置
+                        # Build tool configuration
                         tool_name = tool_call['name']
                         tool_params = tool_call['parameters']
                         
-                        # 构建通用工具配置
+                        # Build general tool configuration
                         tool_cfg = [{'API_name': tool_name,
                                     'API_params': tool_params}]
                     else:
-                        # 如果没有提取到工具调用，设置工具配置为None
+                        # If no tool call extracted, set tool config to None
                         tool_cfg = None
             except Exception as e:
-                # 异常处理：如果解析工具配置时出错，记录错误并设置工具配置为None
+                # Exception handling: if error occurs while parsing tool config, log error and set tool config to None
                 logger.info(f"Failed to parse tool config: {e}.")
                 tool_cfg = None
                 
-            # 将工具配置添加到数据项中
+            # Add tool configuration to data item
             item.tool_cfg.append(tool_cfg)
             
     def pop_qualified_items(self):
         """
-        弹出符合条件的项目
-        返回已完成处理的项目，并从当前批次中移除它们
-        同时清理对应的image_history
+        Pop qualified items
+        Return items that have completed processing and remove them from current batch
+        Also clean up corresponding image_history
         """
         res = []
         new_batch = []
@@ -460,7 +425,7 @@ class BaseToolInferencer(object):
                 item_dict["image_history"] = image_history
                 item_dict.pop("current_image", None) 
                 
-                # 记录要移除的item_id
+                # Record item_id to be removed
                 removed_item_ids.append(item_id)
                 
                 res.append(item_dict)
@@ -473,93 +438,93 @@ class BaseToolInferencer(object):
     
     def batch_inference(self, dataset):
         """
-        批量推理函数
-        处理数据集中的所有项目，执行模型推理和工具调用
+        Batch inference function
+        Process all items in the dataset, execute model inference and tool calls
         
-        参数:
-            dataset: 要处理的数据集
+        Args:
+            dataset: Dataset to process
         """
         self.dataset = dataset
-        # 创建数据加载器，批大小为1，工作线程数为2，使用collate_fn确保每次返回单个数据项
+        # Create data loader with batch size of 1, 2 worker threads, using collate_fn to ensure single data item is returned each time
         self.dataloader = DataLoader(
             dataset, 
             batch_size=1, 
             num_workers=2, 
-            collate_fn=lambda x: x[0]  # 确保每次返回一个数据项
+            collate_fn=lambda x: x[0]  # Ensure one data item is returned each time
         )
         
-        # 如果启用分布式训练且不使用vLLM模型，则使用accelerator准备数据加载器
+        # If distributed training is enabled and not using vLLM model, prepare data loader with accelerator
         if dist.is_initialized() and not 'vllm_models' in str(type(self.tp_model)):
             self.dataloader = self.accelerator.prepare(self.dataloader)
             
-        # 将数据加载器转换为迭代器并设置模型为评估模式
+        # Convert data loader to iterator and set model to evaluation mode
         self.dataloader_iter = iter(self.dataloader)
         self.tp_model.eval()
-        # 创建进度条
+        # Create progress bar
         progress_bar = tqdm_rank0(len(self.dataloader), desc="Model Responding")
 
-        # 如果数据加载器为空且不使用vLLM模型，则等待所有进程完成，并返回
+        # If data loader is empty and not using vLLM model, wait for all processes to complete and return
         if len(self.dataloader) == 0 and not 'vllm_models' in str(type(self.tp_model)):
             self.accelerator.wait_for_everyone()
             return
             
-        # 将数据加载器中的数据项添加到管理器中，并使用进度条显示进度
+        # Add data items from data loader to manager and show progress with progress bar
         self.manager.append_item_to_full(self.dataloader_iter, progress_bar=progress_bar)
 
-        # 获取当前批次并使用模型生成响应
+        # Get current batch and generate responses using model
         current_batch = self.manager.get_current_batch()
-        self.tp_model.generate(current_batch) # 获得的是批量响应
-        # 更新管理器中的状态
+        self.tp_model.generate(current_batch) # Batch responses obtained
+        # Update status in manager
         self.manager.update_item_status()
         
-        # 主循环：处理所有批次
+        # Main loop: process all batches
         while len(current_batch) > 0:
             try:
-                # 弹出所有已完成处理的项目
+                # Pop all items that have completed processing
                 results = self.pop_qualified_items()
-                # 将结果存储到数据集中
+                # Store results in dataset
                 for res in results:
                     idx = res["meta_data"]["idx"]
                     self.dataset.store_results(dict(idx=idx,results=res))
 
-                # 如果不使用工具，直接处理下一批数据
+                # If not using tools, directly process next batch of data
                 if not self.if_use_tool:
-                    # 重新填充当前批次
+                    # Refill current batch
                     self.manager.append_item_to_full(self.dataloader_iter, progress_bar=progress_bar)
                     
-                    # 获取更新后的当前批次并生成新的响应
+                    # Get updated current batch and generate new responses
                     current_batch = self.manager.get_current_batch()
                     if len(current_batch) > 0:
                         self.tp_model.generate(current_batch)
-                        # 更新状态
+                        # Update status
                         self.manager.update_item_status()
                     continue
                 
-                # 以下是使用工具的流程
-                # 解析工具配置
+                # Below is the workflow when using tools
+                # Parse tool configuration
                 self.batch_parse_tool_config()
-                # 获取工具响应
+                # Get tool responses
                 self.batch_get_tool_response()
-                # 将工具响应转换为下一轮输入
+                # Convert tool responses to next round input
                 self.batch_tool_response_to_next_round_input()
                 
-                # 重新填充当前批次
+                # Refill current batch
                 self.manager.append_item_to_full(self.dataloader_iter, progress_bar=progress_bar)
                 
-                # 获取更新后的当前批次并生成新的响应
+                # Get updated current batch and generate new responses
                 current_batch = self.manager.get_current_batch()
                 if len(current_batch) > 0:
                     self.tp_model.generate(current_batch)
-                    # 更新状态，应该会更新current_batch，直到结束
+                    # Update status, should update current_batch until completion
                     self.manager.update_item_status()
 
             except StopIteration:
-                # 当迭代器耗尽时退出循环
+                # Exit loop when iterator is exhausted
                 break
                 
-        # 确保所有项目都已处理完毕
+        # Ensure all items have been processed
         assert len(self.manager.get_current_batch()) == 0
-        # 如果不使用vLLM模型，等待所有进程完成
+        # If not using vLLM model, wait for all processes to complete
         if not 'vllm_models' in str(type(self.tp_model)):
             self.accelerator.wait_for_everyone()
     
@@ -585,4 +550,3 @@ class BaseToolInferencer(object):
             self.available_models = [self.original_to_randomized.get(k, k) for k in self.available_models]
         else:
             self.original_to_randomized = None
-    

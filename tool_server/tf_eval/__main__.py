@@ -22,7 +22,6 @@ def main():
     accelerate = Accelerator()
     args_dict = parse_args()
     model_args, task_args, script_args = args_dict["model_args"], args_dict["task_args"], args_dict["script_args"]
-    
     config = script_args.config
     if config:
         if not isinstance(config, list):
@@ -32,7 +31,7 @@ def main():
             dist_wait_for_everyone()
             gc.collect()
             torch.cuda.empty_cache()
-            logger.info(f"After Cleaning: Memory Allocated: {torch.cuda.memory_allocated()/(1024 ** 3) :.2f} GB")
+            logger.debug(f"After Cleaning: Memory Allocated: {torch.cuda.memory_allocated()/(1024 ** 3) :.2f} GB")
             logger.info(f"Begin evaluating on the No. {idx+1} config, toal {len(config)} configs.")
             if isinstance(config_item, dict):
                 model_args = ModelArguments(**config_item["model_args"])

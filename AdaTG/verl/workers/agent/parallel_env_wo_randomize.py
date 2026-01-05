@@ -358,7 +358,7 @@ def agent_rollout_loop(config, vllm_engine, vllm_inputs, prompts, multi_modal_in
                             try:
                                 img = img.convert('RGB') if hasattr(img, 'convert') else img
                             except:
-                                print(f"啊啊啊[WARNING] Failed to convert image type {type(img)}, keeping original")
+                                print(f"[WARNING] Failed to convert image type {type(img)}, keeping original")
                         elif isinstance(img, np.ndarray):
                             # 如果是numpy数组，转换为PIL Image
                             try:
@@ -433,7 +433,7 @@ def agent_rollout_loop(config, vllm_engine, vllm_inputs, prompts, multi_modal_in
             start_time = time.time()
             obs_results = env.step(active_indices, actions, active_data_sources)
             end_time = time.time()
-            print(f"啊啊啊啊啊[DEBUG]工具调用总时间 time: {end_time - start_time} seconds")
+            print(f"[DEBUG]工具调用总时间 time: {end_time - start_time} seconds")
         else:
             obs_results = None
 
@@ -686,7 +686,7 @@ class ParallelEnv:
         self.available_tools = self.tool_manager.available_tools
         
 
-        print("啊啊啊啊啊啊啊啊[DEBUG] self.available_tools",self.available_tools)
+        print("[DEBUG] self.available_tools",self.available_tools)
     
 
     def extract_tool_call(self, text: str):
@@ -790,11 +790,11 @@ class ParallelEnv:
                     else:
                         # 保留传入None的逻辑，如果找不到指定图像
                         available_images = list(self.image_history.get(item_idx, {}).keys())
-                        print(f"啊啊啊啊啊啊啊[DEBUG] Image {img_key} not found. Available images: {available_images}")
+                        print(f"[DEBUG] Image {img_key} not found. Available images: {available_images}")
                         api_params[image_key] = None
                 else:
                     # 如果不是img_n格式，也设置成None
-                    print(f"啊啊啊啊啊啊[DEBUG] Invalid image parameter format: {img_key}")
+                    print(f"[DEBUG] Invalid image parameter format: {img_key}")
                     api_params[image_key] = None
         
         tool_result = {"text": f"Failed to call tool {api_name}", "error_code": 1}
@@ -807,7 +807,7 @@ class ParallelEnv:
             return tool_result
             
         except Exception as e:
-            print(f"啊啊啊啊啊[DEBUG] Tool call exception for {api_name}: {str(e)}")
+            print(f"[DEBUG] Tool call exception for {api_name}: {str(e)}")
             return tool_result
 
     def _process_single_action(self, action_data):
@@ -873,10 +873,7 @@ class ParallelEnv:
                 # 调用工具，传入idx用于访问图像历史
                 tool_result = self.call_tool_with_img(tool_name, tool_params, idx)
                 
-                # 添加详细的调试信息
-                # print(f"啊啊啊啊啊[DEBUG] Tool call result for {tool_name}: status={tool_result.get('status', 'unknown')}, error_code={tool_result.get('error_code', 'unknown')}")
-                # if 'message' in tool_result:
-                #     print(f"[DEBUG] Tool message: {tool_result['message']}")
+
 
                 # 检查工具调用是否成功
                 success = False
@@ -893,9 +890,8 @@ class ParallelEnv:
                     # 如果工具需要图像参数但传入了None，视为失败
                     if "image" in tool_params and tool_params["image"] is None:
                         success = False
-                        print(f"啊啊啊啊啊[DEBUG] Tool call failed due to missing image parameter")
-                    
-                    # print(f"啊啊啊啊啊[DEBUG] Tool success determination: status='{status}', error_code={error_code}, success={success}")
+                        print(f"[DEBUG] Tool call failed due to missing image parameter")
+   
                 
                 # 记录工具调用统计
                 result['tool_stats']['tool_calls'].append({
@@ -1090,7 +1086,7 @@ class ParallelEnv:
                         result = future.result()
                         results[original_index] = result
                     except Exception as e:
-                        print(f"啊啊啊啊啊[DEBUG] Thread execution error: {e}")
+                        print(f"[DEBUG] Thread execution error: {e}")
                         # 创建默认错误结果
                         error_result = {
                             'index': action_data_list[original_index]['i'],

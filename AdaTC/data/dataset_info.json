@@ -1,0 +1,26 @@
+{
+  "jigsaw_v1_randomized": {
+    "file_name": "/mnt/petrelfs/songmingyang/code/reasoning/tool_util_code/frozen_lake/data_curation/frozen_lake_metadata_v2/merged_sft_file/randomized/jigsaw_sft_v1_randomized.json",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "conversations",
+      "images": "images"
+    }
+  },
+  "unified_jigsaw_vsp_web_v1": {
+    "file_name": "/mnt/petrelfs/songmingyang/songmingyang/data/vl_reasoning/tool_dataset/unified_tool/sft_data/merged_sft_jigsaw_vsp_web_v1.json",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "conversations",
+      "images": "images"
+    }
+  },
+  "unified_jigsaw_vsp_web_v1_randomized": {
+    "file_name": "/mnt/petrelfs/songmingyang/songmingyang/data/vl_reasoning/tool_dataset/unified_tool/sft_data/merged_sft_jigsaw_vsp_web_v1_randomized.json",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "conversations",
+      "images": "images"
+    }
+  }
+}

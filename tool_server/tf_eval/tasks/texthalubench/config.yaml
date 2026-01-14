@@ -1,7 +1,6 @@
 task_name: "texthalubench"
-dataset_path: /mnt/petrelfs/sunhaoyu/visual-code/datasets/texthalubench/TextHalu-Bench/parquet_file
-dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv
+dataset_path: Mikivis/AdaEval-texthalubench
+dataset_type: "unique"
 generation_config:
   max_length: 8192
-  # temperature: 0.6
 

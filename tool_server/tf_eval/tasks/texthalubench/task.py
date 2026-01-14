@@ -31,6 +31,8 @@ def load_data_function():
     dataset_path = task_config["dataset_path"]
     num_samples = task_config.get("num_sample", None)
 
+    # Load from HuggingFace or local path
+    # Since the file is named validation.parquet, it will be loaded as 'validation' split
     dataset = load_dataset(dataset_path, split="validation")
     if num_samples:
         dataset = dataset.select(range(min(num_samples, len(dataset))))

@@ -41,25 +41,17 @@ class ServerManager:
         os.environ["OMP_NUM_THREADS"] = "1"
 
     def run_srun_command(self, job_name: str, gpus: int, cpus: int, 
-                         command: List[str], log_file: str, srun_kwargs: Dict = {}, 
-                         conda_env: str = None, cuda_visible_devices: Optional[str] = None, 
-                         node_list: Optional[str] = None, use_apptainer: bool = False, 
-                         apptainer_image: Optional[str] = None) -> subprocess.Popen: # node_list 允许为 None
+                     command: List[str], log_file: str, srun_kwargs: Dict = {}, 
+                     conda_env: str = None, cuda_visible_devices: Optional[str] = None, 
+                     node_list: Optional[str] = None, use_apptainer: bool = False, 
+                     apptainer_image: Optional[str] = None,
+                     conda_env_path: Optional[str] = None) -> subprocess.Popen:  # 新增参数
         """
         通过SLURM运行命令
         
         参数:
-            job_name: 作业名称
-            gpus: 需要的GPU数量
-            cpus: 需要的CPU数量
-            command: 要执行的命令列表
-            log_file: 日志文件路径
-            srun_kwargs: 额外的srun参数
-            conda_env: Conda环境名称，如果需要激活特定环境
-            cuda_visible_devices: 控制CUDA可见设备，如果为None则不设置，如果为空字符串则清除
-            node_list: 指定运行的节点列表，如果为None则不指定
-            use_apptainer: 是否使用apptainer容器
-            apptainer_image: apptainer镜像路径
+            ...（原有参数说明）
+            conda_env_path: 虚拟环境的完整路径，用于apptainer容器内设置环境
             
         返回:
             subprocess.Popen对象，表示运行的进程
@@ -69,25 +61,19 @@ class ServerManager:
             f"--partition={self.config.partition}",
             f"--job-name={job_name}",
             "--mpi=pmi2",
-            # f"--gres=gpu:{gpus}",
             "--gres=gpu:0",
             "-n1",
             "--ntasks-per-node=1",
-            # f"-c {cpus}",
-            # 手动指定cpu数量
             "-c 16",
             "--kill-on-bad-exit=1",
             "--quotatype=reserved",
-            # "--quotatype=spot",
             f"--output={log_file}",
         ]
         
-        # 仅当 node_list 不为 None 时才添加 --nodelist 参数
         if node_list is not None: 
             srun_cmd.append(f"--nodelist={node_list}")
             
         if conda_env:
-            # 如果发现了问题，就尝试解决它
             conda_exe = os.environ.get('CONDA_EXE', '')
             conda_prefix = "anaconda3" if "anaconda" in conda_exe else "miniconda3"
             srun_cmd.insert(0, f"source ~/{conda_prefix}/bin/activate {conda_env} &&")
@@ -122,8 +108,20 @@ class ServerManager:
                 "apptainer", "exec",
                 "--nv",
                 "--bind", "/mnt:/mnt",
-                apptainer_image
             ]
+            
+            # ========== 新增：动态设置虚拟环境路径 ==========
+            if conda_env_path:
+                # 通过 --env 参数设置容器内的环境变量
+                apptainer_cmd.extend([
+                    "--env", f"PATH={conda_env_path}/bin:$PATH",
+                    "--env", f"CONDA_PREFIX={conda_env_path}",
+                    "--env", f"PYTHONPATH={conda_env_path}/lib/python3.10/site-packages",
+                ])
+                self.logger.info(f"设置 apptainer 虚拟环境路径: {conda_env_path}")
+            # ========== 新增部分结束 ==========
+            
+            apptainer_cmd.append(apptainer_image)
             
             srun_cmd.extend(apptainer_cmd)
             srun_cmd.extend(command)
@@ -139,6 +137,7 @@ class ServerManager:
             self.logger.info(f"完整的srun命令: {' '.join(srun_cmd)}")
             
             return subprocess.Popen(" ".join(srun_cmd), shell=True, env=os.environ.copy())
+
 
     def wait_for_job(self, job_name: str) -> str:
         """
@@ -281,17 +280,15 @@ class ServerManager:
         cpus = 0 
         cuda_visible_devices = config_obj.get("cuda_visible_devices", None) 
         
-        worker_node = None # 默认不指定节点
+        worker_node = None
         
         if config_obj.calculate_type == "control":
             self.logger.info(f"启动控制型工作器 {job_name}。系统自动分配节点，不使用GPU。")
             cpus = self.config.default_control_cpus
-            # worker_node 保持为 None
             
         elif config_obj.calculate_type == "calculate":
             self.logger.info(f"启动计算型工作器 {job_name}。指定节点为 {config_obj.get('node_list', 'SH-IDC1-10-140-37-138')}，使用 CUDA_VISIBLE_DEVICES。")
             cpus = self.config.default_calculate_cpus
-            # 计算型任务从配置中获取或使用默认指定节点
             worker_node = config_obj.get("node_list", "SH-IDC1-10-140-37-138") 
         else:
             raise ValueError("计算类型必须是 'control' 或 'calculate'")
@@ -305,9 +302,10 @@ class ServerManager:
             srun_kwargs=config_obj.get("srun_kwargs", {}), 
             conda_env=config_obj.get("conda_env", None), 
             cuda_visible_devices=cuda_visible_devices, 
-            node_list=worker_node, # 根据 calculate_type 传入可能为 None 的 worker_node
+            node_list=worker_node,
             use_apptainer=config_obj.get("use_apptainer", False),
-            apptainer_image=config_obj.get("apptainer_image", None)
+            apptainer_image=config_obj.get("apptainer_image", None),
+            conda_env_path=config_obj.get("conda_env_path", None)  # 新增
         )
         
         wait_dict = self.wait_for_job(job_name)
@@ -317,6 +315,7 @@ class ServerManager:
         
         if "wait_for_self" in config_obj and config_obj["wait_for_self"]:
             self.wait_for_worker_addr(config_obj.worker_name)
+
 
     def shutdown_services(self) -> None:
         """

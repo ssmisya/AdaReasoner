@@ -1,8 +1,6 @@
 task_name: "web_guichat"
-dataset_path:  /mnt/petrelfs/share_data/sunhaoyu/datasets/web_evaluation/web_guichat
-# num_sample: 1100
-dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv
+dataset_path: Mikivis/AdaEval-Web_Guichat
+dataset_type: "unique"
 generation_config:
   max_length: 8192
-  # temperature: 0.6
 

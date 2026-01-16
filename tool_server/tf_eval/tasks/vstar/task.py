@@ -37,9 +37,8 @@ def load_data_function():
     meta_data = []
     for idx,item in enumerate(dataset):
         item_id = f"vstar_{idx}"
-        # 他这里的image是路径
-        image_path = os.path.join(dataset_path, item["image"])
-        image = Image.open(image_path)
+
+        image = load_image(item["image"])
         text = item["text"]
         answer = item["label"]
         category = item["category"]

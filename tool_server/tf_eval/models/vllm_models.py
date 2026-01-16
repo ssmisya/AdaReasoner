@@ -88,7 +88,7 @@ class VllmModels(tp_model):
             },
         ]
         
-        first_user_content.extend(image_messages)  # Combine text and image messages
+        first_user_content = first_user_content + image_messages
         
         fs = kwargs.get("few_shot", None)
         

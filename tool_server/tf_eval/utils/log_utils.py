@@ -8,11 +8,14 @@ current_folder_path = os.path.dirname(current_file_path)
 
 verbosity = logging.INFO
 
-def get_logger(name, log_dir=f"{current_folder_path}/../scripts/logs/auto_generate",level=verbosity):
-    try:
+
+
+def get_logger(name, log_dir=f"{current_folder_path}/../scripts/logs/auto_generate",level=verbosity, use_accelerator_logger=False):
+    if use_accelerator_logger:
+        print("Using the accelerator logger.")
         logger = get_accelerator_logger(name)
-    except:
-        print("Accelerator is not available, using the default logger.")
+    else:
+        print("Using the default logger.")
         logger = logging.getLogger(name)
     logger.setLevel(level)
     # 创建控制台处理器

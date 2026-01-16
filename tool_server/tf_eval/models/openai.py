@@ -10,7 +10,7 @@ from PIL import Image
 from openai import OpenAI
 from ..utils.utils import *
 from ..tool_inferencer.dynamic_batch_manager import DynamicBatchItem
-from .template_instruct import *
+# from .template_instruct import *
 from ..utils.log_utils import get_logger
 from tool_server.utils.prompts import *
 from tool_server.utils.utils import *

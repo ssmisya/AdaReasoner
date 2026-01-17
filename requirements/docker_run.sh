@@ -11,6 +11,6 @@ docker run -it \
   --gpus all \
   --name tool_server \
   -v /home/featurize/work/tool:/log \
-  -w /app/OpenThinkIMG/ \
+  -w /app/AdaReasoner/ \
   --network host \
   tool_server:v0.2 

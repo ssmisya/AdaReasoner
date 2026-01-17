@@ -1,6 +1,6 @@
 # Models
 
-**AdaReasoner-7B** is a vision-language model trained with dynamic tool orchestration capabilities for iterative visual reasoning. d.
+**AdaReasoner-7B** is a vision-language model trained with dynamic tool orchestration capabilities for iterative visual reasoning. 
 
 
 We provide three variants of AdaReasoner-7B, each optimized for different use cases:

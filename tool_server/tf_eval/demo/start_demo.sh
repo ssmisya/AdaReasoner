@@ -56,6 +56,7 @@ quotatype="auto"
 OMP_NUM_THREADS=8 srun --partition=ai_moe -w ${node} --job-name="eval" --mpi=pmi2  --gres=gpu:${gpus} -n1 --ntasks-per-node=1 -c ${cpus} --kill-on-bad-exit=1 --quotatype=${quotatype}  \
 python /mnt/petrelfs/songmingyang/code/reasoning/opensource/Tool-Factory-Filter/tool_server/tf_eval/demo/gradio_demo_v2.py \
 --model-path ${model_path} \
---api-model-name ${model_path} 
+--api-model-name ${model_path} \
+--share
 
 

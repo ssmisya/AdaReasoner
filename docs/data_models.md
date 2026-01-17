@@ -26,3 +26,12 @@ We provide the following datasets used for training and evaluating AdaReasoner-7
 | **AdaReasoner-TC-WebQA** | Tool-calling dataset designed for **WebQA-style visual question answering**, featuring coordinated use of perception tools such as cropping and OCR. | [🤗 Link](https://huggingface.co/datasets/hitsmy/AdaReasoner-TC-WebQA) |
 | **AdaReasoner-TG-Data** | **Tool-GRPO (TG)** reinforcement learning dataset containing online interaction trajectories collected via the Tool Server, supporting long-horizon tool planning optimization. | [🤗 Link](https://huggingface.co/datasets/hitsmy/AdaReasoner-TG-Data) |
 | **AdaReasoner-TG-Data-Randomized** | TG dataset with **randomized tool pools and invocation schemas**, specifically constructed to train tool-planning models with strong robustness and cross-tool generalization. | [🤗 Link](https://huggingface.co/datasets/hitsmy/AdaReasoner-TG-Data-Randomized) |
+
+
+### Evaluation Datasets 
+
+| Dataset | Hugging Face |
+|-------|--------------|
+| **AdaReasoner/AdaEval-VSPO** |  [🤗 Link](https://huggingface.co/datasets/AdaReasoner/AdaEval-VSPO) |
+| **AdaReasoner/AdaEval-VSP** |  [🤗 Link](https://huggingface.co/datasets/AdaReasoner/AdaEval-VSP) |
+| **AdaReasoner/AdaEval-Jigsaw-COCO** |  [🤗 Link](https://huggingface.co/datasets/AdaReasoner/AdaEval-Jigsaw-COCO) |

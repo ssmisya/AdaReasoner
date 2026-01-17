@@ -11,6 +11,19 @@ We provide three variants of AdaReasoner-7B, each optimized for different use ca
 | **AdaReasoner-7B-Non-Randomized** | Trained **without adaptive learning**, providing **more stable and reliable performance on known tools and tasks**, but limited generalization to unseen tools or task settings. | [🤗 Link](https://huggingface.co/AdaReasoner/AdaReasoner-7B-Non-Randomized) |
 | **AdaReasoner-VSP-7B** | Task-specialized model trained **exclusively on the Visual Spatial Planning (VSP) task**, achieving strong performance on VSP benchmarks but not intended for cross-task generalization. | [🤗 Link](https://huggingface.co/AdaReasoner/AdaReasoner-VSP-7B) |
 
+
+## Tool Cold Start (SFT, TC)-Only Models
+
+
+**AdaReasoner-TC** series are trained through TC (Tool Cold Start) supervised fine-tuning only, without subsequent RL fine-tuning.
+
+| Model | Description | Hugging Face |
+|------|-------------|--------------|
+| **AdaReasoner-TC-7B-Randomized** | Trained with the *adaptive learning* method, enabling strong generalization to **unseen tools and tasks**. Designed for open-ended and evolving tool environments where adaptability is required. | [🤗 Link](https://huggingface.co/AdaReasoner/AdaReasoner-TC-7B-Randomized) |
+| **AdaReasoner-TC-7B-Non-Randomized** | Trained **without adaptive learning**, providing **more stable and reliable performance on known tools and tasks**, but limited generalization to unseen tools or task settings. | [🤗 Link](https://huggingface.co/AdaReasoner/AdaReasoner-TC-7B-Non-Randomized) |
+
+
+
 # Datasets
 
 We provide the following datasets used for training and evaluating AdaReasoner-7B.

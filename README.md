@@ -18,7 +18,7 @@
   <a href="https://github.com/ssmisya/AdaReasoner/tree/main/tool_server/tf_eval/demo">
   <img src="https://img.shields.io/badge/Demo-FF7C00?style=for-the-badge&logo=gradio&logoColor=white" alt="Demo">
   </a>
-  <a href="https://www.youtube.com/watch?v=AtBoJYW_yDA">
+  <a href="https://youtu.be/_SOyD-lomOM">
     <img src="https://img.shields.io/badge/Video-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Video">
   </a>
     
@@ -34,11 +34,11 @@
 
 <div align="center">
   <h3>🎬 Demo Video</h3>
-  <a href="https://www.youtube.com/watch?v=AtBoJYW_yDA">
+  <a href="https://youtu.be/_SOyD-lomOM">
     <img src="https://img.youtube.com/vi/AtBoJYW_yDA/maxresdefault.jpg" alt="AdaReasoner Demo" width="700" style="border-radius: 8px;">
   </a>
   <br>
-  <a href="https://www.youtube.com/watch?v=AtBoJYW_yDA">
+  <a href="https://youtu.be/_SOyD-lomOM">
     <img src="https://img.shields.io/badge/▶_Watch_Full_Demo-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch Demo">
   </a>
 </div>

@@ -33,10 +33,14 @@
 </div>
 
 <div align="center">
-<iframe width="1000" height="600" src="https://www.youtube.com/embed/AtBoJYW_yDA?si=t1bpiFQOatpiw3f4" title="YouTube video player"
-              frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerpolicy="strict-origin-when-cross-origin" allowfullscreen
-              class="image is-fullwidth"></iframe>
+  <h3>🎬 Demo Video</h3>
+  <a href="https://www.youtube.com/watch?v=AtBoJYW_yDA">
+    <img src="https://img.youtube.com/vi/AtBoJYW_yDA/maxresdefault.jpg" alt="AdaReasoner Demo" width="700" style="border-radius: 8px;">
+  </a>
+  <br>
+  <a href="https://www.youtube.com/watch?v=AtBoJYW_yDA">
+    <img src="https://img.shields.io/badge/▶_Watch_Full_Demo-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch Demo">
+  </a>
 </div>
 
 ## 🧩 Project Architecture Overview

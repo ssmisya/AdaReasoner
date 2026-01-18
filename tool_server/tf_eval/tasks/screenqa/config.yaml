@@ -1,5 +1,5 @@
 task_name: "screenqa"
-dataset_path: Mikivis/AdaEval-screenqa
+dataset_path: AdaReasoner/AdaEval-screenqa
 dataset_type: "unique"
 generation_config:
   max_length: 8192

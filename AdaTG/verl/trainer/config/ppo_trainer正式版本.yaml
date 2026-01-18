@@ -197,7 +197,7 @@ reward_model:
   reward_manager: batch
 
 custom_reward_function:
-  path: /mnt/petrelfs/sunhaoyu/visual-code/DeepEyes/verl/utils/reward_score/frozenlake.py
+  path: /DeepEyes/verl/utils/reward_score/frozenlake.py
   name: compute_score
 
 algorithm:

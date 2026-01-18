@@ -1,16 +1,6 @@
 source ~/.bashrc
 source ~/anaconda3/bin/activate vllm2
 
-# export CUDA_HOME=/mnt/petrelfs/share/cuda-12.4
-# export PATH=/mnt/petrelfs/share/cuda-12.4/bin:$PATH
-# export LD_LIBRARY_PATH=/mnt/petrelfs/share/cuda-12.4/lib64:$LD_LIBRARY_PATH
-
-# export LDFLAGS="-ldl"
-
-# export CFLAGS="-I/mnt/petrelfs/sunhaoyu/visual-code/libaio/usr/include $CFLAGS"
-# export LDFLAGS="-L/mnt/petrelfs/sunhaoyu/visual-code/libaio/usr/lib $LDFLAGS"
-# export C_INCLUDE_PATH=/mnt/petrelfs/sunhaoyu/visual-code/libaio/usr/include
-# export LD_LIBRARY_PATH="/mnt/petrelfs/sunhaoyu/visual-code/libaio/usr/lib:$LD_LIBRARY_PATH"
 
 
 export HF_ENDPOINT=https://hf-mirror.com

@@ -325,11 +325,11 @@ def main():
         help="控制器地址"
     )
     parser.add_argument(
-        "--image-path", type=str, default="/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
+        "--image-path", type=str, default="tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
         help="测试图像路径"
     )
     parser.add_argument(
-        "--output-dir", type=str, default="/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/batch_test_results",
+        "--output-dir", type=str, default="tool_server/tool_workers/online_workers/test_cases/worker_tests/batch_test_results",
         help="输出目录"
     )
     parser.add_argument(
@@ -347,19 +347,19 @@ def main():
 
     # 为不同工具设置合适的测试图像
     image_dict = {
-        "default":"/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
-        "GroundingDINO": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/truck.jpg",
-        "SegmentRegionAroundPoint": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/zebra.jpg",
-        "Point": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/zebra.jpg",
-        "LanguageModel": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots4.jpg",
-        "GetSubplotInfo": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots2.jpg",
-        "GetBarInfo": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/bars3.jpg",
-        "OCR": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/web.jpg", # OCR 建议使用包含文本的图像
-        "DrawLine": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
-        "Crop": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
-        "DrawShape": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
-        "HighlightBox": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
-        "MaskBox": "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
+        "default":"/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
+        "GroundingDINO": "/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/truck.jpg",
+        "SegmentRegionAroundPoint": "/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/zebra.jpg",
+        "Point": "/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/zebra.jpg",
+        "LanguageModel": "/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots4.jpg",
+        "GetSubplotInfo": "/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplots2.jpg",
+        "GetBarInfo": "/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/bars3.jpg",
+        "OCR": "/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/web.jpg", # OCR 建议使用包含文本的图像
+        "DrawLine": "/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
+        "Crop": "/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
+        "DrawShape": "/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
+        "HighlightBox": "/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
+        "MaskBox": "/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
     }
     
     # 运行测试

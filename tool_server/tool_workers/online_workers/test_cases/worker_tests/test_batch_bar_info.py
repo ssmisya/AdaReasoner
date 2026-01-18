@@ -220,12 +220,12 @@ def main():
     )
     parser.add_argument(
         "--image-path", type=str, 
-        default="/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/bars3.jpg",
+        default="tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/bars3.jpg",
         help="测试图像路径"
     )
     parser.add_argument(
         "--output-dir", type=str, 
-        default="/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/test_results_bar",
+        default="tool_server/tool_workers/online_workers/test_cases/worker_tests/test_results_bar",
         help="输出目录"
     )
     

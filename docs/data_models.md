@@ -48,3 +48,7 @@ We provide the following datasets used for training and evaluating AdaReasoner-7
 | **AdaReasoner/AdaEval-VSPO** |  [🤗 Link](https://huggingface.co/datasets/AdaReasoner/AdaEval-VSPO) |
 | **AdaReasoner/AdaEval-VSP** |  [🤗 Link](https://huggingface.co/datasets/AdaReasoner/AdaEval-VSP) |
 | **AdaReasoner/AdaEval-Jigsaw-COCO** |  [🤗 Link](https://huggingface.co/datasets/AdaReasoner/AdaEval-Jigsaw-COCO) |
+| **AdaReasoner/AdaEval-screenqa** |  [🤗 Link](https://huggingface.co/datasets/AdaReasoner/AdaEval-screenqa) |
+| **AdaReasoner/AdaEval-texthalubench** |  [🤗 Link](https://huggingface.co/datasets/AdaReasoner/AdaEval-texthalubench) |
+| **AdaReasoner/AdaEval-web_guichat** |  [🤗 Link](https://huggingface.co/datasets/AdaReasoner/AdaEval-web_guichat) |
+| **AdaReasoner/AdaEval-webquest** |  [🤗 Link](https://huggingface.co/datasets/AdaReasoner/AdaEval-webquest) |

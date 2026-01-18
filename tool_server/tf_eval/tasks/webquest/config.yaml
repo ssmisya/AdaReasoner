@@ -1,5 +1,5 @@
 task_name: "webquest"
-dataset_path: Mikivis/AdaEval-webquest
+dataset_path: AdaReasoner/AdaEval-webquest
 dataset_type: "unique"
 generation_config:
   max_length: 8192

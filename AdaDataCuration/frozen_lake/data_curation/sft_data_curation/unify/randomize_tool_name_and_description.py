@@ -1393,13 +1393,11 @@ def randomize_dataset(input_file, output_file, external_tool_descs=None, externa
 
 def main():
     parser = argparse.ArgumentParser(description="Randomize tool names, parameters and descriptions in training data")
-    parser.add_argument("--input", type=str, default="/mnt/petrelfs/share_data/sunhaoyu/datasets/web/webdata_ocr_sharegpt.json", help="Input JSON file path")
-    parser.add_argument("--output", type=str, default="/mnt/petrelfs/songmingyang/code/reasoning/tool_util_code/frozen_lake/data_curation/frozen_lake_metadata_v2/merged_sft_file/randomized/web_v1_new_desc.json", help="Output JSON file path")
+    parser.add_argument("--input", type=str, default="share_data/datasets/web/webdata_ocr_sharegpt.json", help="Input JSON file path")
+    parser.add_argument("--output", type=str, default="frozen_lake_metadata_v2/merged_sft_file/randomized/web_v1_new_desc.json", help="Output JSON file path")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument("--desc-file", type=str, default="", help="Optional JSON file with additional descriptions")
     parser.add_argument("--renew-system-prompt", type=str, default="True", help="Whether to renew system prompt descriptions")
-    # Web: /mnt/petrelfs/share_data/sunhaoyu/datasets/web/webdata_ocr_sharegpt.json
-    # Jigsaw: /mnt/petrelfs/songmingyang/code/reasoning/tool_util_code/frozen_lake/data_curation/frozen_lake_metadata_v2/merged_sft_file/vsp2tasks_v2_navigationa.json
     args = parser.parse_args()
     
     # 设置随机种子

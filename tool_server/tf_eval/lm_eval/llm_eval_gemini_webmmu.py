@@ -415,13 +415,13 @@ def main():
         # 运行记得关代理
         jsonl_paths = [
             # # webguichat
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat/7b_wo_tool_output.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat/32b_wo_tool_output.jsonl",
-            # "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichat/72b_wo_tool_output.jsonl"
+            # "/tool_server/tf_eval/scripts/logs/ckpt/web_guichat/7b_wo_tool_output.jsonl",
+            # "/tool_server/tf_eval/scripts/logs/ckpt/web_guichat/32b_wo_tool_output.jsonl",
+            # "/tool_server/tf_eval/scripts/logs/ckpt/web_guichat/72b_wo_tool_output.jsonl"
             # webmmu
-            "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu/7b_wo_tool_output.jsonl",
-            "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu/32b_wo_tool_output.jsonl",
-            "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/webmmu/72b_wo_tool_output.jsonl"
+            "/tool_server/tf_eval/scripts/logs/ckpt/webmmu/7b_wo_tool_output.jsonl",
+            "/tool_server/tf_eval/scripts/logs/ckpt/webmmu/32b_wo_tool_output.jsonl",
+            "/tool_server/tf_eval/scripts/logs/ckpt/webmmu/72b_wo_tool_output.jsonl"
         ]
     
     if len(jsonl_paths) == 1 and os.path.isdir(jsonl_paths[0]):

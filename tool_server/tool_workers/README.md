@@ -150,49 +150,76 @@ Suitable for environments with SLURM clusters.
 **Configuration Example** (`all_service_example.yaml`):
 
 ```yaml
-base_dir: /path/to/AdaReasoner/tool_server/tool_workers
-log_folder: /path/to/logs
-partition: "your_slurm_partition"
+base_dir: ./tool_server/tool_workers
+log_folder: ./tool_server/tool_workers/logs/server_log
+partition: "ai_moe2"
 default_calculate_gpus: 1
-default_calculate_cpus: 16
+default_calculate_cpus: 12
+default_control_cpus: 2
+default_control_gpus: 0
+default_heavy_calculate_gpus: 4
+default_heavy_calculate_cpus: 32
 retry_interval: 1
 request_timeout: 10
-current_node: &node your-node-name
 
 controller_config:
   worker_name: controller
   job_name: controller
   calculate_type: control
-  conda_env: "tool-server"
+  conda_env: "tool_server"
   srun_kwargs:
-  w: *node
+    w: "SH-IDC1-10-140-37-138"  # Specific node
   cmd:
-  script-addr: ./online_workers/controller.py
-  port: 20001
-  host: "0.0.0.0"
+    script-addr: ./online_workers/controller.py
+    port: 21112
+    host: "0.0.0.0"
 
 tool_worker_config:
   - Point:
-    worker_name: Point
-    job_name: point
-    calculate_type: calculate
-    conda_env: "tool-server"
-    cuda_visible_devices: "0"
-    srun_kwargs:
-    w: *node
-    cmd:
-    script-addr: ./online_workers/molmo_point_worker.py
-    port: 20027
-    host: "0.0.0.0"
-    model_path: /path/to/Molmo-7B-D-0924
-    load-4bit: yes
+      worker_name: Point
+      job_name: point
+      calculate_type: control
+      conda_env: "tool-server"
+      srun_kwargs:
+        w: "SH-IDC1-10-140-37-82"
+      cuda_visible_devices: "4,5,6,7"
+      cmd:
+        script-addr: tool_server.tool_workers.online_workers.point_worker_parallel
+        port: 50002
+        host: "0.0.0.0"
+        model_path: allenai/Molmo-7B-D-0924
+
+  - OCR:
+      worker_name: OCR
+      job_name: ocr
+      calculate_type: calculate
+      node_list: "SH-IDC1-10-140-37-138"
+      cuda_visible_devices: "6,7"
+      use_apptainer: true
+      apptainer_image: "./images/ubuntu20.04-py3.10-cuda11.8-cudnn8-transformer4.30.0_v1.0.0.sif"
+      conda_env_path: "./envs/tool-server"
+      cmd:
+        script-addr: tool_server.tool_workers.online_workers.ocr_worker
+        port: 20009
+        host: "0.0.0.0"
+        gpu_ids: "6,7"
+        enable_multi_gpu: true
+        max_concurrency: 4
 ```
+
+> [!IMPORTANT]
+> **OCR Tool Requirements**: The OCR tool relies on PaddlePaddle. Please ensure you have installed the correct version in your environment:
+> - `paddlepaddle-gpu==3.0.0`
+> - `paddleocr==3.2.0`
+>
+> Refer to the [official documentation](https://www.paddlepaddle.org.cn/en/install/quick?docurl=/documentation/docs/en/develop/install/pip/linux-pip_en.html) for installation details.
 
 **Start Service**:
 
+You can use the provided script to start the server. It is recommended to run this in a tmux session:
+
 ```bash
-cd AdaReasoner/tool_server/tool_workers/scripts/launch_scripts
-python start_server_config.py --config ./config/all_service_example.yaml
+tmux send-keys -t $session_name "python -m tool_server.tool_workers.scripts.launch_scripts.start_server_config --config tool_server/tool_workers/scripts/launch_scripts/config/all_service_example.yaml" C-m
 ```
 
 ### Method 2: Local Deployment

@@ -237,7 +237,7 @@ def main():
     
     args = parser.parse_args()
 
-    jsonl_paths = ["/mnt/petrelfs/sunhaoyu/visual-code/Tool-Data-Curation/web/test_results/7b_full_results.jsonl"]
+    jsonl_paths = ["Tool-Data-Curation/web/test_results/7b_full_results.jsonl"]
 
     # 如果只有一个路径且它是目录，则获取该目录下的所有 .jsonl 文件
     resolved_paths = []

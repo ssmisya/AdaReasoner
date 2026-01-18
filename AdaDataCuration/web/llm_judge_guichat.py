@@ -224,7 +224,7 @@ def main():
     args = parser.parse_args()
 
     # 指定要处理的文件路径
-    jsonl_paths = ["/mnt/petrelfs/sunhaoyu/visual-code/Tool-Data-Curation/web/test_results/guichat/7b_responses.jsonl"]
+    jsonl_paths = ["web/test_results/guichat/7b_responses.jsonl"]
 
     resolved_paths = []
     for path_str in jsonl_paths:

@@ -361,11 +361,11 @@ A complete configuration example is provided in `AdaReasoner/AdaTG/examples/adar
 If you find this project useful in your research, please consider citing our paper:
 
 ```bibtex
-@article{your2024adareasoner,
-  title={Dynamic Tool Orchestration for Iterative Visual Reasoning},
-  author={Your Name and Coauthor Name},
-  journal={arXiv preprint arXiv:XXXX.XXXXX},
-  year={2024}
+@article{song2026adareasoner,
+  title={AdaReasoner: Dynamic Tool Orchestration for Iterative Visual Reasoning},
+  author={Song, Mingyang and Sun, Haoyu and Gu, Jiawei and Li, Linjie and Xu, Luxin and Krishna, Ranjay and Cheng, Yu},
+  journal={arXiv preprint arXiv:2601.18631},
+  year={2026}
 }
 ```
 

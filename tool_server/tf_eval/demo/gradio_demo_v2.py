@@ -31,7 +31,7 @@ logger.addHandler(console_handler)
 
 # Default configuration
 DEFAULT_MODEL_PATH = "/mnt/petrelfs/songmingyang/songmingyang/runs/tool_factory/rl/v2/tool_rl/test_ckpts/unified_all_randomized_sft_randomized_rl_4tasks_7b/global_step_250/actor/huggingface"
-DEFAULT_CONTROLLER_URL = "http://SH-IDC1-10-140-37-138:21112"
+DEFAULT_CONTROLLER_URL = "http://SH-IDC1-10-140-37-45:21112"
 DEFAULT_TOOLS = "Point,Draw2DPath,AStarWithPixelCoordinate,DetectBlackArea,InsertImage,OCR,Crop".split(",")
 
 def pil_to_html(img: Image.Image, max_width: int = 400) -> str:

@@ -58,7 +58,7 @@
 ## News
 <!-- - **[2026/01]** AdaReasoner paper is now available on [arXiv](#). -->
 - **[2026/01/27]** AdaReasoner paper is now available on [arXiv](https://arxiv.org/abs/2601.18631).
-- **[2026/01/26]** An alternative version of our work has been accepted to **ICLR 2026**. See you in Rio!
+- **[2026/01/26]** 🎉🎉 An alternative version of our work has been accepted to **ICLR 2026**. See you in Rio!
 - **[2026/01/17]** The models and datasets are released on [HuggingFace](https://huggingface.co/AdaReasoner).
 - **[2026/01/17]** AdaReasoner Framework codebase is released. Try it out!
 

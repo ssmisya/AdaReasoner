@@ -13,7 +13,6 @@ srun \
   --ntasks-per-node=1 \
   --kill-on-bad-exit=1 \
   --quotatype=spot \
-  python /mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/test_all.py --controller_addr http://SH-IDC1-10-140-37-6:21112
-  # python /mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/test_all.py --controller_addr http://SH-IDC1-10-140-37-4:30001
+  python /tool_server/tool_workers/online_workers/test_cases/worker_tests/test_all.py --controller_addr http://SH-IDC1-10-140-37-6:21112
 
 

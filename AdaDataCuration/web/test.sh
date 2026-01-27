@@ -48,4 +48,4 @@ srun \
   --ntasks-per-node=1 \
   --kill-on-bad-exit=1 \
   --quotatype=reserved \
-  python /mnt/petrelfs/sunhaoyu/visual-code/Tool-Data-Curation/web/test_7b_guichat.py
+  python AdaReasoner/AdaDataCurationweb/test_7b_guichat.py

@@ -112,7 +112,7 @@ def process_dataset_concurrently():
     """
     使用并发方式加载和处理 RICO-ScreenQA 数据集。
     """
-    dataset_path = "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Data-Curation/web/datasets/RICO-ScreenQA"
+    dataset_path = "AdaReasoner/AdaDataCurationweb/datasets/RICO-ScreenQA"
     output_file = "test_results/7b_full_results.jsonl"
     
     output_dir = os.path.dirname(output_file)

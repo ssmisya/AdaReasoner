@@ -38,10 +38,10 @@ export PATH=/mnt/petrelfs/share/cuda-12.4/bin:$PATH
 export LD_LIBRARY_PATH=/mnt/petrelfs/share/cuda-12.4/lib64:$LD_LIBRARY_PATH
 
 export LDFLAGS="-ldl"
-export CFLAGS="-I/mnt/petrelfs/sunhaoyu/visual-code/libaio/usr/include $CFLAGS"
-export LDFLAGS="-L/mnt/petrelfs/sunhaoyu/visual-code/libaio/usr/lib $LDFLAGS"
-export C_INCLUDE_PATH=/mnt/petrelfs/sunhaoyu/visual-code/libaio/usr/include
-export LD_LIBRARY_PATH="/mnt/petrelfs/sunhaoyu/visual-code/libaio/usr/lib:$LD_LIBRARY_PATH"
+export CFLAGS="-I/libaio/usr/include $CFLAGS"
+export LDFLAGS="-L/libaio/usr/lib $LDFLAGS"
+export C_INCLUDE_PATH=/libaio/usr/include
+export LD_LIBRARY_PATH="/libaio/usr/lib:$LD_LIBRARY_PATH"
 
 export PYTHONUNBUFFERED=1
 export NCCL_DEBUG=ERROR
@@ -51,7 +51,7 @@ export RAY_NODE_IP_ADDRESS=127.0.0.1
 
 # 2. 项目和实验配置 (您的配置)
 # ==========================================================
-code_base="/mnt/petrelfs/sunhaoyu/visual-code/DeepEyes"
+code_base="/DeepEyes"
 cd $code_base
 
 if [ -z "$EXPERIMENT_NAME" ]; then
@@ -64,14 +64,14 @@ log_dir="${code_base}/logs"
 mkdir -p $log_dir
 log_file="${log_dir}/${EXPERIMENT_NAME}_$(date +%Y%m%d_%H%M%S).log"
 
-SAVE_CHECKPOINT_DIR="/mnt/petrelfs/sunhaoyu/visual-code/DeepEyes/checkpoints"
-# dataset_path="/mnt/petrelfs/sunhaoyu/visual-code/datasets/DeepEyes-Datasets-47k"
+SAVE_CHECKPOINT_DIR="/DeepEyes/checkpoints"
+# dataset_path="/datasets/DeepEyes-Datasets-47k"
 # VISUAL_DATASET_TRAIN_0_1_2="${dataset_path}/data_0.1.2_visual_toolbox_v2.parquet"
 # VISUAL_DATASET_TRAIN_0_8="${dataset_path}/data_v0.8_visual_toolbox_v2.parquet"
 # EUREKA_DATASET_TRAIN="${dataset_path}/data_thinklite_reasoning_acc.parquet"
-FROZENLAKE_DATASET_TRAIN="/mnt/petrelfs/sunhaoyu/visual-code/datasets/web_guichat_rl/train.parquet"
-# FROZENLAKE_DATASET_VAL="/mnt/petrelfs/sunhaoyu/visual-code/datasets/web_guichat_rl/test.parquet"
-FROZENLAKE_DATASET_VAL="/mnt/petrelfs/sunhaoyu/visual-code/datasets/webmmu_test/test.parquet"
+FROZENLAKE_DATASET_TRAIN="/datasets/web_guichat_rl/train.parquet"
+# FROZENLAKE_DATASET_VAL="/datasets/web_guichat_rl/test.parquet"
+FROZENLAKE_DATASET_VAL="/datasets/webmmu_test/test.parquet"
 REF_MODEL_PATH="/mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-7B-Instruct-new"
 # REF_MODEL_PATH="/mnt/petrelfs/share_data/songmingyang/runs/tool_factory/sft/v1/Qwen2.5-VL-7B-Instruct-webqa_v1/checkpoint-200"
 
@@ -150,7 +150,7 @@ python_cmd="python3 -m verl.trainer.main_ppo \
     +trainer.tensorboard_dir=${SAVE_CHECKPOINT_DIR}/logs/tensorboard \
     +trainer.rl_logging_board_dir=${SAVE_CHECKPOINT_DIR}/logs/rl_logging_board \
     trainer.total_epochs=10 \
-    custom_reward_function.path=/mnt/petrelfs/sunhaoyu/visual-code/DeepEyes/verl/utils/reward_score/web_reward44.py"
+    custom_reward_function.path=/DeepEyes/verl/utils/reward_score/web_reward44.py"
 
 # 使用 srun 包装器构建最终的完整命令
 cmd="OMP_NUM_THREADS=8 srun --partition=${partition} -w ${node_list} --job-name=\"${EXPERIMENT_NAME}\" --mpi=pmi2 --export=ALL --no-kill --gres=gpu:${gpus} -n1 --ntasks-per-node=1 -c ${cpus} --kill-on-bad-exit=1 --quotatype=${quotatype} \

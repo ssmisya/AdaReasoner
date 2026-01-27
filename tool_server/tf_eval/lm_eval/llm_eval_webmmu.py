@@ -480,7 +480,7 @@ def process_and_save_jsonl_parallel(jsonl_path, client, model_name, num_threads=
 # 步骤 4: 主程序入口
 # ==============================================================================
 def main():
-    log_file_path = "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/eval_logs"
+    log_file_path = "/tool_server/tf_eval/scripts/logs/ckpt/eval_logs"
 
     parser = argparse.ArgumentParser(description="使用 LLM 评估 JSONL 文件中的预测结果。")
     # 让 jsonl_paths 成为可选参数，如果未提供，则使用硬编码的列表
@@ -501,7 +501,7 @@ def main():
         print("未从命令行接收到路径，使用代码中预设的路径列表。")
         # 运行记得关代理
         # jsonl_paths = [
-        #     "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tf_eval/scripts/logs/ckpt/web_guichatv1/v1_400_rl_output.jsonl",
+        #     "/tool_server/tf_eval/scripts/logs/ckpt/web_guichatv1/v1_400_rl_output.jsonl",
         # ]
 
         jsonl_paths = [

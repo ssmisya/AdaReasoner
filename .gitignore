@@ -197,7 +197,7 @@ tool_server/tool_workers/scripts/launch_scripts/personal
 tool_server/tool_workers/online_workers/test_cases/worker_tests/test_results
 tool_server/tool_workers/online_workers/controller_addr
 
-/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/start_service.sh
+Tool-Factory-Filter/start_service.sh
 
 
 tool_server/tf_eval/scripts/*

@@ -15,9 +15,9 @@ api_key = "not-needed"
 model_name = "/mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-72B-Instruct" # 例如使用这个VL模型
 
 # --- 文件路径配置 ---
-input_jsonl_file = '/mnt/petrelfs/sunhaoyu/visual-code/Tool-Data-Curation/web/datasets/GUIChat-processed/singleturn_data.jsonl'
-image_path_map_file = '/mnt/petrelfs/sunhaoyu/visual-code/Tool-Data-Curation/web/datasets/GUIChat-processed/images/image_id2path.json'
-output_file = "/mnt/petrelfs/sunhaoyu/visual-code/Tool-Data-Curation/web/test_results/guichat/72b_responses.jsonl"
+input_jsonl_file = 'AdaReasoner/AdaDataCurationweb/datasets/GUIChat-processed/singleturn_data.jsonl'
+image_path_map_file = 'AdaReasoner/AdaDataCurationweb/datasets/GUIChat-processed/images/image_id2path.json'
+output_file = "AdaReasoner/AdaDataCurationweb/test_results/guichat/72b_responses.jsonl"
 
 # --- 可调参数 ---
 MAX_CONCURRENT_REQUESTS = 32

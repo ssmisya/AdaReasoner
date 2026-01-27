@@ -37,10 +37,10 @@ export PATH=/mnt/petrelfs/share/cuda-12.4/bin:$PATH
 export LD_LIBRARY_PATH=/mnt/petrelfs/share/cuda-12.4/lib64:$LD_LIBRARY_PATH
 
 export LDFLAGS="-ldl"
-export CFLAGS="-I/mnt/petrelfs/sunhaoyu/visual-code/libaio/usr/include $CFLAGS"
-export LDFLAGS="-L/mnt/petrelfs/sunhaoyu/visual-code/libaio/usr/lib $LDFLAGS"
-export C_INCLUDE_PATH=/mnt/petrelfs/sunhaoyu/visual-code/libaio/usr/include
-export LD_LIBRARY_PATH="/mnt/petrelfs/sunhaoyu/visual-code/libaio/usr/lib:$LD_LIBRARY_PATH"
+export CFLAGS="-I/libaio/usr/include $CFLAGS"
+export LDFLAGS="-L/libaio/usr/lib $LDFLAGS"
+export C_INCLUDE_PATH=/libaio/usr/include
+export LD_LIBRARY_PATH="/libaio/usr/lib:$LD_LIBRARY_PATH"
 
 export PYTHONUNBUFFERED=1
 export NCCL_DEBUG=ERROR
@@ -50,7 +50,7 @@ export RAY_NODE_IP_ADDRESS=127.0.0.1
 
 # 2. 项目和实验配置 (您的配置)
 # ==========================================================
-code_base="/mnt/petrelfs/sunhaoyu/visual-code/DeepEyes"
+code_base="/DeepEyes"
 cd $code_base
 
 if [ -z "$EXPERIMENT_NAME" ]; then
@@ -63,13 +63,13 @@ log_dir="${code_base}/logs"
 mkdir -p $log_dir
 log_file="${log_dir}/${EXPERIMENT_NAME}_$(date +%Y%m%d_%H%M%S).log"
 
-SAVE_CHECKPOINT_DIR="/mnt/petrelfs/sunhaoyu/visual-code/DeepEyes/checkpoints"
-# dataset_path="/mnt/petrelfs/sunhaoyu/visual-code/datasets/DeepEyes-Datasets-47k"
+SAVE_CHECKPOINT_DIR="/DeepEyes/checkpoints"
+# dataset_path="/datasets/DeepEyes-Datasets-47k"
 # VISUAL_DATASET_TRAIN_0_1_2="${dataset_path}/data_0.1.2_visual_toolbox_v2.parquet"
 # VISUAL_DATASET_TRAIN_0_8="${dataset_path}/data_v0.8_visual_toolbox_v2.parquet"
 # EUREKA_DATASET_TRAIN="${dataset_path}/data_thinklite_reasoning_acc.parquet"
-FROZENLAKE_DATASET_TRAIN="/mnt/petrelfs/sunhaoyu/visual-code/create_datasets/train_nav.parquet"
-FROZENLAKE_DATASET_VAL="/mnt/petrelfs/sunhaoyu/visual-code/create_datasets/test.parquet"
+FROZENLAKE_DATASET_TRAIN="/create_datasets/train_nav.parquet"
+FROZENLAKE_DATASET_VAL="/create_datasets/test.parquet"
 # REF_MODEL_PATH="/mnt/petrelfs/share_data/ai4good_shared/models/Qwen/Qwen2.5-VL-7B-Instruct-new"
 REF_MODEL_PATH="/mnt/petrelfs/share_data/songmingyang/runs/tool_factory/sft/v1/Qwen2.5-VL-7B-Instruct-vsp2tasks_v2_navigationa"
 

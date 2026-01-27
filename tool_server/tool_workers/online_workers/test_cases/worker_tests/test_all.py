@@ -1060,7 +1060,7 @@ def main():
         help="控制器地址"
     )
     parser.add_argument(
-        "--image-path", type=str, default="/mnt/petrelfs/sunhaoyu/visual-code/Tool-Factory-Filter/tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
+        "--image-path", type=str, default="tool_server/tool_workers/online_workers/test_cases/worker_tests/input_cases/subplot_0.png",
         help="测试图像路径"
     )
     parser.add_argument(

@@ -210,9 +210,7 @@ For detailed information and config setting please refer to our [documentation](
 
 ## Usage2: Run Tool Cold Start (TC, SFT) with AdaTC
 
-Once the vision tools are properly deployed, we provide a flexible training pipeline to teach models **how to plan and invoke tools** effectively through **SFT** and our proposed **V-ToolRL** methods.
-
-Our training pipeline builds on the solid foundation of [OpenR1](https://github.com/OpenR1), integrating visual tools as external reasoning capabilities.
+Our SFT stage is implemented using [LLaMA Factoruy](https://github.com/hiyouga/LlamaFactory), which offers a stable and efficient training framework. We use the TC data on [LLaMA Factoruy](https://github.com/hiyouga/LlamaFactory) to obtain our SFT model.
 
 
 

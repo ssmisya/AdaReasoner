@@ -210,7 +210,7 @@ For detailed information and config setting please refer to our [documentation](
 
 ## Usage2: Run Tool Cold Start (TC, SFT) with AdaTC
 
-Our SFT stage is implemented using [LLaMA Factoruy](https://github.com/hiyouga/LlamaFactory), which offers a stable and efficient training framework. We use the TC data on [LLaMA Factoruy](https://github.com/hiyouga/LlamaFactory) to obtain our SFT model.
+Our SFT stage is implemented using [LLaMA Factory](https://github.com/hiyouga/LlamaFactory), which offers a stable and efficient training framework. We use the TC data on [LLaMA Factory](https://github.com/hiyouga/LlamaFactory) to obtain our SFT model.
 
 
 

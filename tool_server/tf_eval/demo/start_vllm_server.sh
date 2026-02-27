@@ -55,6 +55,7 @@ model_path=/mnt/petrelfs/songmingyang/songmingyang/runs/tool_factory/rl/v2/tool_
 model_path=/mnt/petrelfs/songmingyang/songmingyang/runs/tool_factory/rl/v2/tool_rl/test_ckpts/unified_all_randomized_sft_normal_rl_4tasks_7b_new/global_step_400/actor/huggingface
 
 export SLURM_JOB_ID=7149367
+unset SLURM_JOB_ID
 # 构建命令
 cmd="OMP_NUM_THREADS=8 srun --partition=ai_moe -w ${node} --job-name=\"vllm-server\" --mpi=pmi2 --export=ALL --no-kill --gres=gpu:${gpus} -n1 --ntasks-per-node=1 -c ${cpus} --kill-on-bad-exit=1 --quotatype=${quotatype} \
 python \

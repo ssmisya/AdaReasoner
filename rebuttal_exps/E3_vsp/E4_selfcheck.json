@@ -1,0 +1,26 @@
+{
+  "n_scored": 1100,
+  "notool": {
+    "n": 1,
+    "acc": 0.0
+  },
+  "withtool": {
+    "n": 1099,
+    "acc": 0.3821656050955414
+  },
+  "overall_acc": 0.38181818181818183,
+  "by_task_type": {
+    "navigation": {
+      "n": 600,
+      "tool_use_rate": 0.9983333333333333,
+      "avg_calls": 4.14,
+      "acc": 0.195
+    },
+    "verify": {
+      "n": 500,
+      "tool_use_rate": 1.0,
+      "avg_calls": 2.092,
+      "acc": 0.606
+    }
+  }
+}

@@ -1,5 +1,5 @@
 task_name: "jigsaw_coco"
-dataset_repo: "hitsmy/AdaEval-Jigsaw-COCO"  
+dataset_repo: "/apdcephfs_cq11/share_1567347/share_info/myangsong/datasets/AdaEval-Jigsaw-COCO/data"
 dataset_type: "huggingface" 
 use_auth_token: false
 splits:

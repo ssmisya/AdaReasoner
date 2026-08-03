@@ -1,0 +1,52 @@
+{
+  "baseline": {
+    "n": 100,
+    "n_scored": 100,
+    "detect_rate": 1.0,
+    "recover(acc)": 0.9,
+    "propagate_rate": 0.0,
+    "avg_rounds": 3.75
+  },
+  "faults": {
+    "E5j_plausible_wrong": {
+      "n": 100,
+      "n_scored": 100,
+      "detect_rate": 1.0,
+      "recover(acc)": 0.77,
+      "propagate_rate": 0.0,
+      "avg_rounds": 4.0
+    },
+    "E5j_missing": {
+      "n": 100,
+      "n_scored": 100,
+      "detect_rate": 1.0,
+      "recover(acc)": 0.73,
+      "propagate_rate": 0.0,
+      "avg_rounds": 4.0
+    },
+    "E5j_malformed": {
+      "n": 100,
+      "n_scored": 100,
+      "detect_rate": 1.0,
+      "recover(acc)": 0.84,
+      "propagate_rate": 0.0,
+      "avg_rounds": 4.0
+    },
+    "E5j_timeout": {
+      "n": 100,
+      "n_scored": 100,
+      "detect_rate": 0.92,
+      "recover(acc)": 0.81,
+      "propagate_rate": 0.03,
+      "avg_rounds": 3.82
+    },
+    "E5j_contradictory": {
+      "n": 100,
+      "n_scored": 100,
+      "detect_rate": 1.0,
+      "recover(acc)": 0.82,
+      "propagate_rate": 0.0,
+      "avg_rounds": 4.0
+    }
+  }
+}

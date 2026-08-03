@@ -1,0 +1,19 @@
+model_args:
+  model: vllm_models
+  model_args: pretrained=/home/myangsong/models/AdaReasoner-7B-Randomized,tensor_parallel=1,limit_mm_per_prompt=10
+  batch_size: 16
+  max_rounds: 6
+  model_mode: general
+
+task_args:
+  task_name: vsp
+  tool_selection: AStarWithPixelCoordinate,Draw2DPath
+  save_to_ckpt:
+    vsp: /home/myangsong/AdaReasoner/rebuttal_exps/E5_plausible_wrong/vsp_ckpt.jsonl
+  middle_images_save_dir:
+    vsp: /home/myangsong/AdaReasoner/rebuttal_exps/E5_plausible_wrong/middle_images
+
+script_args:
+  verbosity: INFO
+  output_path: /home/myangsong/AdaReasoner/rebuttal_exps/E5_plausible_wrong/vsp_result.jsonl
+  if_use_tool: True

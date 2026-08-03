@@ -1,10 +1,9 @@
 # config.yaml
 task_name: "vsp"
-dataset_path: "hitsmy/AdaEval-VSP" 
-dataset_type: "hf" 
+dataset_path: "/apdcephfs_cq11/share_1567347/share_info/myangsong/datasets/AdaEval-VSP/data"
+dataset_type: "hf"
 tasks:
-  - "verify_test"  
-  - "navigation_test"  
+  - "test"
 generation_config:
   max_length: 2048
   temperature: 0.7

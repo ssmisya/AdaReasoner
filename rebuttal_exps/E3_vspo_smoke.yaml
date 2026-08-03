@@ -1,0 +1,19 @@
+model_args:
+  model: vllm_models
+  model_args: pretrained=/home/myangsong/models/AdaReasoner-7B-Randomized,tensor_parallel=1,limit_mm_per_prompt=10
+  batch_size: 16
+  max_rounds: 6
+  model_mode: general
+
+task_args:
+  task_name: vspo
+  tool_selection: AStarWithPixelCoordinate,Draw2DPath,Point
+  save_to_ckpt:
+    vspo: /home/myangsong/AdaReasoner/rebuttal_exps/E3_vspo_smoke/vspo_ckpt.jsonl
+  middle_images_save_dir:
+    vspo: /home/myangsong/AdaReasoner/rebuttal_exps/E3_vspo_smoke/middle_images
+
+script_args:
+  verbosity: INFO
+  output_path: /home/myangsong/AdaReasoner/rebuttal_exps/E3_vspo_smoke/vspo_result.jsonl
+  if_use_tool: True

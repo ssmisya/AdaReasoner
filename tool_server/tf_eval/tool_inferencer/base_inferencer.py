@@ -29,6 +29,101 @@ import base64
 
 logger = get_logger(__name__)
 
+# ── E3 latency 旁路计时 (rebuttal E3) ─────────────────────────────
+# 仅当 env E3_LATENCY_LOG 设置时启用; 累加三段耗时到全局dict, 不改变任何推理逻辑。
+import os as _os, time as _time, json as _json, atexit as _atexit
+_E3_LOG = _os.environ.get("E3_LATENCY_LOG")
+_E3 = {"generation_s": 0.0, "tool_exec_s": 0.0, "orchestration_s": 0.0,
+       "gen_calls": 0, "tool_batches": 0, "wall_start": None}
+def _e3_add(bucket, dt):
+    if _E3_LOG:
+        _E3[bucket] = _E3.get(bucket, 0.0) + dt
+def _e3_dump():
+    if _E3_LOG:
+        try:
+            _E3["wall_total_s"] = (_time.time() - _E3["wall_start"]) if _E3.get("wall_start") else None
+            with open(_E3_LOG, "w") as f:
+                _json.dump(_E3, f, indent=2)
+        except Exception:
+            pass
+_atexit.register(_e3_dump)
+# ──────────────────────────────────────────────────────────────────
+
+# ── E5 受控故障注入 (rebuttal E5) ──────────────────────────────────
+# 仅当 env E5_FAULT 设置时启用。E5_FAULT ∈ {plausible_wrong, missing, malformed, timeout, contradictory}
+# E5_FAULT_WHEN ∈ {early, late}: early=第1轮注入, late=最后一轮(current_round==max)注入。
+# 注入对象: 工具真实返回后的 tool_response dict, 按类型篡改。不改推理逻辑, 只污染工具返回。
+_E5_FAULT = _os.environ.get("E5_FAULT")
+_E5_WHEN = _os.environ.get("E5_FAULT_WHEN", "early")
+_E5_LOG = _os.environ.get("E5_FAULT_LOG")
+_E5 = {"fault_type": _E5_FAULT, "when": _E5_WHEN, "injected": 0}
+def _e5_should_inject(cur_round, max_rounds):
+    if not _E5_FAULT:
+        return False
+    if _E5_WHEN == "early":
+        return cur_round == 1
+    else:  # late
+        return cur_round >= max(1, max_rounds - 1)
+def _e5_apply(resp):
+    """按故障类型篡改一个工具返回dict, 返回(新resp, 是否注入)。"""
+    if not isinstance(resp, dict):
+        return resp, False
+    ft = _E5_FAULT
+    import copy as _c
+    r = _c.deepcopy(resp)
+    if ft == "plausible_wrong":
+        # 状态success但内容错误(合理但错): 篡改points/path/bounding_boxes到一个貌似合理的错值
+        if "points" in r and isinstance(r["points"], list) and r["points"]:
+            for p in r["points"]:
+                if isinstance(p, dict):
+                    if "x" in p: p["x"] = float(p.get("x", 0)) + 47.0
+                    if "y" in p: p["y"] = float(p.get("y", 0)) + 47.0
+        if "path" in r and isinstance(r.get("path"), str):
+            r["path"] = "R,R,R,R,R"  # 貌似合理的错误路径
+        if "bounding_boxes" in r and isinstance(r["bounding_boxes"], list) and r["bounding_boxes"]:
+            # 平移bbox一个貌似合理的偏移(仍在图内的错误框)
+            def _shift(b):
+                try:
+                    v = _json.loads(b) if isinstance(b, str) else list(b)
+                    v = [float(x) + 40.0 for x in v]
+                    return str([int(x) for x in v])
+                except Exception:
+                    return b
+            r["bounding_boxes"] = [_shift(b) for b in r["bounding_boxes"]]
+        r["status"] = "success"
+    elif ft == "missing":
+        # 缺失: 工具无返回
+        r = dict(text="", status="success")
+    elif ft == "malformed":
+        # 畸形: 返回结构损坏(非法字段/截断)
+        r = {"tool_response_from": r.get("tool_response_from", "?"),
+             "status": "success", "\x00garbage": "�{unterminated",
+             "points": "NOT_A_LIST", "bounding_boxes": "NOT_A_LIST"}
+    elif ft == "timeout":
+        # 超时: 模拟失败状态+超时消息
+        r = dict(text="Tool call timed out after 120s.", status="failed", error_code=504)
+    elif ft == "contradictory":
+        # 与其它工具矛盾: 标注一个和视觉明显冲突的坐标/框
+        if "points" in r and isinstance(r["points"], list) and r["points"]:
+            for p in r["points"]:
+                if isinstance(p, dict):
+                    if "x" in p: p["x"] = 0.0
+                    if "y" in p: p["y"] = 0.0
+        if "bounding_boxes" in r and isinstance(r["bounding_boxes"], list) and r["bounding_boxes"]:
+            r["bounding_boxes"] = ["[0, 0, 1, 1]"]  # 退化到左上角1px,与视觉矛盾
+        r["message"] = "region at image corner (0,0)"
+        r["status"] = "success"
+    return r, True
+def _e5_dump():
+    if _E5_LOG:
+        try:
+            with open(_E5_LOG, "w") as f:
+                _json.dump(_E5, f, indent=2)
+        except Exception:
+            pass
+_atexit.register(_e5_dump)
+# ──────────────────────────────────────────────────────────────────
+
 class BaseToolInferencer(object):
     """
     Base tool inferencer class
@@ -272,6 +367,12 @@ class BaseToolInferencer(object):
                     tool_response = self.tool_manager.call_tool(api_name, api_paras)
                     tool_response_clone = copy.deepcopy(tool_response)
 
+                    # E5 受控故障注入: 按 env 在 early/late 轮次污染工具返回
+                    if _e5_should_inject(item.current_round, self.max_rounds):
+                        tool_response_clone, _inj = _e5_apply(tool_response_clone)
+                        if _inj:
+                            _E5["injected"] = _E5.get("injected", 0) + 1
+
                     # Log tool call result
                     if tool_response['status'] == "success":
                         logger.info(f"The {api_name} calls successfully!")
@@ -473,7 +574,11 @@ class BaseToolInferencer(object):
 
         # Get current batch and generate responses using model
         current_batch = self.manager.get_current_batch()
+        if _E3_LOG and _E3.get("wall_start") is None:
+            _E3["wall_start"] = _time.time()
+        _t = _time.time()
         self.tp_model.generate(current_batch) # Batch responses obtained
+        _e3_add("generation_s", _time.time() - _t); _E3["gen_calls"] = _E3.get("gen_calls",0)+1
         # Update status in manager
         self.manager.update_item_status()
         
@@ -495,26 +600,36 @@ class BaseToolInferencer(object):
                     # Get updated current batch and generate new responses
                     current_batch = self.manager.get_current_batch()
                     if len(current_batch) > 0:
+                        _t = _time.time()
                         self.tp_model.generate(current_batch)
+                        _e3_add("generation_s", _time.time() - _t); _E3["gen_calls"] = _E3.get("gen_calls",0)+1
                         # Update status
                         self.manager.update_item_status()
                     continue
                 
                 # Below is the workflow when using tools
                 # Parse tool configuration
+                _t = _time.time()
                 self.batch_parse_tool_config()
+                _e3_add("orchestration_s", _time.time() - _t)
                 # Get tool responses
+                _t = _time.time()
                 self.batch_get_tool_response()
+                _e3_add("tool_exec_s", _time.time() - _t); _E3["tool_batches"] = _E3.get("tool_batches",0)+1
                 # Convert tool responses to next round input
+                _t = _time.time()
                 self.batch_tool_response_to_next_round_input()
-                
+                _e3_add("orchestration_s", _time.time() - _t)
+
                 # Refill current batch
                 self.manager.append_item_to_full(self.dataloader_iter, progress_bar=progress_bar)
-                
+
                 # Get updated current batch and generate new responses
                 current_batch = self.manager.get_current_batch()
                 if len(current_batch) > 0:
+                    _t = _time.time()
                     self.tp_model.generate(current_batch)
+                    _e3_add("generation_s", _time.time() - _t); _E3["gen_calls"] = _E3.get("gen_calls",0)+1
                     # Update status, should update current_batch until completion
                     self.manager.update_item_status()
 

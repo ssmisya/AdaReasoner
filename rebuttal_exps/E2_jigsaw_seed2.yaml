@@ -1,0 +1,19 @@
+model_args:
+  model: vllm_models
+  model_args: pretrained=/home/myangsong/models/AdaReasoner-7B-Randomized,tensor_parallel=1,limit_mm_per_prompt=10
+  batch_size: 16
+  max_rounds: 6
+  model_mode: general
+
+task_args:
+  task_name: jigsaw_coco
+  tool_selection: DetectBlackArea,InsertImage
+  save_to_ckpt:
+    jigsaw_coco: /home/myangsong/AdaReasoner/rebuttal_exps/E2_jigsaw_seed2/jigsaw_ckpt.jsonl
+  middle_images_save_dir:
+    jigsaw_coco: /home/myangsong/AdaReasoner/rebuttal_exps/E2_jigsaw_seed2/middle_images
+
+script_args:
+  verbosity: INFO
+  output_path: /home/myangsong/AdaReasoner/rebuttal_exps/E2_jigsaw_seed2/jigsaw_result.jsonl
+  if_use_tool: True

@@ -1,0 +1,21 @@
+{
+  "AStar_local": {
+    "mean_ms": 0.092,
+    "p50_ms": 0.088,
+    "p90_ms": 0.094,
+    "min_ms": 0.084,
+    "max_ms": 0.155,
+    "n": 20,
+    "status": "success"
+  },
+  "Point_Molmo_expert": {
+    "mean_ms": 255.333,
+    "p50_ms": 255.006,
+    "p90_ms": 257.461,
+    "min_ms": 252.933,
+    "max_ms": 257.935,
+    "n": 20,
+    "sample_response": " There are none."
+  },
+  "expert_vs_local_ratio": 2775.4
+}

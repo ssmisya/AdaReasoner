@@ -1,0 +1,20 @@
+{
+  "n_scored": 1000,
+  "notool": {
+    "n": 0,
+    "acc": null
+  },
+  "withtool": {
+    "n": 1000,
+    "acc": 0.882
+  },
+  "overall_acc": 0.882,
+  "by_task_type": {
+    "?": {
+      "n": 1000,
+      "tool_use_rate": 1.0,
+      "avg_calls": 3.08,
+      "acc": 0.882
+    }
+  }
+}

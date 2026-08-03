@@ -1,0 +1,5 @@
+{
+  "fault_type": "plausible_wrong",
+  "when": "early",
+  "injected": 100
+}

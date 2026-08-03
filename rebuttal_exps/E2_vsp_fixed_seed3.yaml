@@ -1,0 +1,19 @@
+model_args:
+  model: vllm_models
+  model_args: pretrained=/home/myangsong/models/AdaReasoner-7B-Randomized,tensor_parallel=1,limit_mm_per_prompt=10
+  batch_size: 16
+  max_rounds: 6
+  model_mode: general
+
+task_args:
+  task_name: vsp
+  tool_selection: AStarWithPixelCoordinate,Draw2DPath,Point
+  save_to_ckpt:
+    vsp: /home/myangsong/AdaReasoner/rebuttal_exps/E2_vsp_fixed_seed3/vsp_ckpt.jsonl
+  middle_images_save_dir:
+    vsp: /home/myangsong/AdaReasoner/rebuttal_exps/E2_vsp_fixed_seed3/middle_images
+
+script_args:
+  verbosity: INFO
+  output_path: /home/myangsong/AdaReasoner/rebuttal_exps/E2_vsp_fixed_seed3/vsp_result.jsonl
+  if_use_tool: True

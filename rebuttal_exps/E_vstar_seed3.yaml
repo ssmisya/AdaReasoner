@@ -1,0 +1,17 @@
+model_args:
+  model: vllm_models
+  model_args: pretrained=/home/myangsong/models/AdaReasoner-7B-Randomized,tensor_parallel=1,limit_mm_per_prompt=10
+  batch_size: 16
+  max_rounds: 6
+  model_mode: general
+task_args:
+  task_name: vstar
+  tool_selection: Point,OCR,Crop,AStarWithPixelCoordinate
+  save_to_ckpt:
+    vstar: /home/myangsong/AdaReasoner/rebuttal_exps/E_vstar_seed3/ckpt.jsonl
+  middle_images_save_dir:
+    vstar: /home/myangsong/AdaReasoner/rebuttal_exps/E_vstar_seed3/middle_images
+script_args:
+  verbosity: INFO
+  output_path: /home/myangsong/AdaReasoner/rebuttal_exps/E_vstar_seed3/result.jsonl
+  if_use_tool: True

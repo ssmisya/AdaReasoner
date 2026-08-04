@@ -750,3 +750,16 @@ bundle: /apdcephfs_cq11/share_1567347/share_info/myangsong/opengl_libs (libGL/GL
 - 各类别 seed1: Functional0.7215/CompReasoning0.4934/GenImg0.6172; seed2: 0.7114/0.4802/0.6139
 - 完整修正链: task webquest→webmmu, 数据→McGill-NLP-WebMMU(web_qa/english), judge 3B→72B, 取分 全集→Functional子类
 - seed3 eval跑中(599/1476), 完后judge补齐3-seed
+
+### ★ WebMMU 3-seed 全齐+对齐 (seed3 judge完成) ★
+- Functional(=Act.) 3-seed: 72.15/71.14/71.95 → mean 71.75% ±0.53pp (论文72.15 ✓精确对齐)
+- seed3各类别: Functional0.7195/CompReasoning0.4875/GenImg0.6106
+- WebMMU彻底解决. 全部8bench推理+judge完成.
+
+### HRBench 偏低6点 根因分析 (63.04 vs 论文69.12)
+主因(评分bug, 假性丢分): HRBench答案提取器依赖OpenAI GPT-4o API(gpt-4o-2024-11-20)从自由文本提ABCD选项;
+  本机无外网→api.openai.com全部Network unreachable→fallback返回"Z"→必判0分。
+  111/800样本(13.9%)gpt_prediction="Z"全判0, 其中含被冤枉的正确答案 → ~6点假性偏低。
+  修复: 用本地Qwen2.5-72B替代OpenAI提取那111个"Z"样本, 不用重跑推理。
+次因(工具增益不足): 模型Crop调用=0(HRBench高分辨率VQA靠Crop放大区域, 论文+5.5增益),
+  44.6%样本不调工具→分数≈裸模型63.62。可能是tool prompt/max_rounds=6限制。

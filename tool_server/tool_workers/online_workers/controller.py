@@ -120,12 +120,14 @@ class Controller:
 
         return list(model_names)
 
-    def get_worker_address(self, model_name: str):
+    def get_worker_address(self, model_name: str, exclude=None):
+        # exclude: 可选的坏worker地址列表, 选择时跳过它们(rebuttal鲁棒性增强)
+        exclude = set(exclude or [])
         if self.dispatch_method == DispatchMethod.LOTTERY:
             worker_names = []
             worker_speeds = []
             for w_name, w_info in self.worker_info.items():
-                if model_name in w_info.model_names:
+                if model_name in w_info.model_names and w_name not in exclude:
                     worker_names.append(w_name)
                     worker_speeds.append(w_info.speed)
             worker_speeds = np.array(worker_speeds, dtype=np.float32)
@@ -160,7 +162,7 @@ class Controller:
             worker_names = []
             worker_qlen = []
             for w_name, w_info in self.worker_info.items():
-                if model_name in w_info.model_names:
+                if model_name in w_info.model_names and w_name not in exclude:
                     worker_names.append(w_name)
                     worker_qlen.append(w_info.queue_length / w_info.speed)
             if len(worker_names) == 0:
@@ -266,8 +268,21 @@ async def list_models():
 @app.post("/get_worker_address")
 async def get_worker_address(request: Request):
     data = await request.json()
-    addr = controller.get_worker_address(data["model"])
+    addr = controller.get_worker_address(data["model"], exclude=data.get("exclude"))
     return {"address": addr}
+
+
+@app.post("/report_bad_worker")
+async def report_bad_worker(request: Request):
+    # eval端检测到某worker损坏(CUDA error等)时上报, controller摘除它, 使后续调度不再选中
+    data = await request.json()
+    worker_name = data.get("worker_name")
+    removed = False
+    if worker_name and worker_name in controller.worker_info:
+        controller.remove_worker(worker_name)
+        removed = True
+        logger.info(f"Removed bad worker on report: {worker_name}")
+    return {"removed": removed}
 
 
 @app.post("/receive_heart_beat")

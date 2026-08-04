@@ -285,6 +285,15 @@ class MolmoPointWorker(BaseToolWorker):
                     "tool_reward": tool_reward+correct_param_content_num/required_keys_num,
                     "image_dimensions_pixels": image_dimensions
                 }
+                # rebuttal鲁棒性: CUDA context一旦损坏进程内无法恢复, 主动自杀让supervisor重启。
+                # 先把这次失败结果返回给调用方(调用方会重路由到健康worker), 再在后台退出。
+                _emsg = str(e).lower()
+                if any(s in _emsg for s in ("cuda error", "unspecified launch failure",
+                                            "cublas", "device-side assert", "cuda out of memory",
+                                            "an illegal memory access")):
+                    logger.error(f"FATAL CUDA corruption detected, worker self-exiting for restart: {e}")
+                    import threading, os as _os
+                    threading.Timer(0.5, lambda: _os._exit(3)).start()
                 return pred_dict
             
             # Extract points from the response

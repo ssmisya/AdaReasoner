@@ -51,7 +51,7 @@
 | Benchmark | 评分 | 我的结果 | 论文Table5 | 对齐 |
 |-----------|------|---------|-----------|------|
 | GUIChat | Qwen2.5-72B judge | 73.60 (73.70/73.49/73.60) | 73.91 | ✓ |
-| WebMMU (Act.=Functional子类) | Qwen2.5-72B judge | ~71.65 (s1 72.15/s2 71.14, s3跑中) | 72.15 | ✓ |
+| WebMMU (Act.=Functional子类) | Qwen2.5-72B judge | **71.75 ±0.53** (72.15/71.14/71.95) | 72.15 | ✓ |
 
 关键修正: WebMMU之前对不齐三因 —— (1)用错task(webquest→应webmmu) (2)数据(→McGill-NLP-WebMMU web_qa/english)
 (3)judge(3B→72B) (4)取分(全集平均→Functional子类=论文Act.). 全修正后精确命中论文72.15。

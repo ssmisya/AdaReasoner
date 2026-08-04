@@ -1,2 +1,7 @@
 # Generated intermediate images from rebuttal experiments
 **/middle_images/
+
+# Runtime logs and oversized WebMMU raw outputs
+**/*_logs/
+E_webmmu_fix*/result*.jsonl
+E_webmmu_fix*/ckpt.jsonl

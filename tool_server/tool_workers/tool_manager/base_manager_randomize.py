@@ -483,6 +483,7 @@ class ToolManager(object):
         
         self.image_params = ["image","base_image","image_to_insert"]
         self.origin_image_params = self.image_params.copy()
+        self._bad_workers = set()  # rebuttal鲁棒性: 已知损坏的online worker地址, 调度时跳过
         self.init_offline_tools(tools)
         self.init_online_tools(self.controller_url_location)
         self.init_online_tool_addr_dict()
@@ -987,6 +988,50 @@ class ToolManager(object):
                 except Exception as e:
                     logger.error(f"Failed to get worker address for {model_name}: {e}")
     
+    # ── rebuttal 鲁棒性增强: 坏worker检测 + 重路由 ─────────────────────────
+    _WORKER_BROKEN_SIGNS = (
+        "cuda error", "unspecified launch failure", "cublas",
+        "out of memory", "device-side assert",
+    )
+
+    def _is_worker_broken_response(self, ret_message):
+        """判断返回是否表明后端worker已损坏(需换worker), 而非普通业务失败。"""
+        if not isinstance(ret_message, dict):
+            return False
+        status = str(ret_message.get("status", "")).lower()
+        msg = (str(ret_message.get("message", "")) + str(ret_message.get("text", ""))).lower()
+        if status == "failed" or ret_message.get("error_code", 0):
+            return any(sign in msg for sign in self._WORKER_BROKEN_SIGNS)
+        return False
+
+    def _report_and_refresh_worker(self, model_name, bad_addr):
+        """坏worker加黑名单+上报controller摘除, 再取一个健康worker地址刷新缓存。返回新地址或None。"""
+        if bad_addr:
+            self._bad_workers.add(bad_addr)
+        with self.disable_proxy():
+            session = requests.Session()
+            session.trust_env = False
+            if bad_addr:
+                try:
+                    session.post(self.controller_addr + "/report_bad_worker",
+                                 json={"worker_name": bad_addr}, proxies={}, timeout=10)
+                except Exception as e:
+                    logger.error(f"report_bad_worker failed: {e}")
+            try:
+                ret = session.post(self.controller_addr + "/get_worker_address",
+                                   json={"model": model_name, "exclude": list(self._bad_workers)},
+                                   proxies={}, timeout=10)
+                new_addr = ret.json().get("address", "")
+                if new_addr:
+                    self.online_tool_addr_dict[model_name] = new_addr
+                    logger.info(f"Re-routed {model_name}: {bad_addr} -> {new_addr}")
+                    return new_addr
+                logger.error(f"No healthy worker for {model_name} (excluded: {self._bad_workers})")
+            except Exception as e:
+                logger.error(f"get_worker_address(exclude) failed: {e}")
+        return None
+    # ──────────────────────────────────────────────────────────────────────
+
     def get_online_tool_instruction(self, tool_name):
         """
         从在线工具获取指令说明
@@ -1239,21 +1284,39 @@ class ToolManager(object):
                     ret_message = {"text": f"Failed to call tool {tool_name}: {e}", "error_code": 1}
                 
             elif original_tool_name in self.available_online_tools:
-                try:
-                    tool_worker_addr = self.online_tool_addr_dict[original_tool_name]
-                    with self.disable_proxy():
-                        session = requests.Session()
-                        session.trust_env = False
-                        ret = session.post(tool_worker_addr + "/worker_generate", 
-                                        headers=self.headers, json=original_params, proxies={},
-                                        timeout=(300, 300))
-                    ret_message = ret.json()
-                except Exception as e:
-                    logger.error(f"Failed to call tool {tool_name}: {e}")
-                    ret_message = {"text": f"Failed to call tool {tool_name}: {e}", "error_code": 1}
+                # rebuttal鲁棒性: 若命中损坏worker(CUDA error等)或连接异常, 上报摘除+换健康worker重试
+                max_attempts = 4
+                ret_message = None
+                for attempt in range(max_attempts):
+                    tool_worker_addr = self.online_tool_addr_dict.get(original_tool_name)
+                    if not tool_worker_addr:
+                        ret_message = {"text": f"No healthy worker for {tool_name}", "error_code": 1}
+                        break
+                    try:
+                        with self.disable_proxy():
+                            session = requests.Session()
+                            session.trust_env = False
+                            ret = session.post(tool_worker_addr + "/worker_generate",
+                                            headers=self.headers, json=original_params, proxies={},
+                                            timeout=(300, 300))
+                        ret_message = ret.json()
+                    except Exception as e:
+                        # 连接失败/超时 → 视worker不可用, 换worker重试
+                        logger.error(f"Call tool {tool_name} @ {tool_worker_addr} conn error (attempt {attempt}): {e}")
+                        ret_message = {"status": "failed", "text": f"conn error: {e}", "error_code": 1,
+                                       "message": "cuda error"}  # 借用broken标记走重路由分支
+                    # 判定是否需要换worker
+                    if self._is_worker_broken_response(ret_message) and attempt < max_attempts - 1:
+                        logger.warning(f"Worker {tool_worker_addr} broken, re-routing (attempt {attempt})")
+                        new_addr = self._report_and_refresh_worker(original_tool_name, tool_worker_addr)
+                        if not new_addr:
+                            break  # 无健康worker可换, 放弃
+                        time.sleep(1)  # 给supervisor重启留时间
+                        continue
+                    break  # 成功 或 非worker损坏类失败 或 用尽重试
             else:
                 ret_message = {"text": f"Tool {tool_name} not found.", "error_code": 1}
-                
+
             edited_image = ret_message.get("edited_image", None)
             if edited_image:
                 edited_image_pil = load_image(edited_image)

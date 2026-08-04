@@ -279,7 +279,15 @@ class AStarWithPixelCoordinate(BaseOfflineWorker):
             # 检查obstacles是否为数组
             if not isinstance(obstacles, list):
                 raise ValueError("obstacles must be an array")
-                
+
+            # 鲁棒性归一化(rebuttal E3修正): 模型常把obstacles发成平铺 [x1,y1,x2,y2,...]
+            # 而非嵌套 [[x1,y1],[x2,y2],...]。若检测到偶数长度的纯数值平铺列表, 自动重塑为坐标对。
+            if obstacles and all(isinstance(x, (int, float)) for x in obstacles):
+                if len(obstacles) % 2 == 0:
+                    obstacles = [[obstacles[i], obstacles[i + 1]] for i in range(0, len(obstacles), 2)]
+                else:
+                    raise ValueError("obstacles flat list must have even length [x1,y1,x2,y2,...]")
+
             # 检查obstacles中的每个元素是否为合法的坐标
             for obs in obstacles:
                 if not isinstance(obs, list) or len(obs) != 2 or not all(isinstance(x, (int, float)) for x in obs):

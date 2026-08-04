@@ -47,6 +47,9 @@ def gpu_worker_process(gpu_id, task_queue, result_queue):
     
     # 初始化PaddleOCR
     ocr_model = PaddleOCR(
+        ocr_version="PP-OCRv5",
+        text_detection_model_name="PP-OCRv5_mobile_det",
+        text_recognition_model_name="PP-OCRv5_mobile_rec",
         use_doc_orientation_classify=False,
         use_doc_unwarping=False,
         use_textline_orientation=False,
@@ -236,8 +239,11 @@ class OCRToolWorker(BaseToolWorker):
         """初始化单GPU模式"""
         device_str = f'gpu:{self.gpu_ids[0]}'
         self.ocr_model = PaddleOCR(
-            use_doc_orientation_classify=False, 
-            use_doc_unwarping=False, 
+            ocr_version="PP-OCRv5",
+            text_detection_model_name="PP-OCRv5_mobile_det",
+            text_recognition_model_name="PP-OCRv5_mobile_rec",
+            use_doc_orientation_classify=False,
+            use_doc_unwarping=False,
             use_textline_orientation=False,
             lang='en',
             device=device_str

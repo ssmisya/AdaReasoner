@@ -95,3 +95,21 @@
   remote. The temporary Overleaf askpass credential file was securely removed.
 - Final local compilation succeeded (29 pages); PDF SHA256:
   `2acaf57986e92ff442f6fbde47aabb99b2729cff14625bb7f31c5a3409681d77`.
+
+## 2026-08-10 alternate manuscript archive and main restoration
+
+- The revision introduced in manuscript commit `7bb89dc` was judged
+  unsatisfactory and is no longer the canonical `main.tex`.
+- That complete version is preserved as an independently compilable alternate:
+  `main_alter.tex`, with `_alter.tex` copies of every changed section/table it
+  depends on.
+- `main.tex` and every original section/table changed by `7bb89dc` were
+  restored byte-for-byte to commit `ea9bd7f` (the immediate pre-`7bb89dc`
+  state).
+- Both entry points compile:
+  - restored `main.tex`: 31 pages, PDF SHA256
+    `bf1f90caad05b898ca169b6ead05527abe16fddac799b1704bf7b1063d934aae`;
+  - archived `main_alter.tex`: 29 pages, PDF SHA256
+    `6efc936859c9043f86ff2998aff79ce77593b9c4acb3158e2ed1cf73c224a9ec`.
+- Manuscript commit `4e90810` (`archive alternate revision and restore main
+  manuscript`) was pushed to Overleaf.

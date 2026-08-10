@@ -363,3 +363,17 @@ askpass 文件已覆写并删除，未写入仓库或记忆文件。
   `ea9bd7f..7bb89dc  main -> main`。
 - 最终本地编译成功，共 29 页；PDF SHA256：
   `2acaf57986e92ff442f6fbde47aabb99b2729cff14625bb7f31c5a3409681d77`。
+
+## 8. 2026-08-10 主版本回退与 alter 归档
+
+- `7bb89dc` 对应的整套修改版已另存为可独立编译的
+  `main_alter.tex`，并为它复制了全部受影响的 `_alter.tex` section/table。
+- 正式 `main.tex` 及其原始 section/table 已逐字节恢复到 `ea9bd7f`
+  （即 `7bb89dc` 修改之前的状态）。
+- 两个入口都已编译通过：
+  - `main.tex`：31 页，SHA256
+    `bf1f90caad05b898ca169b6ead05527abe16fddac799b1704bf7b1063d934aae`
+  - `main_alter.tex`：29 页，SHA256
+    `6efc936859c9043f86ff2998aff79ce77593b9c4acb3158e2ed1cf73c224a9ec`
+- Overleaf 已推送提交：
+  `4e90810 archive alternate revision and restore main manuscript`。

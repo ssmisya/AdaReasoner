@@ -47,3 +47,13 @@
   of `origin/main`; push retry again failed for the same missing-password
   condition. Latest compiled PDF SHA256:
   `93d95f7708a7b1722d9889622c41732024b2c5b9b828f6c25505e44fe89a30f8`.
+
+## 2026-08-10 Overleaf push completed
+
+- Commits `c0dd6d3` and `a8ff947` were successfully pushed to the canonical
+  Overleaf repository.
+- The manuscript working tree is synchronized:
+  `main...origin/main`.
+- The supplied Overleaf token was used only through a temporary askpass file;
+  the temporary token and askpass files were overwritten and removed after
+  the push. Do not store the token in the repository or memory files.

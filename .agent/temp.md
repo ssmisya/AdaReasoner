@@ -405,3 +405,19 @@ askpass 文件已覆写并删除，未写入仓库或记忆文件。
   `1a9cac7348c652fcc2cfe3681b393b986500294088edefe58e9b59fd1f6d1a7d`。
 - Overleaf 已推送：
   `b814ffe regenerate reviewer response from authoritative markdown`。
+
+## 11. 表格结构纠正
+
+- Table 2 已恢复原始六列指标，不再删掉 GUIChat/WebMMU。
+- Table 2 只改冲突 base 数字及其直接对应的 delta：
+  - 3B GUIChat：`45.11 -> 46.26`
+  - 3B WebMMU Act.：`55.89 -> 54.47`
+  - 7B GUIChat：`59.46 -> 68.09`
+  - delta：`39.19 / 27.24 / 20.48`
+- Table 4 caption 已原文恢复为
+  `Impact of Different Experimental Settings on Model Generalization Performance.`
+- Table 5 已逐字节恢复为用户同步基线 `1f8f3e1`。Table 5 数值从未发生变化，
+  之前只是不必要地套了红色。
+- Overleaf 已推送：
+  - `75d2a22 restore table 5 and unrelated manuscript files`
+  - `d984f81 restore table layouts and minimally align base values`

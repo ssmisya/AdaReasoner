@@ -152,3 +152,22 @@
   `1a9cac7348c652fcc2cfe3681b393b986500294088edefe58e9b59fd1f6d1a7d`.
 - Manuscript commit `b814ffe` (`regenerate reviewer response from
   authoritative markdown`) was pushed to Overleaf.
+
+## 2026-08-10 table-layout correction
+
+- Table 2 must retain its original six metrics:
+  VSPO, VSP, Jigsaw, BLINK-J, GUIChat, and WebMMU. No column may be removed.
+- For Table 2, only the conflicting base values and the directly dependent
+  delta cells are changed:
+  - 3B GUIChat 45.11 -> 46.26
+  - 3B WebMMU Act. 55.89 -> 54.47
+  - 7B GUIChat 59.46 -> 68.09
+  - corresponding deltas 39.19, 27.24, and 20.48
+- Table 4 caption was restored verbatim to its original wording beginning
+  “Impact of Different Experimental Settings on Model Generalization
+  Performance.”
+- Table 5 was restored byte-for-byte to the user-synchronized baseline
+  `1f8f3e1`; its numbers were never changed, only temporarily wrapped in red.
+- Overleaf commits:
+  - `75d2a22 restore table 5 and unrelated manuscript files`
+  - `d984f81 restore table layouts and minimally align base values`

@@ -331,3 +331,18 @@ f90f281..a8ff947  main -> main
 
 Overleaf token 只通过临时 askpass 文件使用；推送完成后，临时 token 和
 askpass 文件已覆写并删除，未写入仓库或记忆文件。
+
+---
+
+## 7. 2026-08-10 二次核验：标红粒度与跨表数字修正
+
+- 已将大段 `revision` 红色环境改为局部 `\red{...}` 标注；句子、段落、caption
+  分开标红，不再因一个段落中有修改就把整节统一染红。
+- 审稿人指出的跨表冲突已实际修改表格，而不再只做文字解释：
+  - 会议版继承单任务表删除 GUIChat/WebMMU 两列；
+  - 期刊 generalization 表和 main table 统一使用同一协议；
+  - Qwen2.5-VL-3B 统一为 GUIChat `46.26`、WebMMU Act. `54.47`；
+  - Qwen2.5-VL-7B 统一为 GUIChat `68.09`、WebMMU Act. `67.48`；
+  - 旧值 `45.11/55.89/59.46` 不再出现在 active journal tables；
+  - appendix generalization 表的 WebMMU Avg. 修正为 `58.36`，与
+    Act./Comp./Reason. `67.48/69.31/48.46` 的均值一致。

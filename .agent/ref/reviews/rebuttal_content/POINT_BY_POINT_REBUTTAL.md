@@ -205,8 +205,22 @@ use these terms consistently.
 ## R2-3: Statistical reliability and inconsistent values
 
 The cross-table differences arose from mixed task loaders, judges, prompts,
-and tool settings. The revised paper binds each new reliability number to a
-single protocol and reports fixed-checkpoint stochastic inference repeats:
+and tool settings. We did not average or silently choose between the
+conflicting values. The inherited single-task table now reports only the four
+structured benchmarks and removes its GUIChat/WebMMU columns. The journal
+generalization and main tables use one journal-wide protocol and share the
+same base rows:
+
+| Base model | GUIChat | WebMMU Functional/Act. |
+|---|---:|---:|
+| Qwen2.5-VL-3B | **46.26** | **54.47** |
+| Qwen2.5-VL-7B | **68.09** | **67.48** |
+
+Thus, the submitted-table values 45.11/55.89/59.46 are retained only as
+historical conference-protocol artifacts and no longer appear in an active
+journal table. The revised captions state the loader/judge/subset relationship.
+
+The revision also reports fixed-checkpoint stochastic inference repeats:
 
 | Benchmark | run 1 | run 2 | run 3 | mean ± sample std |
 |---|---:|---:|---:|---:|

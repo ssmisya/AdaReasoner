@@ -57,3 +57,19 @@
 - The supplied Overleaf token was used only through a temporary askpass file;
   the temporary token and askpass files were overwritten and removed after
   the push. Do not store the token in the repository or memory files.
+
+## 2026-08-10 red-marking and cross-table correction
+
+- Revision marking was refined from broad multi-paragraph color environments
+  to local `\red{...}` units; modified captions/sentences/paragraphs are marked
+  independently rather than coloring an entire section by default.
+- Reviewer-2's cross-table conflict is now resolved structurally:
+  - inherited single-task Table `new_main` retains only VSPO/VSP/Jigsaw/BLINK-J;
+  - its GUIChat/WebMMU columns were removed because they used conference-era
+    protocols;
+  - the active journal generalization and main tables share the journal-wide
+    base values: 3B GUIChat/WebMMU = 46.26/54.47 and 7B = 68.09/67.48;
+  - detailed generalization WebMMU Avg. was corrected to 58.36 so its category
+    mean matches 67.48/69.31/48.46.
+- Latest locally compiled PDF SHA256:
+  `d17a935ec9808f08ec755cbfc8f63e5da63e3c97b061f9cca303f9e6adaf1b31`.

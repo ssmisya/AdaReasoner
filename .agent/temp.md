@@ -377,3 +377,18 @@ askpass 文件已覆写并删除，未写入仓库或记忆文件。
     `6efc936859c9043f86ff2998aff79ce77593b9c4acb3158e2ed1cf73c224a9ec`
 - Overleaf 已推送提交：
   `4e90810 archive alternate revision and restore main manuscript`。
+
+## 9. 2026-08-10 用户手动恢复后的第一步修改
+
+- 已从 Overleaf 同步用户手动恢复版本：`1f8f3e1`。
+- 本轮只实施两类正文修改：
+  1. 将 3B/7B base row 的重叠指标统一向 Table 5 对齐并逐数字标红；
+  2. 仅在 Related Work 增加会议版内容与本文增量的说明。
+- 后续论文修改位置与具体改法已写入论文项目：
+  `REVISION_PLAN.md`。
+- point-by-point rebuttal 已放入论文项目并生成 PDF：
+  - `POINT_BY_POINT_REBUTTAL.md`
+  - `point_by_point_response.tex`
+  - `point_by_point_response.pdf`（16 页）
+- 论文和 rebuttal PDF 均编译通过。
+- Overleaf 已推送：`9180aa8 align base tables and add reviewer response PDF`。

@@ -113,3 +113,28 @@
     `6efc936859c9043f86ff2998aff79ce77593b9c4acb3158e2ed1cf73c224a9ec`.
 - Manuscript commit `4e90810` (`archive alternate revision and restore main
   manuscript`) was pushed to Overleaf.
+
+## 2026-08-10 user-restored baseline and first controlled revision pass
+
+- The user manually restored the Overleaf manuscript. The restored remote
+  baseline was synchronized locally as commit `1f8f3e1`.
+- Only the following manuscript changes were made in the first controlled
+  pass:
+  1. Qwen2.5-VL-3B/7B overlapping base values were aligned to Table 5 and
+     marked red in the relevant tables/appendix; stale VSP prose was updated
+     from 31.64 to 28.09.
+  2. Related Work received one red paragraph defining the conference content
+     and the present article's additions (Adaptive Learning, randomized TC/TG
+     study, and V*/HRBench evaluation).
+- The detailed remaining change plan is stored inside the manuscript project
+  as `REVISION_PLAN.md`.
+- The point-by-point response is now also inside the manuscript project:
+  - Markdown: `POINT_BY_POINT_REBUTTAL.md`
+  - standalone LaTeX: `point_by_point_response.tex`
+  - compiled PDF: `point_by_point_response.pdf` (16 pages)
+- Both the paper and response PDF compile locally. Current hashes:
+  - `main.pdf`: `83d4ca7af6b3dbe54dbdc2b4086aa445008cce9cb28d42484a6c74987966564c`
+  - `point_by_point_response.pdf`:
+    `cfc5f66b004476c17d1b010b7afb5282264daec1562caf6f84b0779fa4c18b83`
+- Manuscript commit `9180aa8` (`align base tables and add reviewer response
+  PDF`) was pushed to Overleaf.

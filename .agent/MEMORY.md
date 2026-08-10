@@ -42,3 +42,8 @@
   `fatal: could not read Password for 'https://git@git.overleaf.com'`.
 - The local manuscript branch is therefore one commit ahead of `origin/main`.
   On the next manuscript task, retry the push before making additional edits.
+- Follow-up manuscript audit clarification committed as `a8ff947`
+  (`clarify judge audit scope`). The Overleaf branch is now two commits ahead
+  of `origin/main`; push retry again failed for the same missing-password
+  condition. Latest compiled PDF SHA256:
+  `93d95f7708a7b1722d9889622c41732024b2c5b9b828f6c25505e44fe89a30f8`.

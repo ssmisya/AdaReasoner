@@ -277,6 +277,13 @@ quartiles is 87.10/91.20/93.55/91.20%, with no monotonic increase for the
 longest quartile. This is descriptive evidence, not a causal proof that
 verbosity has no effect.
 
+The sampled audit contains baseline-model answers only; it does not directly
+compare GenReasoner answers against no-tool answers. We therefore use it to
+validate the judge's semantic decisions and to check a simple length trend,
+not to claim that tool-generated verbosity is fully controlled. A
+protocol-matched audit including the tool model remains a useful additional
+check.
+
 ## Minor points
 
 - “Never explicitly trained” is replaced by stage- and interface-specific

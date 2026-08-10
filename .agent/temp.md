@@ -392,3 +392,16 @@ askpass 文件已覆写并删除，未写入仓库或记忆文件。
   - `point_by_point_response.pdf`（16 页）
 - 论文和 rebuttal PDF 均编译通过。
 - Overleaf 已推送：`9180aa8 align base tables and add reviewer response PDF`。
+
+## 10. authoritative point-to-point PDF 重新生成
+
+- authoritative 源文件始终是：
+  `.agent/ref/reviews/rebuttal_content/POINT_BY_POINT_REBUTTAL.md`。
+- 本轮未修改该 Markdown；生成前后 SHA256 都是：
+  `01b80bef4fb64398db260a6cea52cb2e13439d071768a99021b8cc906cb6ba52`。
+- 论文项目中的 Markdown 副本已按字节同步，PDF 直接依据原文生成，没有进行
+  内容改写。
+- 新 PDF 为 16 页，SHA256：
+  `1a9cac7348c652fcc2cfe3681b393b986500294088edefe58e9b59fd1f6d1a7d`。
+- Overleaf 已推送：
+  `b814ffe regenerate reviewer response from authoritative markdown`。

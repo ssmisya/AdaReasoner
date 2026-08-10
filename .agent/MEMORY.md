@@ -138,3 +138,17 @@
     `cfc5f66b004476c17d1b010b7afb5282264daec1562caf6f84b0779fa4c18b83`
 - Manuscript commit `9180aa8` (`align base tables and add reviewer response
   PDF`) was pushed to Overleaf.
+
+## 2026-08-10 authoritative rebuttal PDF regeneration
+
+- The only authoritative rebuttal source is
+  `.agent/ref/reviews/rebuttal_content/POINT_BY_POINT_REBUTTAL.md`.
+- It was not edited during PDF generation. Source SHA256 before and after:
+  `01b80bef4fb64398db260a6cea52cb2e13439d071768a99021b8cc906cb6ba52`.
+- The paper-project copy was replaced byte-for-byte from that source, and
+  `point_by_point_response.pdf` was regenerated from it without editorial
+  rewriting.
+- The regenerated response is 16 pages. PDF SHA256:
+  `1a9cac7348c652fcc2cfe3681b393b986500294088edefe58e9b59fd1f6d1a7d`.
+- Manuscript commit `b814ffe` (`regenerate reviewer response from
+  authoritative markdown`) was pushed to Overleaf.

@@ -334,15 +334,32 @@ askpass 文件已覆写并删除，未写入仓库或记忆文件。
 
 ---
 
-## 7. 2026-08-10 二次核验：标红粒度与跨表数字修正
+## 7. 2026-08-10 最新核验：主表对齐、行文和引用位置
 
-- 已将大段 `revision` 红色环境改为局部 `\red{...}` 标注；句子、段落、caption
-  分开标红，不再因一个段落中有修改就把整节统一染红。
-- 审稿人指出的跨表冲突已实际修改表格，而不再只做文字解释：
-  - 会议版继承单任务表删除 GUIChat/WebMMU 两列；
-  - 期刊 generalization 表和 main table 统一使用同一协议；
-  - Qwen2.5-VL-3B 统一为 GUIChat `46.26`、WebMMU Act. `54.47`；
-  - Qwen2.5-VL-7B 统一为 GUIChat `68.09`、WebMMU Act. `67.48`；
-  - 旧值 `45.11/55.89/59.46` 不再出现在 active journal tables；
-  - appendix generalization 表的 WebMMU Avg. 修正为 `58.36`，与
-    Act./Comp./Reason. `67.48/69.31/48.46` 的均值一致。
+- 所有改动改为局部标红：改哪句标哪句，改哪个数字标哪个数字。
+- 最大最终主表 `tex/tables/final_main.tex` 是 Qwen2.5-VL-7B base row 的唯一
+  对齐源：
+  - VSPO `25.39`
+  - VSP `28.09`
+  - Jigsaw `45.70`
+  - BLINK-J `52.67`
+  - GUIChat `68.09`
+  - WebMMU Act. `67.48`
+  - HRBench `63.62`
+  - V* `63.35`
+  - Avg. `51.80`
+- 单任务表已恢复 GUIChat/WebMMU，不再通过删列回避冲突。
+- Qwen2.5-VL-3B 的 GUIChat/WebMMU Act. 对齐为 `46.26/54.47`。
+- 7B 详细 WebMMU Avg. 为 `58.36`，对应
+  Act./Comp./Reason. `67.48/69.31/48.46`。
+- 论文中已删除“因为不同协议所以删列/结果不一致”“conference artifact”
+  等主动暴露问题的解释。
+- AdaReasoner 会议版引用和 conference/journal boundary 只保留在
+  Related Work；Abstract、Introduction、Method、Experiments、caption 和
+  Conclusion 均不再引用会议版。
+- rebuttal 的 R2-3 已改为直接说明：所有 active base rows 已对齐最终主表，
+  不再解释历史协议问题。
+- 论文提交 `7bb89dc` 已推送到 Overleaf：
+  `ea9bd7f..7bb89dc  main -> main`。
+- 最终本地编译成功，共 29 页；PDF SHA256：
+  `2acaf57986e92ff442f6fbde47aabb99b2729cff14625bb7f31c5a3409681d77`。

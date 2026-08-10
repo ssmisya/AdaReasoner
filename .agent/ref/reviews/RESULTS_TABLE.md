@@ -6,6 +6,19 @@ is maintained at `rebuttal_content/POINT_BY_POINT_REBUTTAL.md`.
 
 ## 1. Results used in the revised manuscript
 
+### Canonical Qwen2.5-VL-7B base row
+
+The largest final main table is the source of truth for every overlapping
+active table:
+
+| VSPO | VSP | Jigsaw | BLINK-J | GUIChat | WebMMU Act. | HRBench | V* | Avg. |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| **25.39** | **28.09** | **45.70** | **52.67** | **68.09** | **67.48** | **63.62** | **63.35** | **51.80** |
+
+Qwen2.5-VL-3B GUIChat/WebMMU Act. are **46.26/54.47**. The detailed
+Qwen2.5-VL-7B WebMMU row is Avg./Act./Comp./Reason. =
+**58.36/67.48/69.31/48.46**.
+
 All repeatability numbers below are three stochastic inference repeats of one
 fixed `AdaReasoner-7B-Randomized` checkpoint. They are not training-seed
 variance or significance tests.

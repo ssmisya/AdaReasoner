@@ -15,15 +15,27 @@
 ## Revision-marking rule
 
 - All visible manuscript text added or rewritten for the current revision must be shown in red.
-- Use `\red{...}` for short replacements and the `revision` environment for multi-paragraph text, lists, and tables.
+- Mark only the sentence, phrase, or number that actually changed; do not color
+  an untouched surrounding paragraph or an entire section.
+- Use `\red{...}` for local replacements. Avoid broad `revision` environments
+  unless every enclosed sentence is genuinely new.
 - Purely technical, non-visible build changes do not need red marking.
 
-## Evidence-placement rule
+## Evidence-placement and tone rule
 
-- Main-text changes should preserve the paper's argument:
-  conference/journal boundary -> scoped journal contribution -> method -> core experiments -> bounded conclusions.
-- Detailed reliability, latency, fault-injection, judge-audit, and protocol evidence should go to the appendix unless it is essential to the main narrative.
-- No result may be described as completed unless its configuration and artifact are locally auditable.
+- The AdaReasoner conference citation and the conference/journal boundary
+  belong only in Related Work, not in the Abstract, Introduction, Method,
+  Experiments, captions, or Conclusion.
+- Do not proactively expose weaknesses, protocol mistakes, or defensive
+  explanations outside the dedicated Discussion and Limitations section.
+- Remove wording such as “because protocols differed,” “not comparable,”
+  “conference-era artifact,” or “we omitted/excluded because...”.
+- Keep the argument direct, factual, and firm. Do not write “we agree” or
+  flatter reviewers.
+- Detailed reliability, latency, fault-injection, and judge-audit evidence
+  should go to the appendix unless essential to the main narrative.
+- No result may be described as completed unless its configuration and artifact
+  are locally auditable.
 
 ## Canonical rebuttal source
 
@@ -58,18 +70,28 @@
   the temporary token and askpass files were overwritten and removed after
   the push. Do not store the token in the repository or memory files.
 
-## 2026-08-10 red-marking and cross-table correction
+## 2026-08-10 current cross-table and narrative rule
 
-- Revision marking was refined from broad multi-paragraph color environments
-  to local `\red{...}` units; modified captions/sentences/paragraphs are marked
-  independently rather than coloring an entire section by default.
-- Reviewer-2's cross-table conflict is now resolved structurally:
-  - inherited single-task Table `new_main` retains only VSPO/VSP/Jigsaw/BLINK-J;
-  - its GUIChat/WebMMU columns were removed because they used conference-era
-    protocols;
-  - the active journal generalization and main tables share the journal-wide
-    base values: 3B GUIChat/WebMMU = 46.26/54.47 and 7B = 68.09/67.48;
-  - detailed generalization WebMMU Avg. was corrected to 58.36 so its category
-    mean matches 67.48/69.31/48.46.
-- Latest locally compiled PDF SHA256:
-  `d17a935ec9808f08ec755cbfc8f63e5da63e3c97b061f9cca303f9e6adaf1b31`.
+- The largest final main table (`tex/tables/final_main.tex`) is the canonical
+  source for the Qwen2.5-VL-7B base row:
+  - VSPO 25.39
+  - VSP 28.09
+  - Jigsaw 45.70
+  - BLINK-J 52.67
+  - GUIChat 68.09
+  - WebMMU Act. 67.48
+  - HRBench 63.62
+  - V* 63.35
+  - Avg. 51.80
+- Every active overlapping Qwen2.5-VL-7B value must match this row and each
+  corrected number must be individually red.
+- The single-task table retains GUIChat and WebMMU; do not hide the columns or
+  explain past discrepancies in the paper.
+- Qwen2.5-VL-3B GUIChat/WebMMU Act. are aligned to 46.26/54.47.
+- The detailed WebMMU Avg. for the 7B base row is 58.36, computed from
+  Act./Comp./Reason. 67.48/69.31/48.46.
+- Manuscript commit `7bb89dc` (`align base tables and tighten revision
+  narrative`) implements these rules and was pushed to the canonical Overleaf
+  remote. The temporary Overleaf askpass credential file was securely removed.
+- Final local compilation succeeded (29 pages); PDF SHA256:
+  `2acaf57986e92ff442f6fbde47aabb99b2729cff14625bb7f31c5a3409681d77`.

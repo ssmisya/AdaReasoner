@@ -1,0 +1,17 @@
+model_args:
+  model: vllm_models
+  model_args: pretrained=/data/songmingyang/model/adareasoner/AdaReasoner-7B-Randomized,tensor_parallel=1,limit_mm_per_prompt=10,gpu_memory_utilization=0.85,max_model_len=8192,enforce_eager=True
+  batch_size: 2
+  max_rounds: 6
+  model_mode: general
+task_args:
+  task_name: vsp
+  tool_selection: AStarWithPixelCoordinate,Draw2DPath
+  save_to_ckpt:
+    vsp: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/local_ada_smoke/ckpt.jsonl
+  middle_images_save_dir:
+    vsp: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/local_ada_smoke/middle_images
+script_args:
+  verbosity: INFO
+  output_path: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/local_ada_smoke/result.jsonl
+  if_use_tool: True

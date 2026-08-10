@@ -1,0 +1,33 @@
+{
+  "model_size": "72B",
+  "model_slug": "qwen25vl_72b",
+  "model_display_name": "Qwen2.5-VL-72B",
+  "model_path": "/data/songmingyang/models/baselines/Qwen2.5-VL-72B-Instruct",
+  "backend": "vllm_models",
+  "mode": "no_tools",
+  "task": "vstar",
+  "seed": 1234,
+  "cuda_visible_devices": "0,1",
+  "tensor_parallel": 2,
+  "batch_size": 64,
+  "pipeline_enabled": "0",
+  "pipeline_max_active": 192,
+  "tool_concurrency": 64,
+  "max_model_len": 8192,
+  "max_rounds": 1,
+  "resumed_samples": 191,
+  "tool_selection": "Point,OCR,Crop,AStarWithPixelCoordinate",
+  "if_randomize_tool": false,
+  "stochastic_decoding": false,
+  "controller_addr": "http://127.0.0.1:21112",
+  "latency_schema_version": 1,
+  "latency_required": true,
+  "latency_definition": {
+    "instance_e2e_s": "from admission before conversation construction until the final round is recognized as finished; excludes final result serialization and checkpoint writes",
+    "round_model_generate_s": "wall time around model.generate()",
+    "round_tool_call_s": "wall time around the tool RPC"
+  },
+  "protocol_fingerprint": "a211e9f48e478e500ad6bd3058cc97a6953cd1df87c30755bd833ac08ce08d8b",
+  "created_at": "2026-08-07T01:28:05+0000",
+  "hostname": "dev-42e0c943-0"
+}

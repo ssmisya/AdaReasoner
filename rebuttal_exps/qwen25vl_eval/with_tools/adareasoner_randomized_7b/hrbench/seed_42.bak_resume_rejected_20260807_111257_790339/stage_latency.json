@@ -1,0 +1,18 @@
+{
+  "generation_s": 1115.191930396,
+  "tool_exec_s": 2348.704777292001,
+  "orchestration_s": 14.334405035013333,
+  "gen_calls": 25,
+  "tool_batches": 747,
+  "wall_start": 1786093779.241034,
+  "pipeline_enabled": true,
+  "pipeline_backend": "native_batch",
+  "pipeline_max_active": 192,
+  "pipeline_scheduler_wall_s": 5477.270945,
+  "pipeline_generation_busy_s": 1115.201825,
+  "pipeline_tool_busy_s": 2348.704777,
+  "pipeline_overlap_s": 585.187641,
+  "pipeline_lm_only_s": 530.014184,
+  "pipeline_tool_only_s": 1763.517136,
+  "wall_total_s": 7378.11249089241
+}

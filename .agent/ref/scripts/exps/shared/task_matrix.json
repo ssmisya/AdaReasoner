@@ -1,0 +1,134 @@
+{
+  "vsp": {
+    "min_model_len": 16384,
+    "tool_selection": "AStarWithPixelCoordinate,Draw2DPath,Point",
+    "primary_metric": "overall_accuracy",
+    "expected_samples": 1100,
+    "task_config": {
+      "dataset_path": "/data/songmingyang/data/adareasoner/benchmarks/AdaEval-VSP",
+      "dataset_type": "hf",
+      "tasks": ["verify_test", "navigation_test"],
+      "num_sample": null,
+      "generation_config": {
+        "max_new_tokens": 2048,
+        "temperature": 0.7
+      }
+    }
+  },
+  "vspo": {
+    "min_model_len": 32768,
+    "tool_selection": "AStarWithPixelCoordinate,Draw2DPath,Point",
+    "primary_metric": "overall_accuracy",
+    "expected_samples": 1670,
+    "task_config": {
+      "dataset_repo": "/data/songmingyang/data/adareasoner/benchmarks/AdaEval-VSPO",
+      "dataset_type": "huggingface",
+      "tasks": ["navigation-test", "verify-test"],
+      "use_auth_token": false,
+      "generation_config": {
+        "max_new_tokens": 4096,
+        "temperature": 0.0
+      }
+    }
+  },
+  "jigsaw_coco": {
+    "min_model_len": 16384,
+    "tool_selection": "DetectBlackArea,InsertImage",
+    "primary_metric": "accuracy",
+    "expected_samples": 1000,
+    "local_arrow": "/data/songmingyang/data/hf_datasets/hitsmy___ada_eval-jigsaw-coco/default/0.0.0/30272a67390749a9e750dfc09aec14e3cf4c316b/ada_eval-jigsaw-coco-test.arrow",
+    "task_config": {
+      "dataset_repo": "hitsmy/AdaEval-Jigsaw-COCO",
+      "dataset_type": "huggingface",
+      "splits": ["test"],
+      "num_sample": null,
+      "use_auth_token": false,
+      "generation_config": {
+        "max_new_tokens": 2048,
+        "temperature": 0.2
+      }
+    }
+  },
+  "jigsaw_blink": {
+    "min_model_len": 16384,
+    "tool_selection": "DetectBlackArea,InsertImage",
+    "primary_metric": "accuracy",
+    "expected_samples": 150,
+    "task_config": {
+      "dataset_path": "/data/songmingyang/data/benchmarks/BLINK",
+      "dataset_type": "unique",
+      "split": ["val"],
+      "num_sample": null,
+      "generation_config": {
+        "max_new_tokens": 2048,
+        "temperature": 0.0
+      }
+    }
+  },
+    "vstar": {
+    "tool_selection": "Point,OCR,Crop,AStarWithPixelCoordinate",
+    "primary_metric": "compare_logs.score.mean",
+    "expected_samples": 191,
+    "min_model_len": 32768,
+    "task_config": {
+      "dataset_path": "/data/songmingyang/data/adareasoner/benchmarks/vstar_bench",
+      "dataset_type": "unique",
+      "num_sample": null,
+      "generation_config": {
+        "max_new_tokens": 2048,
+        "temperature": 0.0
+      }
+    }
+  },
+  "web_guichat": {
+    "min_model_len": 32768,
+    "tool_selection": "OCR,Point,Crop",
+    "primary_metric": "Acc",
+    "metric_label": "ANLS",
+    "expected_samples": 962,
+    "local_arrow": "/data/songmingyang/data/hf_datasets/web_guichat/default/0.0.0/d30d903eef58ebd5/web_guichat-validation.arrow",
+    "task_config": {
+      "dataset_path": "AdaReasoner/AdaEval-Web_Guichat",
+      "dataset_type": "unique",
+      "num_sample": null,
+      "generation_config": {
+        "max_new_tokens": 4096,
+        "temperature": 0.0
+      }
+    }
+  },
+  "webmmu": {
+    "min_model_len": 32768,
+    "tool_selection": "OCR,Crop",
+    "primary_metric": "category_res.Functional",
+    "expected_samples": 492,
+    "filter_category": "Functional",
+    "task_config": {
+      "dataset_path": "/data/songmingyang/data/benchmarks/WebMMU",
+      "dataset_type": "unique",
+      "num_sample": null,
+      "generation_config": {
+        "max_new_tokens": 4096,
+        "temperature": 0.0
+      }
+    }
+  },
+  "hrbench": {
+    "tool_selection": "Point,OCR,Crop,AStarWithPixelCoordinate",
+    "primary_metric": "overall_average",
+    "expected_samples": 800,
+    "min_model_len": 49152,
+    "local_arrow": "/data/songmingyang/data/hf_datasets/DreamMr___hr-bench/hrbench_version_split/0.0.0/37c2d2e4cfd7b855187a99b3f6ebf286ca6cf453/hr-bench-hrbench_4k.arrow",
+    "task_config": {
+      "dataset_path": "DreamMr/HR-Bench",
+      "dataset_name": "hrbench_version_split",
+      "test_split": "hrbench_4k",
+      "num_sample": null,
+      "generation_config": {
+        "max_new_tokens": 256,
+        "temperature": 0.0,
+        "top_p": 1.0
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+task,primary_metric,metric_label,stochastic_decoding,complete,completed_seeds,metric_mean_percent,metric_variance,metric_std,evaluation_mean_s,evaluation_std_s,evaluation_mean_ms_per_sample,generation_mean_s,generation_std_s,tool_exec_mean_s,tool_exec_std_s,instance_e2e_mean_s,round_e2e_mean_s,tool_call_mean_s
+vsp,overall_accuracy,overall_accuracy,True,True,"42,1234,2026",31.545454545454547,2.9008264462809823,1.7031812722904696,1031.5376229166675,94.52291345655169,937.7614753787885,1005.2059632970486,94.18081940863372,3.6343417886666654,5.765786503195842,148.86484836151516,33.35730159054046,0.008635035266801093
+vspo,,,,False,,,,,,,,,,,,,,
+jigsaw_coco,,,,False,,,,,,,,,,,,,,
+jigsaw_blink,,,,False,,,,,,,,,,,,,,
+vstar,,,,False,,,,,,,,,,,,,,
+web_guichat,,,,False,,,,,,,,,,,,,,
+webmmu,,,,False,,,,,,,,,,,,,,
+hrbench,,,,False,,,,,,,,,,,,,,

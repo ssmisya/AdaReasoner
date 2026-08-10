@@ -1,0 +1,164 @@
+{
+  "counts": {
+    "3b": 18,
+    "7b": 17,
+    "32b": 18,
+    "72b": 18
+  },
+  "complete": 71,
+  "expected": 96,
+  "invalid_markers": [],
+  "fully_validated": false,
+  "failures": [
+    {
+      "size": "3b",
+      "task": "vstar",
+      "seed": "42",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "3b",
+      "task": "vstar",
+      "seed": "1234",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "3b",
+      "task": "vstar",
+      "seed": "2026",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "3b",
+      "task": "web_guichat",
+      "seed": "42",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "3b",
+      "task": "web_guichat",
+      "seed": "1234",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "3b",
+      "task": "web_guichat",
+      "seed": "2026",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "7b",
+      "task": "vsp",
+      "seed": "42",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "7b",
+      "task": "vstar",
+      "seed": "42",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "7b",
+      "task": "vstar",
+      "seed": "1234",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "7b",
+      "task": "vstar",
+      "seed": "2026",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "7b",
+      "task": "web_guichat",
+      "seed": "42",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "7b",
+      "task": "web_guichat",
+      "seed": "1234",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "7b",
+      "task": "web_guichat",
+      "seed": "2026",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "32b",
+      "task": "vstar",
+      "seed": "42",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "32b",
+      "task": "vstar",
+      "seed": "1234",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "32b",
+      "task": "vstar",
+      "seed": "2026",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "32b",
+      "task": "web_guichat",
+      "seed": "42",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "32b",
+      "task": "web_guichat",
+      "seed": "1234",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "32b",
+      "task": "web_guichat",
+      "seed": "2026",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "72b",
+      "task": "vstar",
+      "seed": "42",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "72b",
+      "task": "vstar",
+      "seed": "1234",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "72b",
+      "task": "vstar",
+      "seed": "2026",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "72b",
+      "task": "web_guichat",
+      "seed": "42",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "72b",
+      "task": "web_guichat",
+      "seed": "1234",
+      "reason": "missing DONE.json"
+    },
+    {
+      "size": "72b",
+      "task": "web_guichat",
+      "seed": "2026",
+      "reason": "missing DONE.json"
+    }
+  ]
+}

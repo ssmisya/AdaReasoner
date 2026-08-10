@@ -1,0 +1,17 @@
+{
+  "seed": 42,
+  "status": "running",
+  "model_load_s": 0.04407175607047975,
+  "evaluation_s": null,
+  "process_total_s": 2612.7442686760332,
+  "generation_s": 2601.331182170892,
+  "generation_calls": 198,
+  "backend": "openai",
+  "vllm_base_url": "http://localhost:8000/v1",
+  "input_samples": {
+    "vspo": 1670
+  },
+  "remaining_samples_at_start": {
+    "vspo": 1670
+  }
+}

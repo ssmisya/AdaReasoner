@@ -1,5 +1,5 @@
 task_name: "webmmu"
-dataset_path: /apdcephfs_cq11/share_1567347/share_info/myangsong/datasets/McGill-NLP-WebMMU
+dataset_path: /data/songmingyang/data/benchmarks/WebMMU
 dataset_type: "unique" # Which means we need to implement load data logic sepretely for charxiv
 generation_config:
   max_length: 8192

@@ -1,0 +1,17 @@
+{
+  "validated": true,
+  "task": "webmmu",
+  "seed": 2026,
+  "model_path": "/data/songmingyang/models/baselines/Qwen2.5-VL-7B-Instruct",
+  "samples": 492,
+  "stochastic_decoding": false,
+  "primary_metric": "category_res.Functional",
+  "metric_label": "category_res.Functional",
+  "metric": 0.0,
+  "metric_percent": 0.0,
+  "evaluation_s": 326.8700230102986,
+  "instance_latency_file": "latency.jsonl",
+  "instance_latency_mean_s": 21.20555572764226,
+  "round_latency_mean_s": 20.522655691057025,
+  "round_latency_count": 492
+}

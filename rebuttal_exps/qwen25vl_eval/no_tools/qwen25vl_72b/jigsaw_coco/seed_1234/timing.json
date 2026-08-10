@@ -1,0 +1,15 @@
+{
+  "seed": 1234,
+  "status": "success",
+  "model_load_s": 122.7793920468539,
+  "evaluation_s": 524.1655229409225,
+  "process_total_s": 652.9960225173272,
+  "generation_s": 448.74345092102885,
+  "generation_calls": 16,
+  "input_samples": {
+    "jigsaw_coco": 1000
+  },
+  "remaining_samples_at_start": {
+    "jigsaw_coco": 1000
+  }
+}

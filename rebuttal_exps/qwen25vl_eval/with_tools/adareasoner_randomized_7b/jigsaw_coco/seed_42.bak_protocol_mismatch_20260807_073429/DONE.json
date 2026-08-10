@@ -1,0 +1,17 @@
+{
+  "validated": true,
+  "task": "jigsaw_coco",
+  "seed": 42,
+  "model_path": "/data/songmingyang/model/adareasoner/AdaReasoner-7B-Randomized",
+  "samples": 1000,
+  "stochastic_decoding": true,
+  "primary_metric": "accuracy",
+  "metric_label": "accuracy",
+  "metric": 0.802,
+  "metric_percent": 80.2,
+  "evaluation_s": 669.3856493399944,
+  "instance_latency_file": "latency.jsonl",
+  "instance_latency_mean_s": 38.42835679499994,
+  "round_latency_mean_s": 10.032244858527744,
+  "round_latency_count": 3817
+}

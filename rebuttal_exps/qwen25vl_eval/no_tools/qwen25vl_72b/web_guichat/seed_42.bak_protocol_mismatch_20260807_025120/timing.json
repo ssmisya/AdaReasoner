@@ -1,0 +1,21 @@
+{
+  "seed": 42,
+  "status": "success",
+  "model_load_s": 174.32931336201727,
+  "evaluation_s": 76.84350623097271,
+  "process_total_s": 258.6645694077015,
+  "generation_s": 0.0,
+  "generation_calls": 0,
+  "preflight_samples": {
+    "web_guichat": 962
+  },
+  "preflight_s": {
+    "web_guichat": 0.29978219512850046
+  },
+  "input_samples": {
+    "web_guichat": 962
+  },
+  "remaining_samples_at_start": {
+    "web_guichat": 0
+  }
+}

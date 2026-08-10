@@ -1,0 +1,23 @@
+model_args:
+  model: openai
+  model_args: pretrained=gpt-5-2025-08-07,limit_mm_per_prompt=10,max_retry=5,request_timeout=600,retry_base_seconds=2,request_concurrency=4
+  batch_size: 2
+  max_rounds: 6
+  model_mode: general
+task_args:
+  task_name: webmmu,hrbench
+  save_to_ckpt:
+    webmmu: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/gpt5_tools/web_hr_run1/webmmu_ckpt.jsonl
+    hrbench: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/gpt5_tools/web_hr_run1/hrbench_ckpt.jsonl
+  middle_images_save_dir:
+    webmmu: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/gpt5_tools/web_hr_run1/middle_images/webmmu
+    hrbench: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/gpt5_tools/web_hr_run1/middle_images/hrbench
+  tool_selection_dict:
+    webmmu: OCR,Crop
+    hrbench: Point,OCR,Crop,AStarWithPixelCoordinate
+script_args:
+  verbosity: INFO
+  output_path: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/gpt5_tools/web_hr_run1/results.jsonl
+  controller_addr: http://127.0.0.1:21112
+  if_use_tool: true
+  if_randomize_tool: false

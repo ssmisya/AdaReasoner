@@ -1,0 +1,21 @@
+model_args:
+  model: vllm_models
+  model_args: pretrained=/data/songmingyang/models/baselines/Qwen2.5-VL-7B-Instruct,tensor_parallel=2,limit_mm_per_prompt=10,gpu_memory_utilization=0.85,max_model_len=16384,enforce_eager=True,seed=42
+  batch_size: 64
+  max_rounds: 6
+  model_mode: general
+task_args:
+  task_name: vsp
+  tool_selection: AStarWithPixelCoordinate,Draw2DPath,Point
+  resume_from_ckpt:
+    vsp: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/qwen25vl_eval/with_tools/qwen25vl_7b/vsp/seed_42/ckpt.jsonl
+  save_to_ckpt:
+    vsp: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/qwen25vl_eval/with_tools/qwen25vl_7b/vsp/seed_42/ckpt.jsonl
+  middle_images_save_dir:
+    vsp: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/qwen25vl_eval/with_tools/qwen25vl_7b/vsp/seed_42/middle_images
+script_args:
+  verbosity: INFO
+  output_path: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/qwen25vl_eval/with_tools/qwen25vl_7b/vsp/seed_42/result.jsonl
+  controller_addr: http://127.0.0.1:21112
+  if_use_tool: true
+  if_randomize_tool: false

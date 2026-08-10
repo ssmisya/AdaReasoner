@@ -1,0 +1,17 @@
+{
+  "model_size": "72B",
+  "model_path": "/data/songmingyang/models/baselines/Qwen2.5-VL-72B-Instruct",
+  "served_model_name": "Qwen2.5-VL-72B-Instruct",
+  "mode": "with_tools",
+  "task": "jigsaw_blink",
+  "seed": 2026,
+  "vllm_port": 8001,
+  "backend": "openai",
+  "resumed_samples": 0,
+  "tool_selection": "DetectBlackArea,InsertImage",
+  "stochastic_decoding": false,
+  "temperature": 0.0,
+  "controller_addr": "http://127.0.0.1:21112",
+  "created_at": "2026-08-05T10:59:12+0000",
+  "hostname": "dev-2b6f5601-0"
+}

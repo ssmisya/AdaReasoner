@@ -1,9 +1,9 @@
 #!/bin/bash
 # 启动 tool server: controller (21112) + Point worker (Molmo, GPU3)
-cd /home/myangsong/AdaReasoner
-export PYTHONPATH=/home/myangsong/AdaReasoner
-PY=/home/myangsong/.conda/envs/tool-server/bin/python
-LOGDIR=/home/myangsong/AdaReasoner/rebuttal_exps/toolserver_logs
+cd /data/songmingyang/code/reasoning/AdaReasoner-rebuttal
+export PYTHONPATH=/data/songmingyang/code/reasoning/AdaReasoner-rebuttal
+PY=/data/songmingyang/miniforge3/envs/vllm2/bin/python
+LOGDIR=/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/toolserver_logs
 mkdir -p "$LOGDIR"
 
 # 1. controller (无GPU)

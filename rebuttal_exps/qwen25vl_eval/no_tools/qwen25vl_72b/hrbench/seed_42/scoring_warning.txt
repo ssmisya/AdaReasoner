@@ -1,0 +1,1 @@
+WARNING: OPENAI_API_KEY is unset. Inference will run, but validate_run.py will reject a formal DONE if any ambiguous answer falls back to Z.

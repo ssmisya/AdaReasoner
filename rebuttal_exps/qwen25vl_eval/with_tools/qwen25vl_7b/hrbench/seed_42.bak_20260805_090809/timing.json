@@ -1,0 +1,15 @@
+{
+  "seed": 42,
+  "status": "running",
+  "model_load_s": 94.90861292602494,
+  "evaluation_s": null,
+  "process_total_s": 1387.2175049860962,
+  "generation_s": 34.10930630331859,
+  "generation_calls": 23,
+  "input_samples": {
+    "hrbench": 800
+  },
+  "remaining_samples_at_start": {
+    "hrbench": 800
+  }
+}

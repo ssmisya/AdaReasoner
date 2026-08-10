@@ -101,16 +101,15 @@ class MolmoPointWorker(BaseToolWorker):
             self.processor = AutoProcessor.from_pretrained(
                 self.model_path,
                 trust_remote_code=True,
-                torch_dtype='auto',
-                device_map='auto'
             )
 
-            # load the model
+            # device_map="auto" breaks on transformers>=5 with Molmo's module layout;
+            # pin to the single visible CUDA device instead.
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.model_path,
                 trust_remote_code=True,
-                torch_dtype='auto',
-                device_map='auto',
+                torch_dtype=torch.bfloat16,
+                device_map={"": 0},
                 quantization_config=quant_config
             )
             self.model.eval()
@@ -267,9 +266,14 @@ class MolmoPointWorker(BaseToolWorker):
                     inputs = {k: v.to(self.model.device).unsqueeze(0) for k, v in inputs.items()}
                     
                     with torch.cuda.amp.autocast(dtype=torch.bfloat16):
+                        # Molmo.generate_from_batch asserts use_cache; transformers>=5 may default it off.
                         output = self.model.generate_from_batch(
                             inputs,
-                            GenerationConfig(max_new_tokens=self.max_length, stop_strings="<|endoftext|>"),
+                            GenerationConfig(
+                                max_new_tokens=self.max_length,
+                                stop_strings="<|endoftext|>",
+                                use_cache=True,
+                            ),
                             tokenizer=self.processor.tokenizer
                         )
                         

@@ -1,18 +1,25 @@
 # Response to Reviewers — General Response
 
-> 说明(给作者,不进提交稿):`〖待补: ...〗` = 需要你们跑完对应实验/核对后填真实数字,**不要留编造值**。本目录按 point 拆开:`reviewer1_response.md`、`reviewer2_response.md`。
+We thank both reviewers for their careful, detailed, and constructive reviews. Their comments converge on four themes: (i) the relationship to our prior conference version and the novelty boundary; (ii) the scope of the generalization claims; (iii) statistical and reporting rigor; and (iv) the cost and failure modes of multi-turn tool use. We address every point in the accompanying responses and will ensure that the revised manuscript makes the same distinctions.
 
-We thank both reviewers for their careful, detailed, and constructive reviews. The comments converge on four themes: (i) the relationship to our prior conference version and the novelty boundary; (ii) the scope of our generalization claims; (iii) statistical and reporting rigor; and (iv) characterizing the architecture's cost and failure modes. We have revised the manuscript substantially to address every point. We summarize the most important change here and give point-by-point responses in the accompanying letters.
+## Relationship to our conference version
 
-## Relationship to our conference version (addresses R1-1 and R2-1)
+We explicitly acknowledge and cite our conference paper, *AdaReasoner: Dynamic Tool Orchestration for Iterative Visual Reasoning* (Mingyang Song, Haoyu Sun, Jiawei Gu, Linjie Li, Ranjay Krishna, and Yu Cheng; The Fourteenth International Conference on Learning Representations, 2026; OpenReview `nUGPEmQ2ut`). The conference version contributed the trajectory-curation pipeline, Tool-GRPO, the composite reward, the seven-tool suite, and the single-task results. **The journal extension adds:**
 
-We now explicitly acknowledge and cite our conference paper, **AdaReasoner (ICLR 2026)** [CITE], at first mention. The conference version contributed the trajectory-curation pipeline, the Tool-GRPO algorithm, the composite reward, the seven-tool suite, and the single-task results reported in Table 2. **This journal extension makes three new contributions beyond the conference version:**
+1. identifier randomization and description paraphrasing for interface-robust tool use;
+2. a systematic study under randomized cold-start and RL;
+3. a tool-planning evaluation on V\* and HRBench.
 
-1. an **identifier-randomization and description-paraphrasing Adaptive Learning** method for interface-robust tool use (Sec 2.4);
-2. a **systematic generalization study** under randomized cold-start and RL (Rnd TC + Rnd TG, Table 4);
-3. a **tool-planning evaluation on V\* and HRBench** (Tables 5-6).
+We do not re-claim the conference contributions as new. We also narrow “new task” to **cross-stage transfer** and “new tool” to **interface-level robustness**, because the final policy sees the tasks during Tool-GRPO and the renamed tools preserve functionality.
 
-We have rewritten the Introduction and the contribution list to (i) cite the conference version, (ii) state precisely what is new, and (iii) re-center the paper's claims and evaluation on this delta. Inherited results are now presented only as background/context, not as new headline claims.
+## Reliability and cost
 
-**Revised contribution statement (manuscript, Sec 1):**
-> "This work extends our conference paper (AdaReasoner, ICLR 2026 [CITE]). The conference version established the trajectory-curation pipeline, the Tool-GRPO algorithm, the reward design, and the seven-tool suite, achieving single-task state-of-the-art results (Table 2). Building on it, this article contributes: (i) an identifier-randomization / description-paraphrasing Adaptive Learning method that yields interface-robust tool use (Sec 2.4); (ii) a systematic generalization study under randomized cold-start and RL (Table 4); and (iii) a tool-planning evaluation on V\* and HRBench (Tables 5-6). We do not re-claim the conference results as new."
+We add fixed-checkpoint stochastic-inference repeats and explicitly distinguish them from training-seed variance. Locally audited three-run results include VSP **89.27 ± 0.88**, Jigsaw-COCO **88.27 ± 0.12**, and GUIChat under the paper-aligned 72B judge **73.60 ± 0.11**. WebMMU full judged artifacts and uniformly re-scored HRBench results remain submission gates and will not be presented as final until verified.
+
+We also report direct wall-clock decomposition and per-tool latency. Tool execution accounts for **0.55%** on Jigsaw but **59.42%** on VSP; AStar and Point take **0.092** and **255.333 ms/call**, respectively. These results show that calls per sample are not a cost proxy. A matched-budget accuracy–latency comparison is still required before making an efficiency claim.
+
+## Evidence boundaries
+
+We remove or qualify claims that the current experiments do not support. In particular, all three GUIChat runs use tools on every sample, so they do not demonstrate cost-aware no-tool abstention. Likewise, our early-fault accuracy results are reportable, but the current detect/react heuristic requires manual calibration before it can support fault-detection claims. For the LM judge, a 500-item semantic audit now gives 90.76% agreement (452/498; Wilson 95% CI 87.90%–93.00%) and Cohen’s κ=0.781, with all 46 disagreements documented. Because the archived reviewer is Codex rather than two blinded authors, we describe this precisely as a single-reviewer semantic audit; author confirmation is still required if the manuscript claims human validation. Full-source near-duplicate screening and the cold-start sample decomposition also remain incomplete.
+
+> Internal note: exact manuscript section/table/figure numbers should be inserted only after the revised manuscript is finalized. The complete conference citation is stored in `../CITATION_iclr2026.md`.

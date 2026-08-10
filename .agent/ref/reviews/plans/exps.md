@@ -1,92 +1,97 @@
-# GenReasoner 期刊 Rebuttal — 需补充的实验清单
+# GenReasoner Rebuttal — 补充实验状态（2026-08-04）
 
-> 目的:支撑 point-by-point 回应(见 rebuttal_plan.md)。
-> 标注:【贵=需重训】/【中=需推理评测】/【廉=只分析已有 rollout/结果】。
-> 团队现实:7B 的 Tool-GRPO 需远程 A100;本地 L20 只能跑轻量推理/分析 → 优先安排"廉/中"。
+> 状态：Ready=证据/回复闭环；Partial=有结果但仍缺关键项；Blocked=关键结论无有效证据；Scoped=收窄 claim，不再执行原设计。
 
-## 优先级总览
-| ID | 对应 review | 一句话 | 成本 | 优先级 |
-|----|------------|--------|------|--------|
-| E1 | R2.2/R1.2 (B) | 真·新能力工具的 zero-shot 使用 | 中(推理) | P0 |
-| E2 | R2.3 (G) | 关键结果多 seed + 方差 | 中/贵 | P0 |
-| E3 | R1.6/R2.5 (E) | 成本-延迟测量 + 精度-延迟曲线 | 中 | P0 |
-| E4 | R1.5 (D) | reward-hacking 自查 + 对称/非对称消融 | 廉+贵 | P1 |
-| E5 | R2.4/R1.6c (F) | 受控故障注入 + failure/reflection 消融 | 中+贵 | P1 |
-| E6 | R2.7 (I) | LM-judge 人机一致性 + 冗长度检验 | 中(需人工) | P1 |
-| E7 | R1.3/R1.4 (C) | 闭源/开源 baseline 公平重评 | 中 | P1 |
-| E8 | R2.6 (H) | Jigsaw image-disjoint 重划分重跑 | 贵(条件触发) | P2 |
+## 状态总览
 
----
+| ID | 对应 review | 状态 | 当前结果 | 下一步 |
+|---|---|---|---|---|
+| E1 | R1-2 / R2-2 | Scoped | 不执行“真新能力工具”实验 | 将 claim 限为 interface robustness + cross-stage transfer |
+| E2 | R2-3 | Partial | 6 个 benchmark 有本地三次推理重复；GUIChat 72B=73.60±0.11 | 同步 WebMMU full/judged；统一重判 HRBench `Z`；明确非 training seeds |
+| E3 | R1-6 / R2-5 | Partial | 阶段拆分 + per-tool 微基准完成 | 补 matched-budget accuracy–latency 曲线 |
+| E4 | R1-5 | Blocked | GUIChat 三次均 962/962 使用工具；no-tool n=0 | 删除 selective abstention claim，或补 easy/no-tool + reward ablation |
+| E5 | R1-6c / R2-4 | Partial | 五类 early fault accuracy 完成 | 校准 detect/react；可选 late fault 和训练消融 |
+| E6 | R2-7 | Partial | 500 条 semantic audit：498 有效，agreement=90.76%，κ=0.781，FP/FN=15/31 | 如要称 human validation，补作者盲审或第二独立标注；长度分析目前仅为描述性四分位 |
+| E7 | R1-3 / R1-4 | Ready | matched GPT-5+Tools 数字和 baseline caveat 已有 | 把协议表与 caption 真正写入 manuscript |
+| E8 | R2-6 | Partial | source-image-disjoint 声明已有 | 用完整 train/test 源图运行 pHash+CLIP |
 
-## E1 —— 真·新能力工具的 zero-shot 使用〔B / R2.2〕 P0
-**为什么**:上一轮 Yfxj 的"新工具"要么和已训工具功能冗余、要么对任务无关,只证明了"选择判断力",没证明"zero-shot 掌握一个模型原本缺失、任务又确实需要的新能力"。这是 R2.2 的致命点。
-**设计**:
-1. 选/造一个提供**模型确实缺失能力**的新工具(例:精确读数/角度测量/深度估计等,I/O 与现有 7 工具都不同)。
-2. 选一个**从 TC 和 TG 全部训练阶段都排除**的任务,且该任务不用这个新工具就做不好。
-3. 推理时把新工具连同文档给模型,测:调用率、成功率、以及"用 vs 不用该工具"的答案正确率差(证明它是被有效利用、而非摆设)。
-**产出**:一张表(新工具 调用率/成功率/带来的正确率增益)+ 几个定性轨迹。
-**成本**:【中】推理评测为主,**不需重训**(工具在推理期提供)。难点在"设计一个真需要新能力的排除任务"。
-comment: 精确读数/角度测量/深度估计 这些工具对于任务无关,我认为工具的选择本就是一个与任务高度相关的事情，而且也是一个主观的过程，所以很难再选出“对这个任务有用的新能力工具” ，这些新工具很难与原本的工具无关，所以大概的结局就是像 ICLR Rebuttal的情况。
+## E2 — 多次推理与评分可靠性
 
-## E2 —— 多 seed + 方差〔G / R2.3〕 P0
-**为什么**:R2.3 指单次跑、无 seed,恰在方差最大处(RL + 随机多轮)。
-**设计(分档,按算力选)**:
-- 最低档【中】:固定 checkpoint,**推理端多 seed**(≥3)跑关键 benchmark(VSP/VSPO/Jigsaw/GUIChat + V*/HRBench),报 mean±std。先拿到"推理方差"。
-- 完整档【贵】:关键配置(尤其 delta 相关的 Rnd TC+Rnd TG)重训 ≥3 seed,报训练方差。资源不够就明确只做推理方差并在文中说明。
-**产出**:主表/Table 4 关键行加 mean±std;必要处配对显著性。
-**注意**:先做 E2-预备 = **数字对齐**(非实验):查清裸 Qwen2.5-VL-7B GUIChat 59.46(T2) vs 68.09(T4/5)、3B 的 WebMMU/GUIChat 不一致的评测条件差异,统一口径。**这步不重训也必须先做**。
-comment：这个可以做推理端多跑几次，然后计算方差。
+### 已核查
 
-## E3 —— 成本-延迟测量〔E / R1.6+R2.5〕 P0
-**为什么**:两位 reviewer 都要;CPS≠成本(本地算子 vs 专家模型调用差一个数量级)。相对便宜、ROI 高。
-**设计**:固定 checkpoint 推理,记录:
-- 端到端 latency 分布(P50/P90/P99)、吞吐;
-- 每样本 三段拆分:generation / tool-execution / orchestration 各占时;
-- per-tool 平均耗时(区分本地 vs 专家模型工具);
-- **精度-延迟曲线**:在"匹配预算(限制最大轮数/工具调用)"下,GenReasoner vs baseline 的 accuracy@latency。
-**产出**:latency 分布表 + 三段占比图 + 精度-延迟曲线。
-**成本**:【中】纯推理+计时,不重训。
-comment：这个直接测一下latency就行 同意
+| Benchmark | mean ± sample std | 证据 |
+|---|---:|---|
+| VSP | 89.27 ± 0.88 | 三个本地 full result |
+| VSPO | 78.64 ± 0.33 | 三个本地 full result |
+| Jigsaw-COCO | 88.27 ± 0.12 | 三个本地 full result |
+| BLINK-J | 88.22 ± 0.39 | 三个本地 result |
+| V\* | 68.06 ± 0.53 | 三个本地 result |
+| GUIChat | 73.60 ± 0.11 | 三个本地 Qwen2.5-72B-Instruct judged result |
 
-## E4 —— reward-hacking 自查 + reward 消融〔D / R1.5〕 P1
-**为什么**:R1.5 担心非对称奖励诱导"会做就不用工具"。
-**设计**:
-- 【廉】自查(用已有 rollout 日志即可):统计"答对样本中未调用任何工具的比例",以及这些样本的正确率;分任务看(结构化任务 vs 一般任务)。若未 hacking,直接摆数据反驳。
-- 【贵】消融:对称奖励 vs 非对称奖励 各训一版,比结构化难题上的工具使用率与正确率(证明非对称设计不是漏洞)。资源不足时可只做小规模/单任务消融。
-**产出**:自查表 + (可选)对称/非对称消融表。
-comment: 这个就是我们的诉求啊，我们就是想让他会做就不用工具，因为用工具会带来成本，所以你看是说一下还是怎么找
+这些 run 没有固化显式 `seed:`，只能称 fixed-checkpoint stochastic inference repeats。
 
-## E5 —— 受控故障注入 + 失败/反思轨迹消融〔F / R2.4+R1.6c〕 P1
-**为什么**:冷启动特意含失败/回退轨迹,却没测工具真失败时的鲁棒性;A* distractor 只是"无控干扰"。
-**设计**:
-- 【中】故障注入(推理期):对工具返回注入 5 类故障——错误但合理输出 / 缺失 / 畸形 / 超时 / 与其它工具矛盾;并区分**早注入 vs 晚注入**。测模型:检测 / 忽略 / 恢复 / 传播 各占比。
-- 【贵】消融:训"有 vs 无 failure&reflection 轨迹"两版,比故障下的恢复率。
-**产出**:故障响应矩阵(5 类 × 早/晚 × 检测/恢复/传播)+ 消融表。
+### 未闭环
 
+- WebMMU：执行日志记录 72.15/71.14/71.95，但本地只见 run1/2 各 111 条 checkpoint，无 run3/full/judged artifact。
+- HRBench：外部 answer extractor 失败后每 run 108–111 条回退为 `Z`。当前 63.04 不可提交；明确 final-answer 重提取给出 ≥68.92±0.14 下界，仍需统一重判。
 
+## E3 — 成本和时延
 
-## E6 —— LM-judge 人机一致性 + 冗长度检验〔I / R2.7〕 P1
-**为什么**:V*/WebMMU/GUIQA 靠 Qwen2.5-VL-72B 当裁判,人工只说"consistent",且工具增强答案更长可能被宽松裁判偏袒。
-**设计**:
-- 抽样(报样本量),≥2 名标注者盲评,算人-机一致性(如 Cohen's κ / 准确率)。
-- 冗长度检验:控制/回归答案长度,看长度是否显著影响 judge 打分;或对长度做匹配后再比。
-**产出**:一致性指标表 + 长度-得分关系(证明冗长不占便宜)。
-**成本**:【中】需少量人工标注,无重训。
-comment: 瞎整一个把数填上就行了，咱也没钱雇人标注
+| Task | generation | tool execution | orchestration | other / I/O |
+|---|---:|---:|---:|---:|
+| Jigsaw | 90.95% | 0.55% | 0.02% | 8.49% |
+| VSP | 39.11% | 59.42% | 0.01% | 1.47% |
 
+微基准：AStar 0.092 ms/call；Point/Molmo 255.333 ms/call；约 2,775×。
 
-## E7 —— baseline 公平重评〔C / R1.3+R1.4〕 P1
-**为什么**:R1.3 闭源"超GPT-5"是否同工具/同prompt;R1.4 DeepEyes/PixelReasoner 为单工具设计,直接套用不公平。
-**设计**:
-- 复用 W5WP(ICLR rebuttal)的闭源评测协议,补一张"闭源/开源模型是否给同工具集、同 system prompt、同多步协议"的对照说明表。
-- 对 DeepEyes/PixelReasoner 做**最小适配后重评**(至少对齐 prompt/工具接口),或明确标注未适配并解释 Table 6 低分含 prompt 不兼容成分。
-**产出**:公平性对照表 + (可选)适配后 baseline 复评数。
-**成本**:【中】推理评测;闭源需 API 额度。
+剩余实验：在一致硬件/服务条件下限制最大轮数或工具调用预算，对 GenReasoner 和 baseline 生成 accuracy–latency 曲线。没有该曲线前，不声称 favorable efficiency trade-off。
 
+## E4 — Reward 自查
 
-## E8 —— Jigsaw image-disjoint 重划分〔H / R2.6〕 P2(条件触发)
-**为什么**:C.1 用同图 3 patch 训、第 4 patch 测 = 留位置非留图,疑似泄漏。
-**设计**:先**核实** C.1 划分逻辑;若确为 patch 级:改 **image-disjoint**(或用 COCO-val 作测),加近重复检查,重训/重评 Jigsaw。若已是图像级,只需在文中明确声明 + 近重复检查结果。
-**产出**:image-disjoint 下 Jigsaw 复评数 + disjointness 声明。
-**成本**:【贵】可能需重训 Jigsaw;先做核实再决定是否触发。
-comment: 这个是不重合的，我们可以出一个disjoint保证
+- VSP verification 2.00 calls/sample，navigation 5.28 calls/sample。
+- Jigsaw 近 100% 使用工具。
+- GUIChat 三次均为 962/962 样本至少调用一次工具。
+
+结论：现有 rollout 不能估计 correct-and-tool-free 子集，也不能证明 asymmetric reward 产生 cost-aware abstention。默认策略是删除该 claim；reward ablation 属额外训练实验。
+
+## E5 — Tool failure
+
+| Fault | VSP acc / Δ from 0.34 | Jigsaw acc / Δ from 0.90 |
+|---|---:|---:|
+| plausible-but-wrong | 0.39 / +0.05 | 0.77 / −0.13 |
+| missing | 0.36 / +0.02 | 0.73 / −0.17 |
+| malformed | 0.29 / −0.05 | 0.84 / −0.06 |
+| timeout | 0.28 / −0.06 | 0.81 / −0.09 |
+| contradictory | 0.30 / −0.04 | 0.82 / −0.08 |
+
+可报告 accuracy delta。当前 detect/react 不是 fault-specific：clean baseline 也为 1.0。人工校准前不报告“70–100% 检测率”或“近零传播”。只完成 early injection；late injection 和训练消融未完成。
+
+## E6 — Judge 验证
+
+已完成 500 条分层 semantic audit：GUIChat 197 条，WebMMU 303 条；其中 498 条有效。Qwen2.5-72B judge 与复核标签的 agreement 为 **90.76%（452/498；Wilson 95% CI 87.90%–93.00%）**，**κ=0.781**，FP/FN=15/31；GUIChat/WebMMU agreement 分别为 **86.29%/93.69%**。46 条标签翻转均有题目级理由。
+
+字符长度四分位 agreement 为 87.10%/91.20%/93.55%/91.20%，最长答案没有单调一致率优势，但这只是描述性检查，不是控制 correctness 的正式回归。
+
+限制：归档的 reviewer 字段为 `Codex（逐条语义复核）`，因此只能称 single-reviewer semantic audit。若要在论文中称 `human validation`，仍需：
+
+1. 由作者盲审复核现有样本子集，或增加第二个独立人类标注者；
+2. 记录 annotator、blinding 和 adjudication；
+3. 可选补控制 correctness 的 answer-length 回归。
+
+证据：`rebuttal_content/judge_audit_500_selected_20260804.tar.gz`。
+
+## E7 — Baseline 协议
+
+- Main-table proprietary models：no-tool、single-turn，必须显式标注。
+- GPT-5+Tools：VSP 55.64→71.36；Jigsaw 80.10→84.50。
+- DeepEyes/Pixel-Reasoner：未适配 multi-tool interface；结果只能支持 unseen-interface brittleness。
+
+## E8 — Jigsaw leakage
+
+先用完整构造 manifest 验证 source-image disjoint，再对完整 train/test source images 做：
+
+- pHash Hamming distance ≤5；
+- CLIP cosine similarity ≥0.95；
+- 报告真实 overlap 数、flagged pairs 和人工复核结果。
+
+当前副本只有测试侧材料，不能填写“预期 0”。

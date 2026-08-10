@@ -1,0 +1,1601 @@
+{
+  "experiment_dir": "/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/qwen25vl_eval/with_tools/qwen25vl_7b",
+  "variance_definition": "sample variance across 3 controlled inference seed(s) (ddof=1); undefined when only one seed is present",
+  "task_count": 8,
+  "complete_task_count": 1,
+  "all_tasks_complete": false,
+  "macro_average_percent": null,
+  "tasks": [
+    {
+      "task": "vsp",
+      "primary_metric": "overall_accuracy",
+      "metric_label": "overall_accuracy",
+      "stochastic_decoding": true,
+      "complete": true,
+      "expected_seeds": [
+        42,
+        1234,
+        2026
+      ],
+      "completed_seeds": [
+        42,
+        1234,
+        2026
+      ],
+      "metric_percent": {
+        "count": 3,
+        "mean": 31.545454545454547,
+        "variance": 2.9008264462809823,
+        "std": 1.7031812722904696,
+        "min": 29.63636363636364,
+        "max": 32.90909090909091
+      },
+      "evaluation_s": {
+        "count": 3,
+        "mean": 1031.5376229166675,
+        "variance": 8934.58116831476,
+        "std": 94.52291345655169,
+        "min": 923.1036995509639,
+        "max": 1096.5316141510848
+      },
+      "evaluation_ms_per_sample": {
+        "count": 3,
+        "mean": 937.7614753787885,
+        "variance": 7383.9513787725355,
+        "std": 85.92992132413794,
+        "min": 839.1851814099672,
+        "max": 996.8469219555317
+      },
+      "generation_s": {
+        "count": 3,
+        "mean": 1005.2059632970486,
+        "variance": 8870.026744481678,
+        "std": 94.18081940863372,
+        "min": 897.1559412376955,
+        "max": 1069.904366206145
+      },
+      "tool_exec_s": {
+        "count": 3,
+        "mean": 3.6343417886666654,
+        "variance": 33.24429400043533,
+        "std": 5.765786503195842,
+        "min": 0.29560113099999985,
+        "max": 10.292088818999996
+      },
+      "instance_e2e_mean_s_across_seeds": {
+        "count": 3,
+        "mean": 148.86484836151516,
+        "variance": 267.63188417308544,
+        "std": 16.35945855378733,
+        "min": 133.26515799727272,
+        "max": 165.89069644727275
+      },
+      "round_e2e_mean_s_across_seeds": {
+        "count": 3,
+        "mean": 33.35730159054046,
+        "variance": 10.706678663483203,
+        "std": 3.272106151010875,
+        "min": 30.140111849827388,
+        "max": 36.68168965725579
+      },
+      "tool_call_mean_s_across_seeds": {
+        "count": 3,
+        "mean": 0.008635035266801093,
+        "variance": 0.00012045317515953326,
+        "std": 0.010975116179773828,
+        "min": 0.0021487444029850747,
+        "max": 0.021306817836812143
+      },
+      "runs": [
+        {
+          "task": "vsp",
+          "seed": 42,
+          "primary_metric": "overall_accuracy",
+          "metric_label": "overall_accuracy",
+          "stochastic_decoding": true,
+          "metric": 0.2963636363636364,
+          "metric_percent": 29.63636363636364,
+          "samples": 1100,
+          "model_load_s": 97.53404572396539,
+          "evaluation_s": 1074.9775550479535,
+          "process_total_s": 1186.4701464020181,
+          "generation_s": 1048.5575824473053,
+          "generation_calls": 31,
+          "instance_latency_file": "latency.jsonl",
+          "instance_latency_mean_s": 147.43869064,
+          "round_latency_mean_s": 33.2501032645382,
+          "round_latency_count": 1754,
+          "evaluation_ms_per_sample": 977.2523227708668,
+          "tool_exec_s": 0.31533541599999976,
+          "orchestration_s": 0.027000190457329154,
+          "wall_total_s": 1077.094984292984,
+          "gen_calls": 31,
+          "tool_batches": 528,
+          "latency_coverage": 1.0,
+          "instance_e2e_s": {
+            "count": 1100,
+            "mean": 147.43869064,
+            "median": 126.989376,
+            "p90": 265.23154,
+            "p95": 269.1481970999996,
+            "p99": 466.57640187000004,
+            "min": 18.181054,
+            "max": 650.521541,
+            "std": 99.41826209519755
+          },
+          "round_e2e_s": {
+            "count": 1754,
+            "mean": 33.2501032645382,
+            "median": 37.869988,
+            "p90": 45.621455,
+            "p95": 46.044370550000004,
+            "p99": 46.629740319999996,
+            "min": 6.778845,
+            "max": 47.237348,
+            "std": 12.997065769617842
+          },
+          "round_e2e_s_by_round": {
+            "1": {
+              "count": 1100,
+              "mean": 30.913160813636363,
+              "median": 32.701631,
+              "p90": 45.31487,
+              "p95": 46.079309949999995,
+              "p99": 46.09049447,
+              "min": 6.778845,
+              "max": 46.631963,
+              "std": 13.08891949463277
+            },
+            "2": {
+              "count": 504,
+              "mean": 37.029136293650794,
+              "median": 43.425196,
+              "p90": 45.853509,
+              "p95": 45.853509,
+              "p99": 47.21722306999998,
+              "min": 6.778845,
+              "max": 47.237348,
+              "std": 11.841491220567312
+            },
+            "3": {
+              "count": 86,
+              "mean": 37.23533031395348,
+              "median": 42.73236,
+              "p90": 45.853509,
+              "p95": 45.875127500000005,
+              "p99": 46.0786777,
+              "min": 6.778845,
+              "max": 46.080155,
+              "std": 12.506734742353968
+            },
+            "4": {
+              "count": 26,
+              "mean": 38.7380985,
+              "median": 44.2978945,
+              "p90": 45.628219,
+              "p95": 45.797357500000004,
+              "p99": 45.8658135,
+              "min": 9.7019,
+              "max": 45.869915,
+              "std": 10.170418893481147
+            },
+            "5": {
+              "count": 19,
+              "mean": 35.082986684210525,
+              "median": 43.798376,
+              "p90": 45.875879999999995,
+              "p95": 45.8760097,
+              "p99": 45.87602194,
+              "min": 6.778961,
+              "max": 45.876025,
+              "std": 15.526412525233535
+            },
+            "6": {
+              "count": 19,
+              "mean": 40.921780210526315,
+              "median": 43.425196,
+              "p90": 45.005402,
+              "p95": 45.374007899999995,
+              "p99": 45.75760878,
+              "min": 28.261222,
+              "max": 45.853509,
+              "std": 5.55197445002559
+            }
+          },
+          "backend_request_e2e_s": {
+            "count": 0,
+            "mean": null,
+            "median": null,
+            "p90": null,
+            "p95": null,
+            "p99": null,
+            "min": null,
+            "max": null,
+            "std": null
+          },
+          "backend_ttft_s": {
+            "count": 0,
+            "mean": null,
+            "median": null,
+            "p90": null,
+            "p95": null,
+            "p99": null,
+            "min": null,
+            "max": null,
+            "std": null
+          },
+          "backend_queue_s": {
+            "count": 0,
+            "mean": null,
+            "median": null,
+            "p90": null,
+            "p95": null,
+            "p99": null,
+            "min": null,
+            "max": null,
+            "std": null
+          },
+          "tool_call_s": {
+            "count": 528,
+            "mean": 0.0024495435606060605,
+            "median": 0.0016235,
+            "p90": 0.0051651,
+            "p95": 0.0070453,
+            "p99": 0.012634420000000026,
+            "min": 0.000305,
+            "max": 0.022594,
+            "std": 0.0024966333859326485
+          }
+        },
+        {
+          "task": "vsp",
+          "seed": 1234,
+          "primary_metric": "overall_accuracy",
+          "metric_label": "overall_accuracy",
+          "stochastic_decoding": true,
+          "metric": 0.3290909090909091,
+          "metric_percent": 32.90909090909091,
+          "samples": 1100,
+          "model_load_s": 80.98309762193821,
+          "evaluation_s": 1096.5316141510848,
+          "process_total_s": 1186.9267196538858,
+          "generation_s": 1069.904366206145,
+          "generation_calls": 31,
+          "instance_latency_file": "latency.jsonl",
+          "instance_latency_mean_s": 165.89069644727275,
+          "round_latency_mean_s": 36.68168965725579,
+          "round_latency_count": 1771,
+          "evaluation_ms_per_sample": 996.8469219555317,
+          "tool_exec_s": 10.292088818999996,
+          "orchestration_s": 0.028820966836065054,
+          "wall_total_s": 1098.5614929199219,
+          "gen_calls": 31,
+          "tool_batches": 527,
+          "latency_coverage": 1.0,
+          "instance_e2e_s": {
+            "count": 1100,
+            "mean": 165.89069644727275,
+            "median": 136.170546,
+            "p90": 274.2528017,
+            "p95": 319.7944764499999,
+            "p99": 644.41624998,
+            "min": 18.484533,
+            "max": 735.979497,
+            "std": 114.2446144932001
+          },
+          "round_e2e_s": {
+            "count": 1771,
+            "mean": 36.68168965725579,
+            "median": 44.372751,
+            "p90": 45.767924,
+            "p95": 46.0471075,
+            "p99": 46.5328004,
+            "min": 1.382165,
+            "max": 92.185705,
+            "std": 12.626659804893755
+          },
+          "round_e2e_s_by_round": {
+            "1": {
+              "count": 1100,
+              "mean": 34.73291672909091,
+              "median": 44.1099105,
+              "p90": 46.04258,
+              "p95": 46.19332695,
+              "p99": 46.533904140000004,
+              "min": 9.549937,
+              "max": 91.843198,
+              "std": 13.122705225798628
+            },
+            "2": {
+              "count": 509,
+              "mean": 40.019444056974464,
+              "median": 44.486835,
+              "p90": 45.677086,
+              "p95": 45.7425248,
+              "p99": 45.80284,
+              "min": 9.549937,
+              "max": 46.532531,
+              "std": 10.164528782656353
+            },
+            "3": {
+              "count": 74,
+              "mean": 41.7720667972973,
+              "median": 44.253592,
+              "p90": 45.1240581,
+              "p95": 45.7210999,
+              "p99": 46.000300079999995,
+              "min": 16.35253,
+              "max": 46.533787,
+              "std": 7.206669693633348
+            },
+            "4": {
+              "count": 34,
+              "mean": 37.78014135294117,
+              "median": 44.2021965,
+              "p90": 45.044379899999996,
+              "p95": 45.99598765,
+              "p99": 75.64272544000008,
+              "min": 9.549937,
+              "max": 90.037765,
+              "std": 16.933517196940123
+            },
+            "5": {
+              "count": 27,
+              "mean": 40.324120037037034,
+              "median": 44.48695,
+              "p90": 45.4044168,
+              "p95": 45.5957618,
+              "p99": 80.09355167999993,
+              "min": 2.861999,
+              "max": 92.185705,
+              "std": 16.80285500394471
+            },
+            "6": {
+              "count": 27,
+              "mean": 34.176220962962965,
+              "median": 44.486835,
+              "p90": 45.1879434,
+              "p95": 45.595077700000004,
+              "p99": 45.770143960000006,
+              "min": 1.382165,
+              "max": 45.80284,
+              "std": 17.01539096124206
+            }
+          },
+          "backend_request_e2e_s": {
+            "count": 0,
+            "mean": null,
+            "median": null,
+            "p90": null,
+            "p95": null,
+            "p99": null,
+            "min": null,
+            "max": null,
+            "std": null
+          },
+          "backend_ttft_s": {
+            "count": 0,
+            "mean": null,
+            "median": null,
+            "p90": null,
+            "p95": null,
+            "p99": null,
+            "min": null,
+            "max": null,
+            "std": null
+          },
+          "backend_queue_s": {
+            "count": 0,
+            "mean": null,
+            "median": null,
+            "p90": null,
+            "p95": null,
+            "p99": null,
+            "min": null,
+            "max": null,
+            "std": null
+          },
+          "tool_call_s": {
+            "count": 527,
+            "mean": 0.021306817836812143,
+            "median": 0.001702,
+            "p90": 0.0046494000000000014,
+            "p95": 0.006116799999999999,
+            "p99": 0.018722840000000004,
+            "min": 0.000317,
+            "max": 2.657618,
+            "std": 0.21776670649868896
+          }
+        },
+        {
+          "task": "vsp",
+          "seed": 2026,
+          "primary_metric": "overall_accuracy",
+          "metric_label": "overall_accuracy",
+          "stochastic_decoding": true,
+          "metric": 0.3209090909090909,
+          "metric_percent": 32.09090909090909,
+          "samples": 1100,
+          "model_load_s": 73.8791831980925,
+          "evaluation_s": 923.1036995509639,
+          "process_total_s": 1006.6708249771036,
+          "generation_s": 897.1559412376955,
+          "generation_calls": 30,
+          "instance_latency_file": "latency.jsonl",
+          "instance_latency_mean_s": 133.26515799727272,
+          "round_latency_mean_s": 30.140111849827388,
+          "round_latency_count": 1738,
+          "evaluation_ms_per_sample": 839.1851814099672,
+          "tool_exec_s": 0.29560113099999985,
+          "orchestration_s": 0.02496131556108594,
+          "wall_total_s": 925.0536983013153,
+          "gen_calls": 30,
+          "tool_batches": 536,
+          "latency_coverage": 1.0,
+          "instance_e2e_s": {
+            "count": 1100,
+            "mean": 133.26515799727272,
+            "median": 111.448658,
+            "p90": 226.070185,
+            "p95": 240.83697594999984,
+            "p99": 431.0442085299999,
+            "min": 46.807485,
+            "max": 569.448162,
+            "std": 77.9188852716403
+          },
+          "round_e2e_s": {
+            "count": 1738,
+            "mean": 30.140111849827388,
+            "median": 30.406424,
+            "p90": 46.577806,
+            "p95": 46.8558011,
+            "p99": 50.722288,
+            "min": 1.272576,
+            "max": 51.655092,
+            "std": 14.242701881113405
+          },
+          "round_e2e_s_by_round": {
+            "1": {
+              "count": 1100,
+              "mean": 29.28570274727273,
+              "median": 26.722337000000003,
+              "p90": 46.75851,
+              "p95": 50.722288,
+              "p99": 50.722288,
+              "min": 7.609125,
+              "max": 51.655092,
+              "std": 14.039616273122888
+            },
+            "2": {
+              "count": 503,
+              "mean": 31.963328691848908,
+              "median": 35.34376,
+              "p90": 46.577806,
+              "p95": 46.75851,
+              "p99": 46.75851,
+              "min": 7.609125,
+              "max": 48.064756,
+              "std": 14.150045224349112
+            },
+            "3": {
+              "count": 76,
+              "mean": 31.47078119736842,
+              "median": 40.084396999999996,
+              "p90": 46.75851,
+              "p95": 46.75851,
+              "p99": 46.7856055,
+              "min": 7.609125,
+              "max": 46.855063,
+              "std": 15.194300614801225
+            },
+            "4": {
+              "count": 25,
+              "mean": 34.02478948,
+              "median": 43.519046,
+              "p90": 45.129947400000006,
+              "p95": 46.2974878,
+              "p99": 46.57966752,
+              "min": 7.609125,
+              "max": 46.579698,
+              "std": 14.260025548083028
+            },
+            "5": {
+              "count": 18,
+              "mean": 23.160337944444443,
+              "median": 14.0964805,
+              "p90": 45.0874704,
+              "p95": 45.2694879,
+              "p99": 45.95082478,
+              "min": 1.272576,
+              "max": 46.121159,
+              "std": 16.634930920764077
+            },
+            "6": {
+              "count": 16,
+              "mean": 27.025115625,
+              "median": 19.658309,
+              "p90": 45.6451065,
+              "p95": 46.280421,
+              "p99": 46.6628922,
+              "min": 10.097993,
+              "max": 46.75851,
+              "std": 16.936267957524503
+            }
+          },
+          "backend_request_e2e_s": {
+            "count": 0,
+            "mean": null,
+            "median": null,
+            "p90": null,
+            "p95": null,
+            "p99": null,
+            "min": null,
+            "max": null,
+            "std": null
+          },
+          "backend_ttft_s": {
+            "count": 0,
+            "mean": null,
+            "median": null,
+            "p90": null,
+            "p95": null,
+            "p99": null,
+            "min": null,
+            "max": null,
+            "std": null
+          },
+          "backend_queue_s": {
+            "count": 0,
+            "mean": null,
+            "median": null,
+            "p90": null,
+            "p95": null,
+            "p99": null,
+            "min": null,
+            "max": null,
+            "std": null
+          },
+          "tool_call_s": {
+            "count": 536,
+            "mean": 0.0021487444029850747,
+            "median": 0.0015630000000000002,
+            "p90": 0.0045575,
+            "p95": 0.005795,
+            "p99": 0.008174349999999997,
+            "min": 0.000266,
+            "max": 0.013996,
+            "std": 0.0017896805008983357
+          }
+        }
+      ]
+    },
+    {
+      "task": "vspo",
+      "primary_metric": null,
+      "metric_label": null,
+      "stochastic_decoding": null,
+      "complete": false,
+      "expected_seeds": [
+        42,
+        1234,
+        2026
+      ],
+      "completed_seeds": [],
+      "metric_percent": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_ms_per_sample": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "generation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_exec_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "instance_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "round_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_call_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "runs": []
+    },
+    {
+      "task": "jigsaw_coco",
+      "primary_metric": null,
+      "metric_label": null,
+      "stochastic_decoding": null,
+      "complete": false,
+      "expected_seeds": [
+        42,
+        1234,
+        2026
+      ],
+      "completed_seeds": [],
+      "metric_percent": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_ms_per_sample": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "generation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_exec_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "instance_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "round_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_call_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "runs": []
+    },
+    {
+      "task": "jigsaw_blink",
+      "primary_metric": null,
+      "metric_label": null,
+      "stochastic_decoding": null,
+      "complete": false,
+      "expected_seeds": [
+        42,
+        1234,
+        2026
+      ],
+      "completed_seeds": [],
+      "metric_percent": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_ms_per_sample": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "generation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_exec_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "instance_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "round_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_call_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "runs": []
+    },
+    {
+      "task": "vstar",
+      "primary_metric": null,
+      "metric_label": null,
+      "stochastic_decoding": null,
+      "complete": false,
+      "expected_seeds": [
+        42,
+        1234,
+        2026
+      ],
+      "completed_seeds": [],
+      "metric_percent": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_ms_per_sample": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "generation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_exec_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "instance_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "round_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_call_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "runs": []
+    },
+    {
+      "task": "web_guichat",
+      "primary_metric": null,
+      "metric_label": null,
+      "stochastic_decoding": null,
+      "complete": false,
+      "expected_seeds": [
+        42,
+        1234,
+        2026
+      ],
+      "completed_seeds": [],
+      "metric_percent": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_ms_per_sample": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "generation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_exec_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "instance_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "round_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_call_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "runs": []
+    },
+    {
+      "task": "webmmu",
+      "primary_metric": null,
+      "metric_label": null,
+      "stochastic_decoding": null,
+      "complete": false,
+      "expected_seeds": [
+        42,
+        1234,
+        2026
+      ],
+      "completed_seeds": [],
+      "metric_percent": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_ms_per_sample": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "generation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_exec_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "instance_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "round_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_call_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "runs": []
+    },
+    {
+      "task": "hrbench",
+      "primary_metric": null,
+      "metric_label": null,
+      "stochastic_decoding": null,
+      "complete": false,
+      "expected_seeds": [
+        42,
+        1234,
+        2026
+      ],
+      "completed_seeds": [],
+      "metric_percent": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_ms_per_sample": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "generation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_exec_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "instance_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "round_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_call_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "runs": []
+    }
+  ],
+  "runs": [
+    {
+      "task": "vsp",
+      "seed": 42,
+      "primary_metric": "overall_accuracy",
+      "metric_label": "overall_accuracy",
+      "stochastic_decoding": true,
+      "metric": 0.2963636363636364,
+      "metric_percent": 29.63636363636364,
+      "samples": 1100,
+      "model_load_s": 97.53404572396539,
+      "evaluation_s": 1074.9775550479535,
+      "process_total_s": 1186.4701464020181,
+      "generation_s": 1048.5575824473053,
+      "generation_calls": 31,
+      "instance_latency_file": "latency.jsonl",
+      "instance_latency_mean_s": 147.43869064,
+      "round_latency_mean_s": 33.2501032645382,
+      "round_latency_count": 1754,
+      "evaluation_ms_per_sample": 977.2523227708668,
+      "tool_exec_s": 0.31533541599999976,
+      "orchestration_s": 0.027000190457329154,
+      "wall_total_s": 1077.094984292984,
+      "gen_calls": 31,
+      "tool_batches": 528,
+      "latency_coverage": 1.0,
+      "instance_e2e_s": {
+        "count": 1100,
+        "mean": 147.43869064,
+        "median": 126.989376,
+        "p90": 265.23154,
+        "p95": 269.1481970999996,
+        "p99": 466.57640187000004,
+        "min": 18.181054,
+        "max": 650.521541,
+        "std": 99.41826209519755
+      },
+      "round_e2e_s": {
+        "count": 1754,
+        "mean": 33.2501032645382,
+        "median": 37.869988,
+        "p90": 45.621455,
+        "p95": 46.044370550000004,
+        "p99": 46.629740319999996,
+        "min": 6.778845,
+        "max": 47.237348,
+        "std": 12.997065769617842
+      },
+      "round_e2e_s_by_round": {
+        "1": {
+          "count": 1100,
+          "mean": 30.913160813636363,
+          "median": 32.701631,
+          "p90": 45.31487,
+          "p95": 46.079309949999995,
+          "p99": 46.09049447,
+          "min": 6.778845,
+          "max": 46.631963,
+          "std": 13.08891949463277
+        },
+        "2": {
+          "count": 504,
+          "mean": 37.029136293650794,
+          "median": 43.425196,
+          "p90": 45.853509,
+          "p95": 45.853509,
+          "p99": 47.21722306999998,
+          "min": 6.778845,
+          "max": 47.237348,
+          "std": 11.841491220567312
+        },
+        "3": {
+          "count": 86,
+          "mean": 37.23533031395348,
+          "median": 42.73236,
+          "p90": 45.853509,
+          "p95": 45.875127500000005,
+          "p99": 46.0786777,
+          "min": 6.778845,
+          "max": 46.080155,
+          "std": 12.506734742353968
+        },
+        "4": {
+          "count": 26,
+          "mean": 38.7380985,
+          "median": 44.2978945,
+          "p90": 45.628219,
+          "p95": 45.797357500000004,
+          "p99": 45.8658135,
+          "min": 9.7019,
+          "max": 45.869915,
+          "std": 10.170418893481147
+        },
+        "5": {
+          "count": 19,
+          "mean": 35.082986684210525,
+          "median": 43.798376,
+          "p90": 45.875879999999995,
+          "p95": 45.8760097,
+          "p99": 45.87602194,
+          "min": 6.778961,
+          "max": 45.876025,
+          "std": 15.526412525233535
+        },
+        "6": {
+          "count": 19,
+          "mean": 40.921780210526315,
+          "median": 43.425196,
+          "p90": 45.005402,
+          "p95": 45.374007899999995,
+          "p99": 45.75760878,
+          "min": 28.261222,
+          "max": 45.853509,
+          "std": 5.55197445002559
+        }
+      },
+      "backend_request_e2e_s": {
+        "count": 0,
+        "mean": null,
+        "median": null,
+        "p90": null,
+        "p95": null,
+        "p99": null,
+        "min": null,
+        "max": null,
+        "std": null
+      },
+      "backend_ttft_s": {
+        "count": 0,
+        "mean": null,
+        "median": null,
+        "p90": null,
+        "p95": null,
+        "p99": null,
+        "min": null,
+        "max": null,
+        "std": null
+      },
+      "backend_queue_s": {
+        "count": 0,
+        "mean": null,
+        "median": null,
+        "p90": null,
+        "p95": null,
+        "p99": null,
+        "min": null,
+        "max": null,
+        "std": null
+      },
+      "tool_call_s": {
+        "count": 528,
+        "mean": 0.0024495435606060605,
+        "median": 0.0016235,
+        "p90": 0.0051651,
+        "p95": 0.0070453,
+        "p99": 0.012634420000000026,
+        "min": 0.000305,
+        "max": 0.022594,
+        "std": 0.0024966333859326485
+      }
+    },
+    {
+      "task": "vsp",
+      "seed": 1234,
+      "primary_metric": "overall_accuracy",
+      "metric_label": "overall_accuracy",
+      "stochastic_decoding": true,
+      "metric": 0.3290909090909091,
+      "metric_percent": 32.90909090909091,
+      "samples": 1100,
+      "model_load_s": 80.98309762193821,
+      "evaluation_s": 1096.5316141510848,
+      "process_total_s": 1186.9267196538858,
+      "generation_s": 1069.904366206145,
+      "generation_calls": 31,
+      "instance_latency_file": "latency.jsonl",
+      "instance_latency_mean_s": 165.89069644727275,
+      "round_latency_mean_s": 36.68168965725579,
+      "round_latency_count": 1771,
+      "evaluation_ms_per_sample": 996.8469219555317,
+      "tool_exec_s": 10.292088818999996,
+      "orchestration_s": 0.028820966836065054,
+      "wall_total_s": 1098.5614929199219,
+      "gen_calls": 31,
+      "tool_batches": 527,
+      "latency_coverage": 1.0,
+      "instance_e2e_s": {
+        "count": 1100,
+        "mean": 165.89069644727275,
+        "median": 136.170546,
+        "p90": 274.2528017,
+        "p95": 319.7944764499999,
+        "p99": 644.41624998,
+        "min": 18.484533,
+        "max": 735.979497,
+        "std": 114.2446144932001
+      },
+      "round_e2e_s": {
+        "count": 1771,
+        "mean": 36.68168965725579,
+        "median": 44.372751,
+        "p90": 45.767924,
+        "p95": 46.0471075,
+        "p99": 46.5328004,
+        "min": 1.382165,
+        "max": 92.185705,
+        "std": 12.626659804893755
+      },
+      "round_e2e_s_by_round": {
+        "1": {
+          "count": 1100,
+          "mean": 34.73291672909091,
+          "median": 44.1099105,
+          "p90": 46.04258,
+          "p95": 46.19332695,
+          "p99": 46.533904140000004,
+          "min": 9.549937,
+          "max": 91.843198,
+          "std": 13.122705225798628
+        },
+        "2": {
+          "count": 509,
+          "mean": 40.019444056974464,
+          "median": 44.486835,
+          "p90": 45.677086,
+          "p95": 45.7425248,
+          "p99": 45.80284,
+          "min": 9.549937,
+          "max": 46.532531,
+          "std": 10.164528782656353
+        },
+        "3": {
+          "count": 74,
+          "mean": 41.7720667972973,
+          "median": 44.253592,
+          "p90": 45.1240581,
+          "p95": 45.7210999,
+          "p99": 46.000300079999995,
+          "min": 16.35253,
+          "max": 46.533787,
+          "std": 7.206669693633348
+        },
+        "4": {
+          "count": 34,
+          "mean": 37.78014135294117,
+          "median": 44.2021965,
+          "p90": 45.044379899999996,
+          "p95": 45.99598765,
+          "p99": 75.64272544000008,
+          "min": 9.549937,
+          "max": 90.037765,
+          "std": 16.933517196940123
+        },
+        "5": {
+          "count": 27,
+          "mean": 40.324120037037034,
+          "median": 44.48695,
+          "p90": 45.4044168,
+          "p95": 45.5957618,
+          "p99": 80.09355167999993,
+          "min": 2.861999,
+          "max": 92.185705,
+          "std": 16.80285500394471
+        },
+        "6": {
+          "count": 27,
+          "mean": 34.176220962962965,
+          "median": 44.486835,
+          "p90": 45.1879434,
+          "p95": 45.595077700000004,
+          "p99": 45.770143960000006,
+          "min": 1.382165,
+          "max": 45.80284,
+          "std": 17.01539096124206
+        }
+      },
+      "backend_request_e2e_s": {
+        "count": 0,
+        "mean": null,
+        "median": null,
+        "p90": null,
+        "p95": null,
+        "p99": null,
+        "min": null,
+        "max": null,
+        "std": null
+      },
+      "backend_ttft_s": {
+        "count": 0,
+        "mean": null,
+        "median": null,
+        "p90": null,
+        "p95": null,
+        "p99": null,
+        "min": null,
+        "max": null,
+        "std": null
+      },
+      "backend_queue_s": {
+        "count": 0,
+        "mean": null,
+        "median": null,
+        "p90": null,
+        "p95": null,
+        "p99": null,
+        "min": null,
+        "max": null,
+        "std": null
+      },
+      "tool_call_s": {
+        "count": 527,
+        "mean": 0.021306817836812143,
+        "median": 0.001702,
+        "p90": 0.0046494000000000014,
+        "p95": 0.006116799999999999,
+        "p99": 0.018722840000000004,
+        "min": 0.000317,
+        "max": 2.657618,
+        "std": 0.21776670649868896
+      }
+    },
+    {
+      "task": "vsp",
+      "seed": 2026,
+      "primary_metric": "overall_accuracy",
+      "metric_label": "overall_accuracy",
+      "stochastic_decoding": true,
+      "metric": 0.3209090909090909,
+      "metric_percent": 32.09090909090909,
+      "samples": 1100,
+      "model_load_s": 73.8791831980925,
+      "evaluation_s": 923.1036995509639,
+      "process_total_s": 1006.6708249771036,
+      "generation_s": 897.1559412376955,
+      "generation_calls": 30,
+      "instance_latency_file": "latency.jsonl",
+      "instance_latency_mean_s": 133.26515799727272,
+      "round_latency_mean_s": 30.140111849827388,
+      "round_latency_count": 1738,
+      "evaluation_ms_per_sample": 839.1851814099672,
+      "tool_exec_s": 0.29560113099999985,
+      "orchestration_s": 0.02496131556108594,
+      "wall_total_s": 925.0536983013153,
+      "gen_calls": 30,
+      "tool_batches": 536,
+      "latency_coverage": 1.0,
+      "instance_e2e_s": {
+        "count": 1100,
+        "mean": 133.26515799727272,
+        "median": 111.448658,
+        "p90": 226.070185,
+        "p95": 240.83697594999984,
+        "p99": 431.0442085299999,
+        "min": 46.807485,
+        "max": 569.448162,
+        "std": 77.9188852716403
+      },
+      "round_e2e_s": {
+        "count": 1738,
+        "mean": 30.140111849827388,
+        "median": 30.406424,
+        "p90": 46.577806,
+        "p95": 46.8558011,
+        "p99": 50.722288,
+        "min": 1.272576,
+        "max": 51.655092,
+        "std": 14.242701881113405
+      },
+      "round_e2e_s_by_round": {
+        "1": {
+          "count": 1100,
+          "mean": 29.28570274727273,
+          "median": 26.722337000000003,
+          "p90": 46.75851,
+          "p95": 50.722288,
+          "p99": 50.722288,
+          "min": 7.609125,
+          "max": 51.655092,
+          "std": 14.039616273122888
+        },
+        "2": {
+          "count": 503,
+          "mean": 31.963328691848908,
+          "median": 35.34376,
+          "p90": 46.577806,
+          "p95": 46.75851,
+          "p99": 46.75851,
+          "min": 7.609125,
+          "max": 48.064756,
+          "std": 14.150045224349112
+        },
+        "3": {
+          "count": 76,
+          "mean": 31.47078119736842,
+          "median": 40.084396999999996,
+          "p90": 46.75851,
+          "p95": 46.75851,
+          "p99": 46.7856055,
+          "min": 7.609125,
+          "max": 46.855063,
+          "std": 15.194300614801225
+        },
+        "4": {
+          "count": 25,
+          "mean": 34.02478948,
+          "median": 43.519046,
+          "p90": 45.129947400000006,
+          "p95": 46.2974878,
+          "p99": 46.57966752,
+          "min": 7.609125,
+          "max": 46.579698,
+          "std": 14.260025548083028
+        },
+        "5": {
+          "count": 18,
+          "mean": 23.160337944444443,
+          "median": 14.0964805,
+          "p90": 45.0874704,
+          "p95": 45.2694879,
+          "p99": 45.95082478,
+          "min": 1.272576,
+          "max": 46.121159,
+          "std": 16.634930920764077
+        },
+        "6": {
+          "count": 16,
+          "mean": 27.025115625,
+          "median": 19.658309,
+          "p90": 45.6451065,
+          "p95": 46.280421,
+          "p99": 46.6628922,
+          "min": 10.097993,
+          "max": 46.75851,
+          "std": 16.936267957524503
+        }
+      },
+      "backend_request_e2e_s": {
+        "count": 0,
+        "mean": null,
+        "median": null,
+        "p90": null,
+        "p95": null,
+        "p99": null,
+        "min": null,
+        "max": null,
+        "std": null
+      },
+      "backend_ttft_s": {
+        "count": 0,
+        "mean": null,
+        "median": null,
+        "p90": null,
+        "p95": null,
+        "p99": null,
+        "min": null,
+        "max": null,
+        "std": null
+      },
+      "backend_queue_s": {
+        "count": 0,
+        "mean": null,
+        "median": null,
+        "p90": null,
+        "p95": null,
+        "p99": null,
+        "min": null,
+        "max": null,
+        "std": null
+      },
+      "tool_call_s": {
+        "count": 536,
+        "mean": 0.0021487444029850747,
+        "median": 0.0015630000000000002,
+        "p90": 0.0045575,
+        "p95": 0.005795,
+        "p99": 0.008174349999999997,
+        "min": 0.000266,
+        "max": 0.013996,
+        "std": 0.0017896805008983357
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "seed": 42,
+  "status": "success",
+  "model_load_s": 73.52388892276213,
+  "evaluation_s": 80.39646992180496,
+  "process_total_s": 162.1079363427125,
+  "generation_s": 0.0,
+  "generation_calls": 0,
+  "input_samples": {
+    "webmmu": 492
+  },
+  "remaining_samples_at_start": {
+    "webmmu": 0
+  }
+}

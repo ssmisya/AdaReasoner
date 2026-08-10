@@ -1,56 +1,77 @@
 # Response to Reviewer 2
 
-We thank the reviewer for an exceptionally detailed and constructive review, and in particular for identifying the boundary-with-prior-work issue and the cross-table inconsistencies. We address each point below.
+We thank the reviewer for the exceptionally detailed and constructive review, especially for identifying the boundary with the conference paper and the cross-table inconsistencies. Final manuscript section/table numbers will be inserted after the revision is typeset.
 
-## R2-1 — This is an extension of published work; the boundary is not drawn
-We fully agree and have redrawn the boundary. We now (i) cite AdaReasoner (ICLR 2026) [CITE] at first mention; (ii) state precisely what is new in this article — the identifier-randomization Adaptive Learning (Sec 2.4), the Rnd TC + Rnd TG generalization study (Table 4), and the V\*/HRBench tool-planning comparison (Tables 5-6); and (iii) re-center the claims and evaluation on this delta, presenting inherited results only as background. See the revised Introduction and contribution list (and the General Response).
+## R2-1 — Boundary with the published conference version
 
-## R2-2 — The new generalization claims exceed the evidence
-We agree and have scoped both claims.
-- **New tasks.** We now describe the setting precisely as **cross-stage transfer**: only Tool Cold Start withholds VSP/WebQA, whereas Tool-GRPO uses all three tasks, so the final policy does see them. We no longer describe this as zero-shot generalization to a new task family (Sec 3.3 revised).
-- **New tools.** We scope this to **interface-level robustness** (identifiers/descriptions changed while functionality is preserved) and explicitly state we do **not** claim use of a genuinely novel capability. We also considered constructing tools with entirely new functionality held out from all stages; we note in the text why a fair such test is hard to design (tool relevance is inherently task-coupled), and therefore we make the narrower, well-supported claim rather than an unsupported broad one.
+We agree and explicitly cite our conference paper, *AdaReasoner: Dynamic Tool Orchestration for Iterative Visual Reasoning* (Mingyang Song, Haoyu Sun, Jiawei Gu, Linjie Li, Ranjay Krishna, and Yu Cheng; ICLR 2026; OpenReview `nUGPEmQ2ut`). The conference version contains trajectory curation, Tool-GRPO, the reward, the seven-tool suite, and the single-task results. The journal-only delta is: (i) identifier-randomization and description-paraphrasing Adaptive Learning; (ii) the randomized cold-start/RL generalization study; and (iii) the V\*/HRBench tool-planning evaluation. We will center the Introduction, contributions, and evaluation on this delta and present inherited results only as context.
 
-## R2-3 — Statistical reliability, and numbers that do not reconcile
-**Reconciliation.** We investigated the base-model discrepancies (Qwen2.5-VL-7B GUIChat 59.46 in Table 2 vs 68.09 in Tables 4-5; 3B GUIChat 45.11 vs 46.26; 3B WebMMU 55.89 vs 54.47). They arose because the single-task comparison table (Table 2) and the later generalization/main tables were produced under **different evaluation configurations** (an earlier GUIChat evaluation prompt/judging setup for Table 2 vs. the unified protocol used for the generalization and final-model tables). The larger 7B-GUIChat gap (59.46 vs 68.09) reflects this protocol change; the small 3B differences (≤1.4 points) are of the same origin. We have **re-run the affected settings under a single unified protocol**, now report **one number per (model, benchmark)** (the unified value, e.g. 68.09 for 7B GUIChat, which is already consistent across the generalization, randomization, and final-model tables), and state the evaluation conditions per table so no stale value remains.
-**Variance.** All key results are now reported over **multiple inference seeds as mean±std** (Table X), with paired significance where relevant. Two complementary pieces of evidence establish that our reported gains are stable and not seed artefacts. **(1) A proper 3-seed variance table** (fixed checkpoint, 3 independent runs) on the main VSP/Jigsaw configurations shows that within-configuration variance is small relative to the between-configuration gaps: e.g. VSP Overall Qwen2.5-VL-7B 28.98 (±1.13) → +Our TG 73.34 (±0.11) → +Our TC+TG 97.02 (±1.35), and Jigsaw-COCO 44.00 (±1.80) → 95.98 (±1.19); the ~68-point improvement dwarfs the ≤1.4-point standard deviation, so the gains are statistically significant. **(2) Additional fresh multi-seed inference runs** we conducted for this revision confirm the same low inference-level variance on two full test sets, both run with each task's **complete tool set**. On **VSP** (full tool set including the expert-model Point/Molmo tool), three independent full-test-set runs gave 64.45 / 64.73 / 64.55 (**mean 64.58, std 0.14**) — and the verification sub-task reaches 0.968, matching the paper's 99.20-level verification result. On **Jigsaw** (local-only tool set), three runs gave 88.20 / 88.20 / 88.40 (**mean 88.27, std 0.12**), reproducing the paper's Jigsaw-COCO number (88.60). In both cases seed-to-seed variance is a small fraction of a point — far below the tens-of-points gains our method produces. We note that, given resource constraints, variance is reported at the **inference level** (fixed checkpoint, stochastic multi-turn decoding); we state this scoping explicitly and do not claim training-seed variance.
+## R2-2 — Generalization claims exceed the evidence
 
-## R2-4 — The architecture is not evaluated under tool failure
-We add a **controlled fault-injection study** (new Table X): we inject five fault types — plausible-but-wrong output, missing response, malformed response, timeout, and contradictory tools — at **early** turns (round 1), and report the rates at which the model **detects/reacts** (a post-fault reflection or tool re-call), **recovers** (final answer still correct), or **propagates** (final answer wrong with no reaction), on fixed 100-item subsets of **two tasks** (VSP, a multi-turn planning task; Jigsaw, a single-shot 3-choice task) against no-fault baselines. Results:
+We agree and scope both claims:
 
-**VSP** (baseline acc 0.34):
-| Fault (early) | detect/react | recover (acc) | propagate | Δacc |
-|---|---|---|---|---|
-| plausible-but-wrong | 1.00 | 0.39 | 0.00 | +0.05 |
-| missing | 0.99 | 0.36 | 0.01 | +0.02 |
-| malformed | 0.99 | 0.29 | 0.01 | −0.05 |
-| contradictory | 0.98 | 0.30 | 0.02 | −0.04 |
-| timeout | 0.70 | 0.28 | 0.24 | −0.06 |
+- **Tasks:** this is cross-stage transfer, not zero-shot task-family generalization, because the final policy sees the tasks during Tool-GRPO.
+- **Tools:** this is interface-level robustness to changed names, descriptions, schemas, or ordering while functionality is preserved, not mastery of a genuinely novel capability.
 
-**Jigsaw** (baseline acc 0.90):
-| Fault (early) | detect/react | recover (acc) | propagate | Δacc |
-|---|---|---|---|---|
-| plausible-but-wrong | 1.00 | 0.77 | 0.00 | −0.13 |
-| missing | 1.00 | 0.73 | 0.00 | −0.17 |
-| malformed | 1.00 | 0.84 | 0.00 | −0.06 |
-| contradictory | 1.00 | 0.82 | 0.00 | −0.08 |
-| timeout | 0.92 | 0.81 | 0.03 | −0.09 |
+These narrower formulations will be used consistently in the Abstract, Introduction, experiment headings, table captions, and Conclusion.
 
-Findings: (1) the model **detects/reacts to the large majority of injected faults** (VSP 0.70–1.00, Jigsaw 0.92–1.00), issuing extra reflection turns and re-calling tools after a corrupted return — the average turn count rises vs. baseline, confirming active recovery rather than blind acceptance; **propagation is near-zero** except for VSP-timeout. (2) **Timeout is the hardest fault** (VSP detect 0.70 / propagate 0.24) because a hard failure returns no content to react to; we flag this as the main robustness gap. (3) A **task-structure contrast**: the multi-turn planning task (VSP) has room to re-plan, so accuracy degrades gracefully (worst −6 points), whereas the single-shot selection task (Jigsaw) detects faults at an even higher rate but, once a corrupted result misleads the one-shot choice, shows larger accuracy drops (up to −17 points) — detection is necessary but recovery headroom depends on task structure. This is direct evidence that the failure/reflection trajectories in cold-start translate into fault-robustness. We also 〖待补: 若资源允许〗 ablate cold-start with vs. without failure&reflection trajectories to show their contribution to recovery, and we note early-vs-late injection as a natural extension (early faults have the most turns available for recovery; late faults are harder). This turns error propagation from an edge case into a characterized property.
+## R2-3 — Statistical reliability and inconsistent values
 
-## R2-5 — Inference cost is never measured
-We now report cost directly: latency distributions, a generation/execution/orchestration breakdown, per-tool times, and an **accuracy-vs-latency curve at a matched budget** against baselines (Sec 4 / Appendix). Measured on **full test sets (GenReasoner-7B, single H20 GPU)**, the tool-execution share depends on the **type** of tool: with **local-only** tools (Jigsaw: DetectBlackArea/InsertImage) generation is **91.0%** and tool execution just **0.55%**; but when the pipeline invokes an **expert-model tool** many times per sample (VSP with Point/Molmo-7B), tool execution rises to **48.1%** (generation 50.8%). A per-tool micro-benchmark explains the gap: a **local operator (A\*) takes ~0.09 ms/call** versus an **expert-model call (Point/Molmo-7B) ~255 ms/call (~2,800×)**. This is precisely why **CPS is not a wall-clock proxy**: it treats a 0.09 ms local op and a 255 ms expert-model call as equivalent single calls, so in a mixed tool set CPS is dominated by cheap ops while *time* is dominated by the few expert-model calls. The finding also sharpens the cost discussion: the real cost of tool use comes from expert-model calls, so cost-aware, need-based invocation of expensive tools (what the adaptive reward promotes) is exactly where latency is saved. (The VSP figure uses a single Point worker, so tool-execution includes queueing and is an upper bound. 〖精度-延迟曲线待补图〗)
+We traced the inherited discrepancies to different prompts, judges, task loaders, and tool configurations. The revision will report one value per model–benchmark pair and bind it to an explicit configuration and result file.
 
-## R2-6 — Possible image-level leakage in Jigsaw-COCO
-We confirm the splits are **image-disjoint at the source-image level**: Jigsaw-COCO puzzles are constructed from COCO source images, and training and test puzzles are built from **different source images**, not from different patch positions of the same image. The 1,000-sample test set is generated only from held-out COCO images that never contribute any patch to training. We have clarified Sec C.1 to state this guarantee explicitly. As an additional safeguard we run a **near-duplicate check** between the train and test source images — perceptual-hash pHash (Hamming distance ≤5) plus a CLIP-embedding cosine-similarity screen (≥0.95) — and report the overlap count and any flagged pairs in the appendix. 〖待补 E8: 作者在完整train/test源图上跑pHash+CLIP近邻,填“0对重叠”或实际计数 —— 本地只同步了test,故此处留给作者用全量数据补真实结果,勿编造〗
+The current fixed-checkpoint, stochastic-inference repeats are:
 
-## R2-7 — The LM-judge is under-validated
-We strengthen the judge validation on V\*, WebMMU, and GUIQA. We draw a random sample of **N=100** items (stratified across the three benchmarks), which **k=2 of the authors** double-blind annotate (blind to system identity and to the LM judge's verdict), and we report agreement with the Qwen2.5-VL-72B judge (**Cohen's κ = 〖待补: 作者盲标后填, 预期0.7–0.8区间〗**, agreement accuracy = 〖待补〗%). We also test for a **length/verbosity bias**: we regress judge score on answer length (tokens) with correctness held fixed, and report the coefficient; controlling for answer length, judge scores do **not** increase with verbosity (Fig X) 〖待补: 回归系数+p值, 作者在已有judge输出上跑, 零额外成本〗. 〖可选〗 We add a second independent judge model (e.g. GPT-4o) and report inter-judge agreement of 〖待补〗. We report sample size, annotator count, and the blinding procedure in full.
-> 作者备注(不进提交稿):此处**必须用真实自评数据**,不能填假数。作者盲标 50-100 条 + 冗长度回归即可,零花费。
+| Benchmark | run 1 | run 2 | run 3 | mean ± sample std | audit status |
+|---|---:|---:|---:|---:|---|
+| VSP | 89.91 | 89.64 | 88.27 | **89.27 ± 0.88** | three local full results |
+| VSPO | 78.98 | 78.32 | 78.62 | **78.64 ± 0.33** | three local full results |
+| Jigsaw-COCO | 88.20 | 88.20 | 88.40 | **88.27 ± 0.12** | three local full results |
+| BLINK-J | 88.00 | 88.67 | 88.00 | **88.22 ± 0.39** | three local results |
+| V\* | 68.59 | 68.06 | 67.54 | **68.06 ± 0.53** | three local results |
+| GUIChat, Qwen2.5-72B-Instruct judge | 73.70 | 73.49 | 73.60 | **73.60 ± 0.11** | three local judged results |
+
+We explicitly scope these as **inference-repeat variance for a fixed checkpoint**, not training-seed variance or a significance test.
+
+Two rows are not yet submission ready:
+
+1. **WebMMU Functional/Act.** The execution log records 72.15/71.14/71.95 (**71.75 ± 0.53**) under the corrected task and 72B judge, but the current working copy contains only 111-item checkpoints for runs 1–2 and no run-3/full/judged artifacts. We will synchronize and recompute these files before using the number.
+2. **HRBench.** The current 63.12/63.12/62.88 scores contain 108–111 of 800 items per run mapped to `Z` after the external answer-extraction API became unavailable. Deterministic recovery of only explicit final-answer formats gives auditable lower bounds of 69.00/69.00/68.75 (**≥68.92 ± 0.14**), but the final row requires uniform offline re-scoring of every `Z` item.
+
+## R2-4 — Tool failure
+
+We ran five **early-turn** fault conditions on fixed 100-item subsets. Because the current detect/react heuristic is not fault specific, we report the directly auditable task accuracy first:
+
+| Fault | VSP accuracy (baseline 0.34) | Δ | Jigsaw accuracy (baseline 0.90) | Δ |
+|---|---:|---:|---:|---:|
+| plausible-but-wrong | 0.39 | +0.05 | 0.77 | −0.13 |
+| missing | 0.36 | +0.02 | 0.73 | **−0.17** |
+| malformed | 0.29 | −0.05 | 0.84 | −0.06 |
+| timeout | 0.28 | **−0.06** | 0.81 | −0.09 |
+| contradictory | 0.30 | −0.04 | 0.82 | −0.08 |
+
+These results show task-dependent sensitivity, with timeout the largest VSP degradation and missing responses the largest Jigsaw degradation. We do **not** currently claim a 70–100% detection rate: the heuristic treats any subsequent tool call as detection and also returns 1.0 on the clean baseline. We will either manually calibrate it or omit detect/propagate rates. Late-turn injection and the with/without failure-reflection training ablation remain uncompleted, so we do not causally attribute robustness to those trajectories.
+
+## R2-5 — Inference cost
+
+The audited wall-time breakdown is Jigsaw generation/tool execution = **90.95%/0.55%** and VSP = **39.11%/59.42%**. The local AStar operator takes **0.092 ms/call**, while Point/Molmo takes **255.333 ms/call**, a **2,775×** difference. Thus CPS obscures tool-cost heterogeneity. These measurements do not replace the requested efficiency comparison: a matched-turn/tool-budget accuracy–latency curve against baselines remains a submission gate.
+
+## R2-6 — Possible Jigsaw image leakage
+
+The intended construction is source-image disjoint: train and test puzzles use different COCO source images, not different patch positions from the same source image. This statement must be verified against the construction manifests. The additional pHash (Hamming ≤5) and CLIP-cosine (≥0.95) near-duplicate screen has **not** been run in the current working copy because the full train source images are absent. We will report the true overlap and flagged-pair counts only after running it on the complete source sets.
+
+## R2-7 — LM-judge validation
+
+We completed a 500-item stratified semantic audit of Qwen2.5-72B-Instruct decisions over GUIChat and WebMMU, approximately balanced across eight evaluated models. Of 500 sampled records, 498 are valid and two empty-reference WebMMU records are excluded. Agreement is **90.76% (452/498; Wilson 95% CI 87.90%–93.00%)**, with **Cohen’s κ=0.781**, precision/recall/specificity of **95.59%/91.29%/89.44%**, 15 false positives, and 31 false negatives. Agreement is **86.29% (170/197)** on GUIChat and **93.69% (282/301)** on WebMMU. All 46 disagreements have item-level reasons in the archived audit package.
+
+A descriptive character-length analysis gives agreement rates of 87.10%, 91.20%, 93.55%, and 91.20% across increasing length quartiles, providing no monotonic agreement advantage for the longest answers; we do not treat this descriptive result as a causal verbosity test. Importantly, the archive identifies the semantic reviewer as `Codex（逐条语义复核）`. We therefore describe this as a large, reproducible **single-reviewer semantic audit**, not as a two-author human study. If the manuscript retains the term “human validation,” an author-blinded confirmation or independent second annotation pass remains necessary.
 
 ## Minor points
-- **"Despite never explicitly trained to do so."** We now distinguish *not-supervised-at-the-instance-level* from *not-trained-at-all*, given that Adaptive Reward (Sec 2.3/A.4) and Adaptive Learning (Sec 2.4) are designed to shape this behaviour. Wording revised.
-- **"Bottleneck shifted from scale to tool quality."** We present this as a **structured-task finding**, noting the smaller general-task gains (~4-7 points on V\*/HRBench/WebMMU vs. ~40 on VSP/Jigsaw) and the "cannot fully offset" caveat.
-- **Naming.** We use **"GenReasoner"** consistently throughout, and update Figures 1 and 10 and the repository so the model is not mistaken for a third-party baseline. We confirm the released code and checkpoints correspond to this manuscript.
-- **Reproducibility.** We will release the generated trajectories, exact splits, the VSPO and Jigsaw-COCO construction scripts, and seeds. We also correct the cold-start sample accounting: the 332,649 samples decompose as 〖待补: 各任务/阶段拆分,须与附录相加吻合〗.
-- **Limitations.** We add a dedicated Limitations section covering latency and cost, dependence on hand-designed trajectories and external expert models, task-specific tooling, and dependence on tool quality (stated as a fragility as well as a strength).
-- **Smaller items.** VSPO grid sizes reconciled between A.2 and C.1; task count made consistent (four tasks) throughout; table cross-references corrected; terminology unified to "Tool-GRPO"; and we now distinguish a *syntactically successful* tool call from a *semantically useful* result.
+
+- We will replace “never explicitly trained” with the narrower “not supervised at the instance level.”
+- We will scope “the bottleneck shifts from scale to tool quality” to the studied structured tasks.
+- We will use one model name consistently and verify figures, repository labels, and checkpoints.
+- We will release trajectories, exact splits, construction scripts, and inference-run metadata; the three repeats do not have explicit training seeds.
+- The **332,649** cold-start samples still require a verified task/stage decomposition that sums to the reported total.
+- We will add limitations covering latency, expert-worker dependence, task-specific tools, hand-designed trajectories, and tool-quality fragility.
+
+> **Internal submission gates:** synchronize WebMMU full/judged artifacts; uniformly re-score HRBench `Z` items; calibrate E5 or report accuracy only; run pHash+CLIP; decide whether to report the completed single-reviewer audit as such or add author/second-human confirmation; verify the 332,649 decomposition.

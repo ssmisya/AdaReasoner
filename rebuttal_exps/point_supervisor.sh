@@ -2,19 +2,19 @@
 # Point worker supervisor (rebuttal 鲁棒性)
 # 为每个 (GPU, port) 维持一个 molmo_point_worker; 进程退出(尤其CUDA损坏exit 3)就自动重启并重新注册controller。
 # 用法: bash point_supervisor.sh   (前台常驻; 建议用 run_in_background 起)
-# 布局: 2卡×2worker —— GPU2:[50002,50003]  GPU3:[50004,50005]
+# 布局: GPU3:[50002,50003]
 
 set -u
-PY=/home/myangsong/.conda/envs/tool-server/bin/python
-REPO=/home/myangsong/AdaReasoner
+PY=/data/songmingyang/miniforge3/envs/vllm2/bin/python
+REPO=/data/songmingyang/code/reasoning/AdaReasoner-rebuttal
 export PYTHONPATH=$REPO
 CTRL=http://127.0.0.1:21112
-MODEL=/home/myangsong/models/Molmo-7B-D-0924
+MODEL=/data/songmingyang/models/Molmo-7B-D-0924
 LOGDIR=$REPO/rebuttal_exps/point_worker_logs
 mkdir -p "$LOGDIR"
 
 # (gpu port) 映射
-SPECS=("2 50002" "2 50003" "3 50004" "3 50005")
+SPECS=("3 50002" "3 50003")
 
 declare -A PIDS
 start_one() {

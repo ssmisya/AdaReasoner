@@ -1,0 +1,16 @@
+{
+  "model_size": "7B",
+  "model_path": "/data/songmingyang/models/baselines/Qwen2.5-VL-7B-Instruct",
+  "mode": "no_tools",
+  "task": "vsp",
+  "seed": 1234,
+  "cuda_visible_devices": "0,1",
+  "tensor_parallel": 2,
+  "batch_size": 12,
+  "max_model_len": 8192,
+  "tool_selection": "AStarWithPixelCoordinate,Draw2DPath,Point",
+  "stochastic_decoding": true,
+  "controller_addr": "http://127.0.0.1:21112",
+  "created_at": "2026-08-05T08:28:09+0000",
+  "hostname": "dev-15cf4a58-0"
+}

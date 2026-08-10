@@ -1,0 +1,33 @@
+{
+  "model_size": "7B",
+  "model_slug": "adareasoner_randomized_7b",
+  "model_display_name": "AdaReasoner-7B-Randomized-Final",
+  "model_path": "/data/songmingyang/model/adareasoner/AdaReasoner-7B-Randomized",
+  "backend": "vllm_models",
+  "mode": "with_tools",
+  "task": "vstar",
+  "seed": 42,
+  "cuda_visible_devices": "0,3",
+  "tensor_parallel": 2,
+  "batch_size": 64,
+  "pipeline_enabled": "1",
+  "pipeline_max_active": 192,
+  "tool_concurrency": 16,
+  "max_model_len": 16384,
+  "max_rounds": 6,
+  "resumed_samples": 0,
+  "tool_selection": "Point,OCR,Crop,AStarWithPixelCoordinate",
+  "if_randomize_tool": false,
+  "stochastic_decoding": false,
+  "controller_addr": "http://127.0.0.1:21112",
+  "latency_schema_version": 1,
+  "latency_required": true,
+  "latency_definition": {
+    "instance_e2e_s": "from admission before conversation construction until the final round is recognized as finished; excludes final result serialization and checkpoint writes",
+    "round_model_generate_s": "wall time around model.generate()",
+    "round_tool_call_s": "wall time around the tool RPC"
+  },
+  "protocol_fingerprint": "9b390abac65599aa84b68d40cbc4f9de8445c55779bff4339f344e679032c926",
+  "created_at": "2026-08-08T14:29:08+0000",
+  "hostname": "dev-15cf4a58-0"
+}

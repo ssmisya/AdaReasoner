@@ -1,0 +1,13 @@
+{
+  "counts": {
+    "3b": 24,
+    "7b": 24,
+    "32b": 24,
+    "72b": 24
+  },
+  "complete": 96,
+  "expected": 96,
+  "invalid_markers": [],
+  "fully_validated": true,
+  "failures": []
+}

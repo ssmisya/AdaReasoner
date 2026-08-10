@@ -1,0 +1,17 @@
+{
+  "validated": true,
+  "task": "webmmu",
+  "seed": 42,
+  "model_path": "/data/songmingyang/model/adareasoner/AdaReasoner-7B-Randomized",
+  "samples": 492,
+  "stochastic_decoding": false,
+  "primary_metric": "category_res.Functional",
+  "metric_label": "category_res.Functional",
+  "metric": 0.0,
+  "metric_percent": 0.0,
+  "evaluation_s": 884.7774865101092,
+  "instance_latency_file": "latency.jsonl",
+  "instance_latency_mean_s": 147.9016822154472,
+  "round_latency_mean_s": 37.874694196771024,
+  "round_latency_count": 991
+}

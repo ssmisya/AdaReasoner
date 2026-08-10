@@ -33,6 +33,12 @@ import time
 from tool_server.tool_workers.online_workers.base_tool_worker import BaseToolWorker
 
 GB = 1 << 30
+OCR_MODEL_ROOT = os.environ.get(
+    "PADDLEOCR_MODEL_ROOT",
+    "/data/songmingyang/models/paddleocr_models/official_models",
+)
+OCR_DET_MODEL_DIR = os.path.join(OCR_MODEL_ROOT, "PP-OCRv5_mobile_det")
+OCR_REC_MODEL_DIR = os.path.join(OCR_MODEL_ROOT, "PP-OCRv5_mobile_rec")
 
 worker_id = str(uuid.uuid4())[:6]
 logger = build_logger(__file__, f"{__file__}_{worker_id}.log")
@@ -49,7 +55,9 @@ def gpu_worker_process(gpu_id, task_queue, result_queue):
     ocr_model = PaddleOCR(
         ocr_version="PP-OCRv5",
         text_detection_model_name="PP-OCRv5_mobile_det",
+        text_detection_model_dir=OCR_DET_MODEL_DIR,
         text_recognition_model_name="PP-OCRv5_mobile_rec",
+        text_recognition_model_dir=OCR_REC_MODEL_DIR,
         use_doc_orientation_classify=False,
         use_doc_unwarping=False,
         use_textline_orientation=False,
@@ -241,7 +249,9 @@ class OCRToolWorker(BaseToolWorker):
         self.ocr_model = PaddleOCR(
             ocr_version="PP-OCRv5",
             text_detection_model_name="PP-OCRv5_mobile_det",
+            text_detection_model_dir=OCR_DET_MODEL_DIR,
             text_recognition_model_name="PP-OCRv5_mobile_rec",
+            text_recognition_model_dir=OCR_REC_MODEL_DIR,
             use_doc_orientation_classify=False,
             use_doc_unwarping=False,
             use_textline_orientation=False,

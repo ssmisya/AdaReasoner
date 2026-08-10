@@ -1,0 +1,4 @@
+==== Mon Aug  3 17:03:38 UTC 2026 START ada smoke (single) ====
+models={"models":["Crop","Point","OCR"]}
+gpu=0, 0 MiB;1, 4 MiB;2, 499 MiB;3, 0 MiB;
+==== Mon Aug  3 17:07:53 UTC 2026 END exit=0 ====

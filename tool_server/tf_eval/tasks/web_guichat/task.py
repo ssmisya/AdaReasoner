@@ -3,17 +3,6 @@ from ...utils.utils import *
 from ...utils.log_utils import get_logger
 import os, sys
 from datasets import load_dataset
-import math
-import nltk
-from thefuzz import fuzz
-import numpy as np
-nltk.download("punkt", quiet=True)
-
-try:
-    from math_verify import parse, verify
-except ImportError:
-    print("math_verify package not found. Please install it to use math verification features.")
-
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 

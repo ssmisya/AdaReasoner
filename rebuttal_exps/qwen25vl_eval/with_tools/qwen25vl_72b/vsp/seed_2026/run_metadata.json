@@ -1,0 +1,17 @@
+{
+  "model_size": "72B",
+  "model_path": "/data/songmingyang/models/baselines/Qwen2.5-VL-72B-Instruct",
+  "served_model_name": "Qwen2.5-VL-72B-Instruct",
+  "mode": "with_tools",
+  "task": "vsp",
+  "seed": 2026,
+  "vllm_port": 8001,
+  "backend": "openai",
+  "resumed_samples": 0,
+  "tool_selection": "AStarWithPixelCoordinate,Draw2DPath,Point",
+  "stochastic_decoding": true,
+  "temperature": 0.7,
+  "controller_addr": "http://127.0.0.1:21112",
+  "created_at": "2026-08-05T10:58:23+0000",
+  "hostname": "dev-2b6f5601-0"
+}

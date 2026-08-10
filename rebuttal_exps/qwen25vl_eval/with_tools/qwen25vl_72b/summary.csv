@@ -1,0 +1,9 @@
+task,primary_metric,metric_label,stochastic_decoding,complete,completed_seeds,metric_mean_percent,metric_variance,metric_std,evaluation_mean_s,evaluation_std_s,evaluation_mean_ms_per_sample,generation_mean_s,generation_std_s,tool_exec_mean_s,tool_exec_std_s,instance_e2e_mean_s,round_e2e_mean_s,tool_call_mean_s
+vsp,,,,False,,,,,,,,,,,,,,
+vspo,,,,False,,,,,,,,,,,,,,
+jigsaw_coco,,,,False,,,,,,,,,,,,,,
+jigsaw_blink,,,,False,,,,,,,,,,,,,,
+vstar,,,,False,,,,,,,,,,,,,,
+web_guichat,,,,False,,,,,,,,,,,,,,
+webmmu,,,,False,,,,,,,,,,,,,,
+hrbench,,,,False,,,,,,,,,,,,,,

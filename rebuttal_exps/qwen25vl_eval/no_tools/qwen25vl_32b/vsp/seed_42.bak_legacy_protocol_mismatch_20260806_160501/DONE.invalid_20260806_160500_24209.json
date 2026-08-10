@@ -1,0 +1,13 @@
+{
+  "validated": true,
+  "task": "vsp",
+  "seed": 42,
+  "model_path": "/data/songmingyang/models/baselines/Qwen2.5-VL-32B-Instruct",
+  "samples": 1100,
+  "stochastic_decoding": true,
+  "primary_metric": "overall_accuracy",
+  "metric_label": "overall_accuracy",
+  "metric": 0.4118181818181818,
+  "metric_percent": 41.18181818181818,
+  "evaluation_s": 3.293108779937029
+}

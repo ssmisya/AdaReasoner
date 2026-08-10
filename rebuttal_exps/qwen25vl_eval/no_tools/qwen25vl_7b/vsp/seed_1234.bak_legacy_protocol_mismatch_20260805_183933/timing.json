@@ -1,0 +1,9 @@
+{
+  "seed": 1234,
+  "status": "running",
+  "model_load_s": 108.64298845175654,
+  "evaluation_s": null,
+  "process_total_s": null,
+  "generation_s": 0.0,
+  "generation_calls": 0
+}

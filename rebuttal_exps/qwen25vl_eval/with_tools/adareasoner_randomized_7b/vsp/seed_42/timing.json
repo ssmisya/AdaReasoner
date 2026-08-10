@@ -1,0 +1,15 @@
+{
+  "seed": 42,
+  "status": "running",
+  "model_load_s": 719.9318658669945,
+  "evaluation_s": null,
+  "process_total_s": null,
+  "generation_s": 0.0,
+  "generation_calls": 0,
+  "preflight_samples": {
+    "vsp": 1100
+  },
+  "preflight_s": {
+    "vsp": 2.875206454889849
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "seed": 42,
+  "status": "success",
+  "model_load_s": 82.91857579303905,
+  "evaluation_s": 72.85796172195114,
+  "process_total_s": 163.85611636796966,
+  "generation_s": 57.66341895516962,
+  "generation_calls": 9,
+  "preflight_samples": {
+    "jigsaw_blink": 150
+  },
+  "preflight_s": {
+    "jigsaw_blink": 0.5115116348024458
+  },
+  "input_samples": {
+    "jigsaw_blink": 150
+  },
+  "remaining_samples_at_start": {
+    "jigsaw_blink": 150
+  }
+}

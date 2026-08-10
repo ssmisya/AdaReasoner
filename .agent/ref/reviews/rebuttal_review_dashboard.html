@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GenReasoner Rebuttal Review Dashboard</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --surface-2: #eef2f7;
+      --text: #17202a;
+      --muted: #66717f;
+      --line: #d7dde6;
+      --accent: #2457c5;
+      --accent-soft: #e8efff;
+      --danger: #a72f38;
+      --danger-soft: #fae9eb;
+      --warn: #8a5900;
+      --warn-soft: #fff2d5;
+      --ok: #1f6d43;
+      --ok-soft: #e5f4eb;
+      --scope: #6550a6;
+      --scope-soft: #eeeafd;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101319;
+        --surface: #191d24;
+        --surface-2: #222832;
+        --text: #e8ebef;
+        --muted: #a8b0bd;
+        --line: #353d49;
+        --accent: #90b0ff;
+        --accent-soft: #202e4e;
+        --danger: #ff9ba3;
+        --danger-soft: #422329;
+        --warn: #f0c16a;
+        --warn-soft: #3c311c;
+        --ok: #91d4ab;
+        --ok-soft: #1d3828;
+        --scope: #c2afff;
+        --scope-soft: #30294c;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.55;
+    }
+    button, input, select { font: inherit; }
+    a { color: var(--accent); }
+    code {
+      padding: 1px 5px;
+      background: var(--surface-2);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: .9em;
+    }
+    .shell { width: min(1480px, calc(100% - 32px)); margin: 0 auto; }
+
+    header {
+      padding: 42px 0 26px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .eyebrow {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1 { margin: 7px 0 8px; font-size: clamp(26px, 3vw, 39px); line-height: 1.15; }
+    .lede { margin: 0; max-width: 980px; color: var(--muted); }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .metric {
+      padding: 16px;
+      border: 1px solid var(--line);
+      background: var(--surface-2);
+    }
+    .metric strong { display: block; font-size: 24px; line-height: 1.1; }
+    .metric span { color: var(--muted); font-size: 13px; }
+    .alert {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border-left: 4px solid var(--danger);
+      background: var(--danger-soft);
+      font-size: 14px;
+    }
+    .source-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      margin-top: 14px;
+      font-size: 12px;
+    }
+
+    .toolbar-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+      backdrop-filter: blur(10px);
+    }
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) repeat(3, minmax(135px, 180px)) auto;
+      gap: 10px;
+      padding: 12px 0;
+    }
+    .control, .button {
+      width: 100%;
+      padding: 9px 11px;
+      border: 1px solid var(--line);
+      outline: none;
+      background: var(--surface);
+      color: var(--text);
+    }
+    .control:focus { border-color: var(--accent); }
+    .button { width: auto; cursor: pointer; white-space: nowrap; }
+    .button:hover { color: var(--accent); border-color: var(--accent); }
+
+    main { padding: 24px 0 56px; }
+    .panel {
+      margin: 0 0 28px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .panel h2 { margin: 0 0 6px; font-size: 23px; }
+    .panel > p { margin: 0 0 16px; color: var(--muted); }
+    .panel-note {
+      margin-top: 14px;
+      padding: 11px 13px;
+      border-left: 3px solid var(--accent);
+      background: var(--accent-soft);
+      font-size: 13px;
+    }
+    .integrity-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .integrity-card {
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      background: var(--surface-2);
+    }
+    .integrity-card strong { display: block; margin-bottom: 4px; }
+    .integrity-card p { margin: 0; color: var(--muted); font-size: 13px; }
+    .integrity-card.danger { border-left: 4px solid var(--danger); }
+    .integrity-card.warn { border-left: 4px solid var(--warn); }
+
+    .status-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .status-box {
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      background: var(--surface-2);
+    }
+    .status-box strong { display: block; font-size: 18px; }
+    .status-box span { color: var(--muted); font-size: 12px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td {
+      padding: 10px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: var(--surface-2); white-space: nowrap; }
+    td:first-child, td:nth-child(2), td:nth-child(3) { white-space: nowrap; }
+    td ul { margin: 0; padding-left: 17px; }
+    td li + li { margin-top: 3px; }
+
+    .reviewer-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 32px 0 12px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--text);
+    }
+    .reviewer-head h2 { margin: 0; font-size: 22px; }
+    .reviewer-meta { color: var(--muted); font-size: 13px; text-align: right; white-space: pre-line; }
+    .item {
+      margin-bottom: 14px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .item summary {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 15px 16px;
+      cursor: pointer;
+      list-style: none;
+    }
+    .item summary::-webkit-details-marker { display: none; }
+    .item summary::before {
+      content: "+";
+      display: grid;
+      place-items: center;
+      width: 25px;
+      height: 25px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+    .item[open] summary::before { content: "−"; color: var(--accent); border-color: var(--accent); }
+    .title-wrap { min-width: 0; }
+    .item-title { margin: 0; font-size: 16px; line-height: 1.3; }
+    .item-sub { margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 7px;
+      border: 1px solid var(--line);
+      font-size: 11px;
+      font-weight: 780;
+      white-space: nowrap;
+    }
+    .priority-P0, .status-Blocked { color: var(--danger); background: var(--danger-soft); border-color: var(--danger); }
+    .priority-P1, .status-Partial { color: var(--warn); background: var(--warn-soft); border-color: var(--warn); }
+    .priority-P2 { color: var(--muted); background: var(--surface-2); }
+    .status-Ready { color: var(--ok); background: var(--ok-soft); border-color: var(--ok); }
+    .status-Scoped { color: var(--scope); background: var(--scope-soft); border-color: var(--scope); }
+
+    .content { padding: 0 16px 18px 53px; border-top: 1px solid var(--line); }
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
+      gap: 18px;
+      padding-top: 16px;
+    }
+    .section-label {
+      margin: 0 0 7px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .quote, .draft {
+      margin: 0;
+      padding: 13px 14px;
+      white-space: pre-wrap;
+    }
+    .quote {
+      border-left: 3px solid var(--line);
+      background: var(--surface-2);
+      font-size: 13px;
+    }
+    .concern { margin: 0 0 16px; font-size: 14px; }
+    .plan, .actions { margin: 0; padding-left: 19px; font-size: 14px; }
+    .plan li + li, .actions li + li { margin-top: 5px; }
+    .draft-wrap { position: relative; }
+    .draft {
+      border: 1px solid var(--line);
+      background: var(--bg);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+    .copy {
+      position: absolute;
+      top: 7px;
+      right: 7px;
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 11px;
+    }
+    .copy:hover { color: var(--accent); border-color: var(--accent); }
+    .needed, .evidence {
+      margin-top: 12px;
+      padding: 9px 11px;
+      font-size: 12px;
+    }
+    .needed {
+      color: var(--warn);
+      background: var(--warn-soft);
+      font-family: var(--mono);
+    }
+    .evidence {
+      color: var(--ok);
+      background: var(--ok-soft);
+    }
+    .empty {
+      padding: 60px 20px;
+      border: 1px dashed var(--line);
+      background: var(--surface);
+      color: var(--muted);
+      text-align: center;
+    }
+    footer { padding: 20px 0 40px; color: var(--muted); font-size: 12px; }
+
+    @media (max-width: 1000px) {
+      .summary-grid, .status-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .toolbar { grid-template-columns: 1fr 1fr; }
+      .grid, .integrity-grid { grid-template-columns: 1fr; }
+      .content { padding-left: 16px; }
+    }
+    @media (max-width: 580px) {
+      .shell { width: min(100% - 20px, 1480px); }
+      .summary-grid, .status-summary, .toolbar { grid-template-columns: 1fr; }
+      .item summary { grid-template-columns: auto minmax(0, 1fr); }
+      .badges { grid-column: 2; justify-content: flex-start; }
+      .reviewer-head { align-items: start; flex-direction: column; }
+      .reviewer-meta { text-align: left; }
+    }
+    @media print {
+      .toolbar-wrap, .copy, .button { display: none !important; }
+      details { break-inside: avoid; }
+      details:not([open]) > *:not(summary) { display: block; }
+      body { background: white; color: black; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="shell">
+      <div class="eyebrow">Springer Major Revision · Author Working Artifact</div>
+      <h1>GenReasoner Rebuttal Review Dashboard</h1>
+      <p class="lede">逐条映射 Reviewer 原文、核心风险、当前应对策略、已有证据、待补实验和英文回复草稿。状态以当前仓库可验证材料为准；文档中的“已完成”不自动等于结果产物已经同步。</p>
+      <div class="summary-grid">
+        <div class="metric"><strong id="metric-items">14</strong><span>Reviewer 条目（R1 6 + R2 7 + Minors）</span></div>
+        <div class="metric"><strong>8</strong><span>补充实验 E1–E8</span></div>
+        <div class="metric"><strong id="metric-open">10</strong><span>Partial / Blocked / Scoped 条目</span></div>
+        <div class="metric"><strong>6 + 1</strong><span>剩余硬缺口 + judge 人类确认口径</span></div>
+      </div>
+      <div class="alert">
+        <strong>当前判断：</strong>500 条 judge semantic audit 已完成：498 条有效，agreement=90.76%、κ=0.781，并有完整 disagreement 理由。补充实验已有较强的 inference-repeat、72B judge、latency 和 early-fault 证据，但还不能提交。关键阻塞仍包括 WebMMU full/judged 产物、HRBench 重判、matched-budget 曲线、E5 校准和 Jigsaw 近重复检查；如正文称 human validation，还需作者或第二人类标注者确认。
+      </div>
+      <div class="source-links">
+        <a href="reviews.md">Reviewer 原文</a>
+        <a href="plans/rebuttal_plan.md">总体方案</a>
+        <a href="plans/exps.md">实验清单</a>
+        <a href="RESULTS_TABLE.md">结果汇总</a>
+        <a href="rebuttal_content/reviewer1_response.md">R1 回复</a>
+        <a href="rebuttal_content/reviewer2_response.md">R2 回复</a>
+        <a href="rebuttal_content/POINT_BY_POINT_REBUTTAL.md">合并回复</a>
+        <a href="rebuttal_content/judge_audit_500_selected_20260804.tar.gz">Judge 500 审计包</a>
+        <a href="../../exec_log.md">执行日志</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="toolbar-wrap">
+    <div class="shell toolbar">
+      <input id="search" class="control" type="search" placeholder="搜索原文、风险、实验或回复草稿…" />
+      <select id="reviewer" class="control" aria-label="Reviewer">
+        <option value="all">全部 Reviewer</option>
+        <option value="R1">Reviewer 1</option>
+        <option value="R2">Reviewer 2</option>
+      </select>
+      <select id="type" class="control" aria-label="Type">
+        <option value="all">全部主题</option>
+        <option value="Novelty">Novelty</option>
+        <option value="Generalization">Generalization</option>
+        <option value="Fairness">Fairness</option>
+        <option value="Reliability">Reliability</option>
+        <option value="Reward">Reward</option>
+        <option value="Cost">Cost</option>
+        <option value="Robustness">Robustness</option>
+        <option value="Data">Data</option>
+        <option value="Judge">Judge</option>
+        <option value="Minors">Minors</option>
+      </select>
+      <select id="status" class="control" aria-label="Status">
+        <option value="all">全部状态</option>
+        <option value="Ready">Ready</option>
+        <option value="Partial">Partial</option>
+        <option value="Blocked">Blocked</option>
+        <option value="Scoped">Scoped</option>
+      </select>
+      <button id="print" class="button" type="button">打印 / 导出 PDF</button>
+    </div>
+  </div>
+
+  <main class="shell">
+    <section class="panel" id="integrity">
+      <h2>数字与产物一致性检查</h2>
+      <p>以下风险必须先于文案润色解决，否则 point-by-point 回复会引用互相冲突的结果。</p>
+      <div class="integrity-grid">
+        <div class="integrity-card danger">
+          <strong>WebMMU：日志完成，当前副本未闭环</strong>
+          <p>执行日志记录 72B judge 的 Functional/Act. 三次结果为 72.15/71.14/71.95；但本地 run1/2 各只有 111 条 checkpoint，缺 run3 目录、full result 和 judged artifact。71.75±0.53 目前只能作为“待同步复核”的日志结果。</p>
+        </div>
+        <div class="integrity-card danger">
+          <strong>HRBench 63.04 受评分器故障污染</strong>
+          <p>每次有 108–111/800 条因 OpenAI API 不可达回退为 <code>Z</code>。从明确 final-answer 格式可确定性恢复后，三次可审计下界为 69.00/69.00/68.75（≥68.92±0.14）；仍须统一重判全部 Z 样本后冻结终值。</p>
+        </div>
+        <div class="integrity-card danger">
+          <strong>E4 没有证明选择性省工具</strong>
+          <p>VSP、Jigsaw 近 100% 用工具；GUIChat 三次均为 962/962 样本调用工具，no-tool n=0。现有结果只能说明难例调用更多，不能证明 asymmetric reward 产生 cost-aware abstention。</p>
+        </div>
+        <div class="integrity-card warn">
+          <strong>E5 detect/react 尚未校准</strong>
+          <p>当前启发式把 fault 后任意再次调用工具计为检测，clean baseline 也得到 detect=1.0。accuracy drop 可报告；70–100% 检测率、silent propagation 和训练归因需人工抽检或重分析后再写。</p>
+        </div>
+        <div class="integrity-card warn">
+          <strong>成本拆分已有唯一口径，trade-off 仍缺</strong>
+          <p>正式 JSON 给出 VSP generation/tool=39.11/59.42%，Jigsaw=90.95/0.55%，AStar/Point=0.092/255.333 ms。它证明 CPS≠成本，但 reviewer 明确要求的 matched-budget accuracy–latency 曲线仍未完成。</p>
+        </div>
+        <div class="integrity-card warn">
+          <strong>Judge 审计已完成，human validation 措辞待定</strong>
+          <p>500 条中 498 条有效，agreement=90.76%（95% CI 87.90%–93.00%），κ=0.781，FP/FN=15/31；GUIChat/WebMMU 为 86.29%/93.69%。但 reviewer 字段是 Codex 单人语义复核，若正文写 human validation，仍需作者或第二人类标注者确认。pHash+CLIP、332,649 分解、修订 manuscript 和 PDF 也仍缺。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="experiments">
+      <h2>补充实验进度与优先级</h2>
+      <p>状态区分：Ready=回复方案已闭环；Partial=已有主证据但仍缺承诺项；Blocked=关键实证尚缺；Scoped=主动收窄 claim，不再执行原实验。</p>
+
+      <div class="status-summary">
+        <div class="status-box"><strong>Ready · 1</strong><span>E7 baseline 协议/诚实披露</span></div>
+        <div class="status-box"><strong>Partial · 5</strong><span>E2、E3、E5、E6、E8</span></div>
+        <div class="status-box"><strong>Blocked · 1</strong><span>E4 selective-use 证据</span></div>
+        <div class="status-box"><strong>Scoped · 1</strong><span>E1 新能力工具实验取消</span></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>优先级</th>
+              <th>状态</th>
+              <th>对应审稿点</th>
+              <th>已有证据</th>
+              <th>缺口 / 完成标准</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>E1</td>
+              <td><span class="badge priority-P0">P0</span></td>
+              <td><span class="badge status-Scoped">Scoped</span></td>
+              <td>R1-2 / R2-2</td>
+              <td>保留工具选择分析；claim 收窄为 interface-level robustness + cross-stage transfer。</td>
+              <td>不再声称掌握 genuinely novel capability；这是当前证据能支持的准确边界。</td>
+            </tr>
+            <tr>
+              <td>E2</td>
+              <td><span class="badge priority-P0">P0</span></td>
+              <td><span class="badge status-Partial">Partial</span></td>
+              <td>R2-3</td>
+              <td>VSP、VSPO、Jigsaw、BLINK-J、V*、GUIChat 有 3 次固定 checkpoint 推理重复；GUIChat 72B judge 为 73.60±0.11。</td>
+              <td>同步 WebMMU full/judged 三次产物；HRBench 重判 108–111 个 Z/run；明确不是 training-seed variance。</td>
+            </tr>
+            <tr>
+              <td>E3</td>
+              <td><span class="badge priority-P0">P0</span></td>
+              <td><span class="badge status-Partial">Partial</span></td>
+              <td>R1-6a / R2-5</td>
+              <td>正式 JSON 已冻结：VSP generation/tool=39.11/59.42%；AStar 0.092 ms，Point 255.333 ms，约 2,775×。</td>
+              <td>补 accuracy–latency matched-budget 曲线；若承诺 distributions/throughput/P50/P90/P99，则必须实际生成。</td>
+            </tr>
+            <tr>
+              <td>E4</td>
+              <td><span class="badge priority-P1">P1</span></td>
+              <td><span class="badge status-Blocked">Blocked</span></td>
+              <td>R1-5</td>
+              <td>VSP 难例调用更多；但 VSP/Jigsaw 近 100% 用工具，GUIChat 三次均 962/962 使用工具。</td>
+              <td>当前无法估计 correct-and-tool-free 子集。删除 cost-aware abstention 实证 claim，或补 easy/no-tool 对照与 reward ablation。</td>
+            </tr>
+            <tr>
+              <td>E5</td>
+              <td><span class="badge priority-P1">P1</span></td>
+              <td><span class="badge status-Partial">Partial</span></td>
+              <td>R1-6c / R2-4</td>
+              <td>VSP/Jigsaw 各 100 条五类 early fault；accuracy delta 可核查，VSP 最差 timeout −6pp，Jigsaw 最差 missing −17pp。</td>
+              <td>detect/react 启发式在 clean baseline 也为 1.0，须人工抽检/校准；late injection 与训练消融仍未跑。</td>
+            </tr>
+            <tr>
+              <td>E6</td>
+              <td><span class="badge priority-P0">P0</span></td>
+              <td><span class="badge status-Partial">Partial</span></td>
+              <td>R2-7</td>
+              <td>500 条 semantic audit：498 有效，agreement=90.76%，κ=0.781，FP/FN=15/31；GUIChat/WebMMU=86.29%/93.69%。</td>
+              <td>归档 reviewer 为 Codex 单 reviewer；如要称 human validation，补作者/第二人类标注者确认。长度四分位已做，控制 correctness 的回归仍是增强项。</td>
+            </tr>
+            <tr>
+              <td>E7</td>
+              <td><span class="badge priority-P1">P1</span></td>
+              <td><span class="badge status-Ready">Ready</span></td>
+              <td>R1-3 / R1-4</td>
+              <td>已明确闭源主表为无工具单轮；补 GPT-5+Tools matched protocol；披露 DeepEyes/PixelReasoner 未适配。</td>
+              <td>定稿时补协议表和 caption caveat；不要虚构 adapted baseline 数字。</td>
+            </tr>
+            <tr>
+              <td>E8</td>
+              <td><span class="badge priority-P2">P2</span></td>
+              <td><span class="badge status-Partial">Partial</span></td>
+              <td>R2-6</td>
+              <td>作者确认 source-image-level disjoint，并已有文字保证。</td>
+              <td>在完整 train/test 源图上执行 pHash+CLIP 近重复检查，报告真实计数和 flagged pairs。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel-note"><strong>推荐执行顺序：</strong>① 同步 WebMMU full/judged 产物并统一重判 HRBench Z 样本；② 决定 judge 表述口径，并在需要时补作者/第二人类标注者确认；③ 跑 matched-budget accuracy–latency 曲线；④ 校准 E5 并决定是否补 late/训练消融；⑤ 跑 pHash+CLIP 与核对 332,649 分解；⑥ 落实 manuscript、Table/Fig、引用并生成 point-by-point PDF。</div>
+    </section>
+
+    <div id="app"></div>
+  </main>
+
+  <footer class="shell">
+    Source: reviews.md + rebuttal_plan.md + exps.md + RESULTS_TABLE.md + reviewer response drafts + exec_log.md + local result audit · Updated 2026-08-04
+  </footer>
+
+  <script>
+    const reviewers = {
+      R1: {
+        label: "Reviewer 1",
+        meta: "6 major points\n重点：novelty、generalization、baseline fairness、reward 与成本"
+      },
+      R2: {
+        label: "Reviewer 2",
+        meta: "7 major points + minors\n最高风险：ICLR delta、证据口径、tool failure、judge validation"
+      }
+    };
+
+    const items = [
+      {
+        reviewer: "R1",
+        id: "R1-1",
+        type: "Novelty",
+        priority: "P0",
+        status: "Ready",
+        title: "Novelty of the methodological contributions",
+        original: `The three claimed innovations have substantial precedents: high-quality trajectory data extends existing CoT/CoM methods (CogCoM, TACO); Tool-GRPO is a direct application of GRPO without task-specific algorithmic modifications; adaptive learning via randomization and paraphrasing is a well-established technique in domain adaptation and meta-learning literature.`,
+        concern: "Reviewer 认为方法组件均有先例，而且期刊稿把 ICLR 已发表内容再次包装成新贡献。",
+        plan: [
+          "承认 SFT cold-start、GRPO 和 randomization 单独并不新。",
+          "显式引用 AdaReasoner (ICLR 2026)，把 trajectory、Tool-GRPO、reward、七工具和 Table 2 归为继承内容。",
+          "只把 Sec 2.4、Table 4、V*/HRBench 评测作为 journal delta。",
+          "把贡献定位为系统集成与新增实证，而不是新 RL 算法。"
+        ],
+        evidence: "General Response 与 R1/R2 草稿已经采用同一套三项 delta。",
+        needed: "AdaReasoner (ICLR 2026; OpenReview nUGPEmQ2ut)、真实 manuscript section/table 编号及正文修改需落位。",
+        draft: `We agree that SFT cold-start, GRPO, and interface randomization each have clear precedents, and we have removed wording implying that these components are individually novel. We now explicitly cite the conference version and reposition the contribution as the integration of these ingredients into a multi-turn, multi-tool framework plus the journal-only delta: interface-robustness Adaptive Learning, the randomized generalization study, and the V*/HRBench evaluation.`
+      },
+      {
+        reviewer: "R1",
+        id: "R1-2",
+        type: "Generalization",
+        priority: "P0",
+        status: "Scoped",
+        title: "“New tools” only tests interface remapping",
+        original: `In the "Generalize to New Tools" experiment, training and evaluation use tools with identical functionality but different names/descriptions. Since the model has been exposed to semantically equivalent functionality during training, the current design cannot disentangle abstract-function understanding from robust interface mapping.`,
+        concern: "现有实验只能证明同功能工具的名称/描述变化鲁棒性，不能证明模型 zero-shot 掌握全新能力。",
+        plan: [
+          "撤回 abstract tool-function understanding 和 genuinely novel capability 的表述。",
+          "改称 interface-level robustness 与 cross-stage transfer。",
+          "保留 adopts useful / ignores irrelevant / down-weights redundant 的工具选择分析。",
+          "不硬造一个与任务脱节的新能力工具实验。"
+        ],
+        evidence: "E1 已按作者批注取消；R1/R2 回复草稿均采用 claim narrowing。",
+        needed: "全文搜索并删除 zero-shot new-task/new-capability 的残留 headline。",
+        draft: `We agree and have scoped the claim. We no longer claim mastery of abstract tool functions or genuinely novel capabilities. We claim robustness to interface-level variation—renamed, re-described, or re-ordered tools with functionality preserved—together with cross-stage transfer. The tool-selection analysis is retained as evidence of sensible routing under interface change, not as evidence of a new capability.`
+      },
+      {
+        reviewer: "R1",
+        id: "R1-3",
+        type: "Fairness",
+        priority: "P0",
+        status: "Ready",
+        title: "Closed-source evaluation transparency",
+        original: `It is unclear whether GPT-5, Claude Sonnet 4, etc., were provided with the same tool set and system prompts. If not, the claim of "surpassing GPT-5" compares a tool-augmented model against a base model, which is potentially misleading.`,
+        concern: "主表实际上是 tool-augmented open model 对 no-tool proprietary model；若不披露，超越 GPT-5 的 claim 不公平。",
+        plan: [
+          "逐 baseline 列出 same tools、same system prompt、same multi-step protocol。",
+          "明确主表闭源模型为无工具、单轮、temperature 0、max 2048。",
+          "增加 GPT-5+Tools matched-protocol 对照。",
+          "把 claim 限定到 structured visual reasoning，并承认 WebMMU 等开放任务上闭源模型仍强。"
+        ],
+        evidence: "已有 GPT-5+Tools：VSP 55.64→71.36，Jigsaw 80.10→84.50；草稿已明确协议差异。",
+        needed: "把协议表真正加入 manuscript，并核对 exact model IDs 与评测日期。",
+        draft: `We clarify that the proprietary models in the main tables were evaluated without tools and in a single turn, so that comparison is now labeled explicitly. We additionally report a matched-protocol condition in which GPT-5 runs inside the same tool-server framework. GPT-5+Tools improves substantially, while GenReasoner remains ahead on the structured visual-reasoning tasks; proprietary models retain an edge on open-ended tasks such as WebMMU.`
+      },
+      {
+        reviewer: "R1",
+        id: "R1-4",
+        type: "Fairness",
+        priority: "P1",
+        status: "Ready",
+        title: "DeepEyes / PixelReasoner interface mismatch",
+        original: `These baselines were originally designed for single-tool/fixed-loop scenarios; evaluating them on a new tool set without adaptation may be unfair. Low CPS and success rates could stem from prompt incompatibility rather than inherent inferiority.`,
+        concern: "Table 6 的低分可能是接口不兼容，而不是 baseline 推理能力差。",
+        plan: [
+          "明确写明 DeepEyes/PixelReasoner 未适配到多工具接口。",
+          "把结果解释为 unseen interface 下的 brittleness，而非模型本质弱。",
+          "在 Table 6 caption 加 caveat。",
+          "不报告不存在的 post-adaptation 数字。"
+        ],
+        evidence: "当前英文回复已经选择“诚实披露未适配”的方案。",
+        needed: "确认正文和 caption 不再使用 inherent superiority 式措辞。",
+        draft: `We explicitly note that DeepEyes and PixelReasoner were run without adaptation to our multi-tool interface. Their low engagement therefore partly reflects prompt and interface incompatibility rather than inherent inferiority. We revise the interpretation to robustness under an unseen tool interface and add this caveat to the table caption; we do not fabricate post-adaptation numbers.`
+      },
+      {
+        reviewer: "R1",
+        id: "R1-5",
+        type: "Reward",
+        priority: "P1",
+        status: "Blocked",
+        title: "Asymmetric reward and possible reward hacking",
+        original: `The asymmetric reward may induce reward hacking: the model might output direct answers when correct and only use tools when uncertain, contradicting the goal of using tools as reasoning enhancers. No theoretical justification or convergence analysis is provided.`,
+        concern: "Reviewer 质疑 asymmetric reward 会诱发规避工具；现有 rollout 恰恰没有 no-tool 样本，因而还不能支持 cost-aware abstention。",
+        plan: [
+          "把 bounded reward shaping 与经验效果分开，承认没有额外收敛证明。",
+          "保留 VSP 难例调用更多这一描述，但不把相关性写成 reward 因果证据。",
+          "GUIChat 三次均无 no-tool 样本，删除 correct-and-tool-free 结果承诺。",
+          "若要保留 cost-aware claim，必须补 easy/no-tool 对照和对称/非对称 reward 消融。"
+        ],
+        evidence: "VSP verification 2.00 calls、navigation 5.28 calls；Jigsaw 约 100% 用工具；GUIChat 三次均为 962/962 样本至少调用一次工具。",
+        needed: "当前 no-tool n=0，无法估计该子集准确率。提交稿应收窄 claim，除非完成 reward ablation。",
+        draft: `We agree that the current evidence does not establish cost-aware abstention. Harder VSP instances receive more calls, but Jigsaw and all three GUIChat runs use tools on essentially every item; thus this correlation cannot be attributed causally to the asymmetric reward. We retain the standard GRPO objective and describe the composite signal only as bounded reward shaping, state that we provide no separate convergence proof, and remove the stronger selective-tool-use claim unless a controlled reward ablation is added.`
+      },
+      {
+        reviewer: "R1",
+        id: "R1-6",
+        type: "Cost",
+        priority: "P0",
+        status: "Partial",
+        title: "Latency, scaling, and error propagation",
+        original: `Multi-turn tool interaction significantly increases inference latency and computational cost. The paper reports CPS but does not analyze real-world latency, sample complexity as the tool set scales, or error propagation when intermediate calls fail.`,
+        concern: "CPS 不能代表真实成本；Reviewer 同时要求 latency、工具集扩展行为和失败传播。",
+        plan: [
+          "报告 generation / tool execution / orchestration 拆分和 per-tool 时间。",
+          "强调本地算子与专家模型调用约 2,800× 成本差。",
+          "用 enlarged-toolset 调用分布回答工具集 scaling。",
+          "交叉引用 E5 五类故障注入矩阵。",
+          "补 matched-budget accuracy–latency 曲线。"
+        ],
+        evidence: "AStar 0.092 ms/call，Point 255.333 ms/call；正式 JSON 的 VSP generation/tool 为 39.11/59.42%；E5 有 VSP/Jigsaw early-fault accuracy 矩阵。",
+        needed: "accuracy–latency 曲线；E5 detect/react 先做人工校准；如保留 scaling claim，需给出可复核的工具集扩展分析。",
+        draft: `We now measure cost directly rather than treating CPS as a proxy. A local A* call takes 0.092 ms, whereas the expert-model Point call takes 255.333 ms, a 2,775× difference. Under the audited full VSP run, generation accounts for 39.11% and tool execution for 59.42% of wall time. We report the early-fault accuracy changes, but do not yet treat the heuristic detection rate as validated. The remaining required artifact is the matched-budget accuracy–latency curve.`
+      },
+
+      {
+        reviewer: "R2",
+        id: "R2-1",
+        type: "Novelty",
+        priority: "P0",
+        status: "Ready",
+        title: "Boundary with the published ICLR version",
+        original: `The method, reward design, seven-tool suite, and single-task results are already published as AdaReasoner (ICLR 2026). Extending a conference paper is legitimate, but the manuscript should cite it, state precisely what is new, and concentrate claims and evaluation on that delta.`,
+        concern: "这是最致命的表述风险：期刊 headline 重述已发表内容，可能被视为未清楚披露扩展关系。",
+        plan: [
+          "首处显式引用 AdaReasoner (ICLR 2026)。",
+          "列出 inherited core 与三项 journal-only delta。",
+          "重写 Introduction/contribution，使 inherited results 只作背景。",
+          "全篇统一 GenReasoner 命名并核对图、仓库和 checkpoint。"
+        ],
+        evidence: "General Response 已有可直接替换的 contribution statement。",
+        needed: "替换 AdaReasoner (ICLR 2026; OpenReview nUGPEmQ2ut)，并验证 manuscript 实际已按承诺修改。",
+        draft: `We now cite AdaReasoner (ICLR 2026) at first mention, explicitly separate the inherited trajectory, Tool-GRPO, reward, tool-suite, and single-task results from the journal-only contributions, and re-center the evaluation on the identifier-randomization study, the Rnd TC + Rnd TG generalization analysis, and V*/HRBench tool planning.`
+      },
+      {
+        reviewer: "R2",
+        id: "R2-2",
+        type: "Generalization",
+        priority: "P0",
+        status: "Scoped",
+        title: "Generalization claims exceed the evidence",
+        original: `VSP and WebQA are withheld only from Tool Cold Start but appear during Tool-GRPO, so this is cross-stage transfer rather than zero-shot task generalization. Renamed tools preserve functionality, so the experiment tests textual-interface robustness rather than a genuinely new capability.`,
+        concern: "期刊新增材料正是证据最薄弱处；若继续使用 new task/new tool headline，会被直接反驳。",
+        plan: [
+          "将 new tasks 改为 cross-stage transfer。",
+          "将 new tools 改为 interface-level robustness。",
+          "明确 final policy 在 Tool-GRPO 阶段见过相关任务。",
+          "不执行 E1，也不声称 novel capability。"
+        ],
+        evidence: "R1-2 与 R2-2 已使用一致的收窄策略。",
+        needed: "Table 4 caption、Sec 3.3、Abstract 和 Conclusion 必须同步收窄。",
+        draft: `We scope both claims. The task result is cross-stage transfer because the final policy sees all tasks during Tool-GRPO; it is not zero-shot transfer to a new task family. The tool result is interface-level robustness because functionality is preserved while identifiers and descriptions change; we do not claim use of a genuinely novel capability.`
+      },
+      {
+        reviewer: "R2",
+        id: "R2-3",
+        type: "Reliability",
+        priority: "P0",
+        status: "Partial",
+        title: "No uncertainty and inconsistent table values",
+        original: `Results are single runs with no seeds or intervals, and base-model numbers disagree across tables: GUIChat 59.46 vs 68.09 and additional 3B discrepancies. The same model on the same benchmark cannot give two numbers.`,
+        concern: "这不仅是缺方差，也是数据 provenance 问题；当前回复自身又存在 VSP、GUIChat、WebMMU 多套新数字。",
+        plan: [
+          "解释旧表由不同 prompt/judge/evaluation configuration 产生。",
+          "统一每个 model × benchmark 的最终协议与数字。",
+          "报告固定 checkpoint 的 ≥3 inference seeds mean±std。",
+          "明确没有 training-seed variance。",
+          "每个数字保留对应结果文件和配置。"
+        ],
+        evidence: "VSP/VSPO/Jigsaw/BLINK-J/V*/GUIChat 有 3 次本地固定-checkpoint 推理重复；GUIChat 的 72B judge 已冻结为 73.60±0.11。",
+        needed: "同步 WebMMU full/judged 三次产物；统一重判 HRBench 每 run 108–111 条 Z；manuscript 中每个数字绑定协议与文件。",
+        draft: `We traced the inherited discrepancies to different evaluation configurations and now separate fixed-checkpoint inference-repeat variance from training-seed uncertainty. The audited GUIChat result under the paper-aligned 72B judge is 73.60±0.11. Before submission, we must synchronize the three full WebMMU judged artifacts and re-score the HRBench items that fell back to Z because the external extraction API was unavailable; only then will we freeze one traceable value per model–benchmark pair.`
+      },
+      {
+        reviewer: "R2",
+        id: "R2-4",
+        type: "Robustness",
+        priority: "P1",
+        status: "Partial",
+        title: "Tool failure is not evaluated",
+        original: `A controlled study should inject incorrect-but-plausible outputs, missing or malformed responses, timeouts, and contradictory tools at early versus late turns, measuring detection, recovery, and propagation. Include an ablation with and without failure/reflection trajectories.`,
+        concern: "Reviewer 要求的不只是展示成功案例，而是把多轮架构的 failure surface 定量化并归因到训练轨迹。",
+        plan: [
+          "在 VSP/Jigsaw 各 100 条上注入五类故障。",
+          "报告 detect/react、recover、propagate 与 Δacc。",
+          "突出 VSP-timeout 是主要薄弱点。",
+          "承认当前只做 early injection。",
+          "有/无 failure&reflection 训练消融标为 resource-permitting。"
+        ],
+        evidence: "五类 early fault 的 accuracy delta 可复核：VSP 最差 timeout −6pp，Jigsaw 最差 missing −17pp。",
+        needed: "当前 detect 把 fault 后任意工具调用计为检测，clean baseline 也为 1.0；先人工抽检/校准，再决定是否报告 detect/propagate。late 与训练消融未做。",
+        draft: `We add an early-fault study with five perturbation types on 100 VSP and 100 Jigsaw items. The directly auditable result is the task-accuracy change: the largest drops are 6 points for VSP timeout and 17 points for Jigsaw missing responses. Our current detect/react heuristic is not yet fault-specific—its clean baseline is also 1.0—so we do not claim a 70–100% detection rate without manual calibration. Late-turn injection and a with/without failure-reflection training ablation remain uncompleted extensions.`
+      },
+      {
+        reviewer: "R2",
+        id: "R2-5",
+        type: "Cost",
+        priority: "P0",
+        status: "Partial",
+        title: "Inference cost is not measured",
+        original: `Turns, CPS, and success rate are reported, but latency, throughput, compute, and monetary cost are not. Without an accuracy-versus-latency curve against baselines at a matched budget, one cannot separate a useful system from expensive test-time compute.`,
+        concern: "现有时延拆分能证明 CPS≠成本，但还没有 Reviewer 明确要求的 matched-budget trade-off。",
+        plan: [
+          "保留 local operator vs expert model 的微基准。",
+          "报告完整硬件、并发、worker 和队列设置。",
+          "统一每任务三段 latency 口径。",
+          "在最大轮数/工具调用预算下画 accuracy@latency 曲线。"
+        ],
+        evidence: "Jigsaw tool execution=0.55%；VSP tool execution=59.42%；Point/AStar=255.333/0.092 ms，约 2,775×。",
+        needed: "accuracy–latency figure；如正文写 distributions/throughput/P50/P90/P99，则必须实际提供，不能把现有 stage totals 当作分布。",
+        draft: `We report audited stage-wise and per-tool latency and show why CPS is not a wall-clock proxy: tool execution is 0.55% on Jigsaw but 59.42% on VSP, while Point and A* take 255.333 and 0.092 ms per call, respectively. These totals establish tool-cost heterogeneity, not the requested trade-off. A matched-budget accuracy-versus-latency curve remains required before we can claim favorable test-time-compute efficiency.`
+      },
+      {
+        reviewer: "R2",
+        id: "R2-6",
+        type: "Data",
+        priority: "P1",
+        status: "Partial",
+        title: "Possible image-level leakage in Jigsaw-COCO",
+        original: `Section C.1 appears to build training from three patch positions and test on the fourth patch of the same images. Please enforce source-image disjointness and add a near-duplicate check.`,
+        concern: "文字容易被理解成同一 COCO 源图跨 train/test；仅作者口头确认不足以完成 near-duplicate safeguard。",
+        plan: [
+          "明确按 source image 划分，而不是按 patch position 划分。",
+          "说明 1,000 条测试只来自 held-out COCO images。",
+          "在完整 train/test 源图上运行 pHash Hamming≤5 与 CLIP cosine≥0.95 检查。",
+          "报告真实 overlap 数和 flagged pairs。"
+        ],
+        evidence: "作者已确认 source-image-level disjoint，草稿已有形式化声明。",
+        needed: "本地只有 test；需在完整数据上跑 pHash+CLIP，不得把 expected 0 写成真实结果。",
+        draft: `We confirm that the split is source-image disjoint rather than a patch-position holdout and clarify this construction in the appendix. As an additional safeguard, we will run pHash and CLIP near-duplicate screening on the complete train/test source-image sets and report the true overlap count and any flagged pairs (pending real measurement).`
+      },
+      {
+        reviewer: "R2",
+        id: "R2-7",
+        type: "Judge",
+        priority: "P0",
+        status: "Partial",
+        title: "LM judge validation: 500-item audit complete",
+        original: `V*, WebMMU, and GUIQA depend on Qwen2.5-VL-72B as judge. The human check is reported only as "consistent," with no sample size, annotator count, agreement, or blinding. More verbose tool-augmented answers may be favored.`,
+        concern: "500 条量化审计已经闭合 agreement/κ/错误类型，但归档 reviewer 是 Codex 单人语义复核，不能直接称双人 human validation。",
+        plan: [
+          "报告 498/500 有效、agreement=90.76%、Wilson 95% CI 87.90–93.00%、κ=0.781。",
+          "报告 FP/FN=15/31 及 GUIChat/WebMMU agreement=86.29%/93.69%。",
+          "披露 reviewer=Codex 和单 reviewer 限制，并链接完整 disagreement archive。",
+          "报告长度四分位 agreement=87.10/91.20/93.55/91.20%，不夸大为因果 bias 检验。",
+          "若正文称 human validation，补作者盲审确认或第二独立人类标注者。"
+        ],
+        evidence: "500 条分层审计，498 有效；452/498 一致；κ=0.781；46 个 disagreement 均有题目级理由。",
+        needed: "决定最终措辞：single-reviewer semantic audit 可直接报告；human validation 需作者/第二人类确认。WebMMU full judged 产物仍需同步。",
+        draft: `We audited 500 stratified GUIChat/WebMMU decisions, of which 498 were valid. Agreement with Qwen2.5-72B-Instruct was 90.76% (452/498; Wilson 95% CI 87.90–93.00%) with Cohen's kappa=0.781; all 46 disagreements are documented. Agreement across increasing answer-length quartiles was 87.10%, 91.20%, 93.55%, and 91.20%, showing no monotonic agreement advantage for the longest answers. Because the archived reviewer is Codex, we describe this as a single-reviewer semantic audit rather than a two-author human study.`
+      },
+      {
+        reviewer: "R2",
+        id: "R2-Minors",
+        type: "Minors",
+        priority: "P1",
+        status: "Partial",
+        title: "Claims, naming, reproducibility, limitations, and consistency",
+        original: `Moderate the "never explicitly trained" and "bottleneck shifted" claims; use one model name; release trajectories, exact splits, construction scripts, and seeds; explain the 332,649 cold-start samples; add limitations; reconcile grid sizes, task counts, table references, terminology, and syntactic versus semantic tool success.`,
+        concern: "这些看似 minor，但包含可复现性、命名与 scope consistency；若 manuscript 未实际修改，回复中的完成时态会不可信。",
+        plan: [
+          "软化两处 claim，并限定 structured-task scope。",
+          "全篇、Figures 1/10、仓库统一 GenReasoner。",
+          "承诺释放 trajectories/splits/scripts/seeds。",
+          "加入 Limitations：成本、手工轨迹、外部专家模型、任务工具、tool quality fragility。",
+          "逐项修复 VSPO 网格、任务数、引用、Tool-GRPO 术语和 success 定义。"
+        ],
+        evidence: "回复草稿已列出所有 manuscript 动作。",
+        needed: "332,649 样本按任务/阶段分解；逐项验证 manuscript 确实修改，而不是只在回复中承诺。",
+        draft: `We moderate the two over-broad claims, use GenReasoner consistently, add a dedicated Limitations section, and commit to releasing trajectories, splits, construction scripts, and seeds. We will provide a verified task/stage decomposition of the 332,649 cold-start samples [AUTHOR INPUT NEEDED] and reconcile the remaining grid, task-count, cross-reference, terminology, and tool-success inconsistencies.`
+      }
+    ];
+
+    const app = document.getElementById("app");
+    const controls = {
+      search: document.getElementById("search"),
+      reviewer: document.getElementById("reviewer"),
+      type: document.getElementById("type"),
+      status: document.getElementById("status")
+    };
+
+    function node(tag, className, text) {
+      const el = document.createElement(tag);
+      if (className) el.className = className;
+      if (text !== undefined) el.textContent = text;
+      return el;
+    }
+
+    function matches(item) {
+      const q = controls.search.value.trim().toLowerCase();
+      const reviewerOK = controls.reviewer.value === "all" || item.reviewer === controls.reviewer.value;
+      const typeOK = controls.type.value === "all" || item.type === controls.type.value;
+      const statusOK = controls.status.value === "all" || item.status === controls.status.value;
+      const haystack = [
+        item.reviewer, item.id, item.type, item.status, item.title, item.original,
+        item.concern, item.plan.join(" "), item.evidence, item.needed, item.draft
+      ].join(" ").toLowerCase();
+      return reviewerOK && typeOK && statusOK && (!q || haystack.includes(q));
+    }
+
+    function renderItem(item) {
+      const details = node("details", "item");
+      details.dataset.reviewer = item.reviewer;
+      details.dataset.type = item.type;
+      details.dataset.status = item.status;
+
+      const summary = document.createElement("summary");
+      const titleWrap = node("div", "title-wrap");
+      titleWrap.append(node("h3", "item-title", `${item.id} · ${item.title}`));
+      titleWrap.append(node("div", "item-sub", item.concern));
+      const badges = node("div", "badges");
+      badges.append(node("span", "badge", item.type));
+      badges.append(node("span", `badge priority-${item.priority}`, item.priority));
+      badges.append(node("span", `badge status-${item.status}`, item.status));
+      summary.append(titleWrap, badges);
+
+      const content = node("div", "content");
+      const grid = node("div", "grid");
+
+      const left = document.createElement("div");
+      left.append(node("h4", "section-label", "1 · Reviewer 原文"));
+      left.append(node("blockquote", "quote", item.original));
+      left.append(node("h4", "section-label", "2 · Underlying concern"));
+      left.append(node("p", "concern", item.concern));
+      left.append(node("h4", "section-label", "3 · 当前应对方法"));
+      const plan = node("ul", "plan");
+      item.plan.forEach(step => plan.append(node("li", "", step)));
+      left.append(plan);
+      if (item.evidence) left.append(node("div", "evidence", `已有证据：${item.evidence}`));
+      if (item.needed) left.append(node("div", "needed", `待补 / 风险：${item.needed}`));
+
+      const right = document.createElement("div");
+      right.append(node("h4", "section-label", "4 · English response draft"));
+      const draftWrap = node("div", "draft-wrap");
+      const draft = node("div", "draft", item.draft);
+      const copy = node("button", "copy", "复制草稿");
+      copy.type = "button";
+      copy.addEventListener("click", async () => {
+        await navigator.clipboard.writeText(item.draft);
+        copy.textContent = "已复制";
+        setTimeout(() => copy.textContent = "复制草稿", 1200);
+      });
+      draftWrap.append(draft, copy);
+      right.append(draftWrap);
+
+      right.append(node("h4", "section-label", "5 · 下一版动作"));
+      const actions = node("ul", "actions");
+      if (item.status === "Ready") {
+        actions.append(node("li", "", "核对 manuscript 与回复承诺一致，并替换引用、章节和表格编号。"));
+      } else if (item.status === "Scoped") {
+        actions.append(node("li", "", "全篇清理超出证据的 headline，确保 scope narrowing 一致。"));
+      } else if (item.status === "Blocked") {
+        actions.append(node("li", "", "先获得真实数据再改为过去时；禁止填预期值或占位结果。"));
+      } else {
+        actions.append(node("li", "", "完成待补证据并冻结唯一数字口径，再更新英文回复。"));
+      }
+      right.append(actions);
+
+      grid.append(left, right);
+      content.append(grid);
+      details.append(summary, content);
+      return details;
+    }
+
+    function render() {
+      app.replaceChildren();
+      const filtered = items.filter(matches);
+      if (!filtered.length) {
+        app.append(node("div", "empty", "没有匹配的 rebuttal 条目。"));
+        return;
+      }
+
+      Object.keys(reviewers).forEach(reviewer => {
+        const group = filtered.filter(item => item.reviewer === reviewer);
+        if (!group.length) return;
+        const head = node("div", "reviewer-head");
+        head.append(node("h2", "", reviewers[reviewer].label));
+        head.append(node("div", "reviewer-meta", reviewers[reviewer].meta));
+        app.append(head);
+        group.forEach(item => app.append(renderItem(item)));
+      });
+    }
+
+    document.getElementById("metric-items").textContent = String(items.length);
+    document.getElementById("metric-open").textContent = String(items.filter(item => item.status !== "Ready").length);
+    Object.values(controls).forEach(control => control.addEventListener("input", render));
+    document.getElementById("print").addEventListener("click", () => {
+      document.querySelectorAll(".item").forEach(item => { item.open = true; });
+      window.print();
+    });
+    render();
+  </script>
+</body>
+</html>

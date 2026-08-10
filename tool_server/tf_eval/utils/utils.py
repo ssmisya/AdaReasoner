@@ -21,13 +21,22 @@ def write_json_file(data, filepath):
 
 def process_jsonl(file_path):
     '''
-        将jsonl文件转换为装有dict的列表
+        将jsonl文件转换为装有dict的列表。
+        若进程在追加最后一行时被终止，只忽略文件末尾的残缺 JSON；
+        中间行损坏仍然报错，避免静默丢失已完成样本。
     '''
     data = []
     with open(file_path, 'r', encoding='utf-8') as file:
-        for line in file:
-            json_obj = json.loads(line)
-            data.append(json_obj)
+        lines = file.readlines()
+    for index, line in enumerate(lines):
+        if not line.strip():
+            continue
+        try:
+            data.append(json.loads(line))
+        except json.JSONDecodeError:
+            if index == len(lines) - 1:
+                break
+            raise
     return data
 
 def write_jsonl(data, file_path):
@@ -78,9 +87,13 @@ def append_jsonl(data, filename):
     
     cleaned_data = replace_images_with_placeholder(cleaned_data)
     
+    line = json.dumps(cleaned_data, ensure_ascii=False) + '\n'
+    # One buffered write plus flush/fsync minimizes the chance of a torn tail
+    # record. process_jsonl still tolerates one interrupted final line.
     with open(filename, 'a', encoding='utf-8') as f:
-        json.dump(cleaned_data, f)
-        f.write('\n')
+        f.write(line)
+        f.flush()
+        os.fsync(f.fileno())
         
 def load_txt_file(filepath):
     with open(filepath, 'r', encoding='utf-8') as f:

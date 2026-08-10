@@ -1,0 +1,17 @@
+{
+  "validated": true,
+  "task": "vsp",
+  "seed": 1234,
+  "model_path": "/data/songmingyang/models/baselines/Qwen2.5-VL-3B-Instruct",
+  "samples": 1100,
+  "stochastic_decoding": true,
+  "primary_metric": "overall_accuracy",
+  "metric_label": "overall_accuracy",
+  "metric": 0.2736363636363636,
+  "metric_percent": 27.363636363636363,
+  "evaluation_s": 618.0955942890141,
+  "instance_latency_file": "latency.jsonl",
+  "instance_latency_mean_s": 32.42806664727273,
+  "round_latency_mean_s": 32.36832015636357,
+  "round_latency_count": 1100
+}

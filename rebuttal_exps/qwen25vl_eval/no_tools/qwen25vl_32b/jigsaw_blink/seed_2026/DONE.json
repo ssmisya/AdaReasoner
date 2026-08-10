@@ -1,0 +1,17 @@
+{
+  "validated": true,
+  "task": "jigsaw_blink",
+  "seed": 2026,
+  "model_path": "/data/songmingyang/models/baselines/Qwen2.5-VL-32B-Instruct",
+  "samples": 150,
+  "stochastic_decoding": false,
+  "primary_metric": "accuracy",
+  "metric_label": "accuracy",
+  "metric": 0.7066666666666667,
+  "metric_percent": 70.66666666666667,
+  "evaluation_s": 0.6168872867710888,
+  "instance_latency_file": "latency.jsonl",
+  "instance_latency_mean_s": 25.890343173333314,
+  "round_latency_mean_s": 25.806798453333272,
+  "round_latency_count": 150
+}

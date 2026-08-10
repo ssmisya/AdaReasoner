@@ -3,7 +3,7 @@ from ...utils.task_utils import *
 from ...utils.utils import *
 from ...utils.log_utils import get_logger
 import gymnasium as gym
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 import json
 import os
 import re
@@ -20,6 +20,17 @@ logger = get_logger(__name__)
 task_config = get_task_config_from_current_dir(__file__)
 
 
+def _load_split(dataset_path, task_split):
+    """Load a split from Hub repo id or a local save_to_disk directory."""
+    if os.path.isdir(dataset_path):
+        ds_dict = load_from_disk(dataset_path)
+        if hasattr(ds_dict, "keys") and task_split in ds_dict:
+            return ds_dict[task_split]
+        # single-split Dataset saved directly
+        return ds_dict
+    return load_dataset(dataset_path, split=task_split)
+
+
 def load_data_function():
     """从HuggingFace Hub加载VSP数据集"""
     dataset_path = task_config.get("dataset_path", "hitsmy/AdaEval-VSP")
@@ -34,7 +45,7 @@ def load_data_function():
         try:
             # 从HuggingFace加载数据集
             logger.info(f"Loading split: {task_split}")
-            dataset = load_dataset(dataset_path, split=task_split)
+            dataset = _load_split(dataset_path, task_split)
             
             # 限制样本数量
             if num_samples and len(dataset) > num_samples:

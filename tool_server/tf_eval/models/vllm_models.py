@@ -32,12 +32,25 @@ class VllmModels(tp_model):
       **kwargs  # Additional keyword arguments
     ):
         tensor_parallel = eval(tensor_parallel)  # Convert string to numeric value
+        # YAML/CLI model_args are parsed as strings; coerce common LLM kwargs.
+        coerced = {}
+        for k, v in kwargs.items():
+            if not isinstance(v, str):
+                coerced[k] = v
+                continue
+            if v.lower() in ("true", "false"):
+                coerced[k] = v.lower() == "true"
+            else:
+                try:
+                    coerced[k] = eval(v)
+                except Exception:
+                    coerced[k] = v
         self.model = LLM(
             model=pretrained,                   # Model path
             tensor_parallel_size=int(tensor_parallel),  # Parallel size
             limit_mm_per_prompt={"image": int(limit_mm_per_prompt)},  # Limit number of images per prompt
             # data_parallel_size=int(data_parallel_size),  # Data parallel size
-            **kwargs  # Additional parameters
+            **coerced  # Additional parameters
         )
         self.limit_mm_per_prompt = int(limit_mm_per_prompt)  # Set limit on number of images per prompt
         self.system_prompt = None
@@ -273,6 +286,26 @@ class VllmModels(tp_model):
 
             for item, output_item in zip(batch, response):
                 output_text = output_item.outputs[0].text  # Get generated text
+                metrics = getattr(output_item, "metrics", None)
+                backend_metrics = {}
+                if metrics is not None:
+                    arrival = getattr(metrics, "arrival_time", None)
+                    first_token = getattr(metrics, "first_token_time", None)
+                    finished = getattr(metrics, "finished_time", None)
+                    scheduled = getattr(metrics, "first_scheduled_time", None)
+                    if arrival is not None and finished is not None:
+                        backend_metrics["request_e2e_s"] = round(
+                            finished - arrival, 6
+                        )
+                    if arrival is not None and first_token is not None:
+                        backend_metrics["ttft_s"] = round(
+                            first_token - arrival, 6
+                        )
+                    if arrival is not None and scheduled is not None:
+                        backend_metrics["queue_s"] = round(
+                            scheduled - arrival, 6
+                        )
+                item._backend_generation_metrics = backend_metrics
                 item.model_response.append(output_text)  # Add response to model response list
                 self.append_conversation_fn(
                     item.conversation, output_text, None, "assistant"  # 将模型回复添加到对话历史

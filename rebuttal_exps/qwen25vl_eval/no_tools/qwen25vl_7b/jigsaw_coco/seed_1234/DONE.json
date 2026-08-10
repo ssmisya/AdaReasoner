@@ -1,0 +1,17 @@
+{
+  "validated": true,
+  "task": "jigsaw_coco",
+  "seed": 1234,
+  "model_path": "/data/songmingyang/models/baselines/Qwen2.5-VL-7B-Instruct",
+  "samples": 1000,
+  "stochastic_decoding": true,
+  "primary_metric": "accuracy",
+  "metric_label": "accuracy",
+  "metric": 0.471,
+  "metric_percent": 47.099999999999994,
+  "evaluation_s": 192.35609226115048,
+  "instance_latency_file": "latency.jsonl",
+  "instance_latency_mean_s": 7.550370091000005,
+  "round_latency_mean_s": 7.44338479199999,
+  "round_latency_count": 1000
+}

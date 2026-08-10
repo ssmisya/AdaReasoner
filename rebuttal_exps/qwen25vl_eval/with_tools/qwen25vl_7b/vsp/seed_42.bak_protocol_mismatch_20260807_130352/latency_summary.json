@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "definitions": {
+    "instance_e2e_s": "wall time from instance admission before conversation construction until the final round is recognized as finished; excludes final result serialization and checkpoint writes",
+    "round_e2e_s": "wall time from the start of a model round through generation and, when used, tool result conversion into the next-round input",
+    "generation_batch_wall_s": "synchronous wall time of the whole model batch; shared by all requests in that batch and not summed for throughput",
+    "backend_request_metrics": "per-request vLLM metrics when exposed by the installed vLLM version",
+    "tool_latency_s": "wall time of one ToolManager.call_tool RPC"
+  },
+  "checkpoint": "/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/qwen25vl_eval/with_tools/qwen25vl_7b/vsp/seed_42/ckpt.jsonl",
+  "total_checkpoint_records": 1100,
+  "latency_records": 1100,
+  "coverage": 1.0,
+  "instance_e2e_s": {
+    "count": 1100,
+    "mean": 144.00270123363637,
+    "median": 135.4216075,
+    "p90": 234.3887559,
+    "p95": 280.01487375,
+    "p99": 466.5175649899999,
+    "min": 19.307889,
+    "max": 591.318034,
+    "std": 85.6165416831258
+  },
+  "round_e2e_s": {
+    "count": 1711,
+    "mean": 31.80061048918761,
+    "median": 43.563452,
+    "p90": 46.364928,
+    "p95": 46.800458500000005,
+    "p99": 47.289448199999995,
+    "min": 0.020906,
+    "max": 60.960829,
+    "std": 15.572469537912541
+  },
+  "round_e2e_s_by_round": {
+    "1": {
+      "count": 1100,
+      "mean": 31.84930272272727,
+      "median": 35.9127895,
+      "p90": 46.4202403,
+      "p95": 46.811695050000004,
+      "p99": 47.28995722,
+      "min": 0.020906,
+      "max": 47.291625,
+      "std": 15.000827420719173
+    },
+    "2": {
+      "count": 498,
+      "mean": 32.27998952008032,
+      "median": 43.804572,
+      "p90": 46.076959,
+      "p95": 46.404347,
+      "p99": 46.98571982,
+      "min": 0.020906,
+      "max": 60.960829,
+      "std": 16.52900220375319
+    },
+    "3": {
+      "count": 65,
+      "mean": 31.442380307692307,
+      "median": 35.911663,
+      "p90": 45.998861000000005,
+      "p95": 46.0772222,
+      "p99": 46.54684112,
+      "min": 0.020906,
+      "max": 46.800164,
+      "std": 15.772878501803373
+    },
+    "4": {
+      "count": 21,
+      "mean": 22.31138180952381,
+      "median": 20.937409,
+      "p90": 44.270188,
+      "p95": 45.586616,
+      "p99": 45.9790552,
+      "min": 0.020906,
+      "max": 46.077165,
+      "std": 16.231515801689003
+    },
+    "5": {
+      "count": 16,
+      "mean": 23.399679875,
+      "median": 23.8065705,
+      "p90": 45.9193435,
+      "p95": 46.06190775,
+      "p99": 46.06315035,
+      "min": 0.020906,
+      "max": 46.063461,
+      "std": 17.87604078266287
+    },
+    "6": {
+      "count": 11,
+      "mean": 37.680741363636365,
+      "median": 45.777188,
+      "p90": 46.065133,
+      "p95": 46.23474,
+      "p99": 46.370425600000004,
+      "min": 9.979537,
+      "max": 46.404347,
+      "std": 14.425302679105728
+    }
+  },
+  "generation_batch_wall_s": {
+    "count": 1711,
+    "mean": 31.55337271770894,
+    "median": 43.563209,
+    "p90": 46.064895,
+    "p95": 46.076724,
+    "p99": 46.404108,
+    "min": 0.020713,
+    "max": 46.404108,
+    "std": 15.52680507974142
+  },
+  "backend_request_e2e_s": {
+    "count": 0,
+    "mean": null,
+    "median": null,
+    "p90": null,
+    "p95": null,
+    "p99": null,
+    "min": null,
+    "max": null,
+    "std": null
+  },
+  "backend_ttft_s": {
+    "count": 0,
+    "mean": null,
+    "median": null,
+    "p90": null,
+    "p95": null,
+    "p99": null,
+    "min": null,
+    "max": null,
+    "std": null
+  },
+  "backend_queue_s": {
+    "count": 0,
+    "mean": null,
+    "median": null,
+    "p90": null,
+    "p95": null,
+    "p99": null,
+    "min": null,
+    "max": null,
+    "std": null
+  },
+  "tool_call_s": {
+    "count": 532,
+    "mean": 0.0065708533834586465,
+    "median": 0.001451,
+    "p90": 0.004464600000000001,
+    "p95": 0.0058709,
+    "p99": 0.008489839999999998,
+    "min": 0.000254,
+    "max": 2.408479,
+    "std": 0.1043456680355556
+  }
+}

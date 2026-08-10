@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "definitions": {
+    "instance_e2e_s": "wall time from instance admission before conversation construction until the final round is recognized as finished; excludes final result serialization and checkpoint writes",
+    "round_e2e_s": "wall time from the start of a model round through generation and, when used, tool result conversion into the next-round input",
+    "generation_batch_wall_s": "synchronous wall time of the whole model batch; shared by all requests in that batch and not summed for throughput",
+    "backend_request_metrics": "per-request vLLM metrics when exposed by the installed vLLM version",
+    "tool_latency_s": "wall time of one ToolManager.call_tool RPC"
+  },
+  "checkpoint": "/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/qwen25vl_eval/with_tools/adareasoner_randomized_7b/vstar/seed_42/ckpt.jsonl",
+  "total_checkpoint_records": 191,
+  "latency_records": 191,
+  "coverage": 1.0,
+  "instance_e2e_s": {
+    "count": 191,
+    "mean": 443.2274435759162,
+    "median": 485.27432,
+    "p90": 637.566224,
+    "p95": 637.678298,
+    "p99": 640.4225435000001,
+    "min": 103.702123,
+    "max": 641.015026,
+    "std": 175.13008814417455
+  },
+  "round_e2e_s": {
+    "count": 528,
+    "mean": 146.7110063712121,
+    "median": 162.120746,
+    "p90": 319.6343794,
+    "p95": 340.13465295000003,
+    "p99": 392.50955747,
+    "min": 4.347325,
+    "max": 470.78983,
+    "std": 121.13326557784643
+  },
+  "round_e2e_s_by_round": {
+    "1": {
+      "count": 191,
+      "mean": 233.20824413612564,
+      "median": 216.840512,
+      "p90": 345.381903,
+      "p95": 392.471012,
+      "p99": 400.35463059999955,
+      "min": 63.559821,
+      "max": 470.78983,
+      "std": 93.34181253969768
+    },
+    "2": {
+      "count": 191,
+      "mean": 148.26847028272252,
+      "median": 162.376398,
+      "p90": 303.278061,
+      "p95": 319.636637,
+      "p99": 331.7974183,
+      "min": 4.347325,
+      "max": 357.939907,
+      "std": 112.90994862018738
+    },
+    "3": {
+      "count": 128,
+      "mean": 34.9615307890625,
+      "median": 24.184811,
+      "p90": 94.2953773,
+      "p95": 171.92029825,
+      "p99": 206.49903963,
+      "min": 6.005774,
+      "max": 207.30942,
+      "std": 46.587387156125025
+    },
+    "4": {
+      "count": 18,
+      "mean": 7.0157205,
+      "median": 6.005774,
+      "p90": 6.005774,
+      "p95": 8.732629549999974,
+      "p99": 21.09437470999997,
+      "min": 6.005774,
+      "max": 24.184811,
+      "std": 4.2848401127137175
+    }
+  },
+  "generation_batch_wall_s": {
+    "count": 528,
+    "mean": 18.460891581439395,
+    "median": 24.184596,
+    "p90": 35.868084,
+    "p95": 35.868084,
+    "p99": 35.868084,
+    "min": 4.347289,
+    "max": 45.716016,
+    "std": 10.43776460453109
+  },
+  "backend_request_e2e_s": {
+    "count": 0,
+    "mean": null,
+    "median": null,
+    "p90": null,
+    "p95": null,
+    "p99": null,
+    "min": null,
+    "max": null,
+    "std": null
+  },
+  "backend_ttft_s": {
+    "count": 0,
+    "mean": null,
+    "median": null,
+    "p90": null,
+    "p95": null,
+    "p99": null,
+    "min": null,
+    "max": null,
+    "std": null
+  },
+  "backend_queue_s": {
+    "count": 0,
+    "mean": null,
+    "median": null,
+    "p90": null,
+    "p95": null,
+    "p99": null,
+    "min": null,
+    "max": null,
+    "std": null
+  },
+  "tool_call_s": {
+    "count": 336,
+    "mean": 26.12959055654762,
+    "median": 34.2663305,
+    "p90": 46.269614000000004,
+    "p95": 50.87712125,
+    "p99": 67.37808674999997,
+    "min": 0.000158,
+    "max": 77.467782,
+    "std": 19.308976897543403
+  }
+}

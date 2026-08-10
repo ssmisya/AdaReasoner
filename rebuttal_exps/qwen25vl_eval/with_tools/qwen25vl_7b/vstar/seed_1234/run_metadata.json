@@ -1,0 +1,17 @@
+{
+  "model_size": "7B",
+  "model_path": "/data/songmingyang/models/baselines/Qwen2.5-VL-7B-Instruct",
+  "served_model_name": "Qwen2.5-VL-7B-Instruct",
+  "mode": "with_tools",
+  "task": "vstar",
+  "seed": 1234,
+  "vllm_port": 8000,
+  "backend": "openai",
+  "resumed_samples": 0,
+  "tool_selection": "Point,OCR,Crop,AStarWithPixelCoordinate",
+  "stochastic_decoding": false,
+  "temperature": 0.0,
+  "controller_addr": "http://127.0.0.1:21112",
+  "created_at": "2026-08-05T11:25:31+0000",
+  "hostname": "dev-2b6f5601-0"
+}

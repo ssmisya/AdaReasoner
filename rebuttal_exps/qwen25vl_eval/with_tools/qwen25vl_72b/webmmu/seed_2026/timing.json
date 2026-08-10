@@ -1,0 +1,19 @@
+{
+  "seed": 2026,
+  "status": "failed",
+  "model_load_s": 0.008296075044199824,
+  "evaluation_s": null,
+  "process_total_s": 82.6103998888284,
+  "generation_s": 4.788092337548733e-05,
+  "generation_calls": 1,
+  "backend": "openai",
+  "vllm_base_url": "http://localhost:8001/v1",
+  "input_samples": {
+    "webmmu": 492
+  },
+  "remaining_samples_at_start": {
+    "webmmu": 492
+  },
+  "error": "TypeError: '<=' not supported between instances of 'int' and 'str'",
+  "traceback": "Traceback (most recent call last):\n  File \"/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/.agent/ref/scripts/exps/with_tools/eval_entry_openai.py\", line 403, in main\n    evaluator.evaluate()\n  File \"/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/.agent/ref/scripts/exps/with_tools/eval_entry_openai.py\", line 274, in evaluate_with_metadata\n    TFEvaluator._original_evaluate_for_metadata(self)\n  File \"/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/tool_server/tf_eval/evaluator.py\", line 105, in evaluate\n    self.inferencer.batch_inference(dataset)\n  File \"/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/tool_server/tf_eval/tool_inferencer/base_inferencer.py\", line 580, in batch_inference\n    self.tp_model.generate(current_batch) # Batch responses obtained\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/.agent/ref/scripts/exps/with_tools/eval_entry_openai.py\", line 222, in timed_generate\n    return original_generate(self, batch)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/tool_server/tf_eval/models/openai.py\", line 198, in generate\n    while fail_times <= self.max_retry:\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: '<=' not supported between instances of 'int' and 'str'\n"
+}

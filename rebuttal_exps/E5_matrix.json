@@ -1,0 +1,52 @@
+{
+  "baseline": {
+    "n": 100,
+    "n_scored": 100,
+    "detect_rate": 1.0,
+    "recover(acc)": 0.34,
+    "propagate_rate": 0.0,
+    "avg_rounds": 5.18
+  },
+  "faults": {
+    "plausible_wrong": {
+      "n": 100,
+      "n_scored": 100,
+      "detect_rate": 1.0,
+      "recover(acc)": 0.39,
+      "propagate_rate": 0.0,
+      "avg_rounds": 5.77
+    },
+    "missing": {
+      "n": 100,
+      "n_scored": 100,
+      "detect_rate": 0.99,
+      "recover(acc)": 0.36,
+      "propagate_rate": 0.01,
+      "avg_rounds": 5.44
+    },
+    "malformed": {
+      "n": 100,
+      "n_scored": 100,
+      "detect_rate": 0.99,
+      "recover(acc)": 0.29,
+      "propagate_rate": 0.01,
+      "avg_rounds": 5.55
+    },
+    "timeout": {
+      "n": 100,
+      "n_scored": 100,
+      "detect_rate": 0.7,
+      "recover(acc)": 0.28,
+      "propagate_rate": 0.24,
+      "avg_rounds": 4.14
+    },
+    "contradictory": {
+      "n": 100,
+      "n_scored": 100,
+      "detect_rate": 0.98,
+      "recover(acc)": 0.3,
+      "propagate_rate": 0.02,
+      "avg_rounds": 5.36
+    }
+  }
+}

@@ -7,12 +7,12 @@
 # OCR worker 需要 opengl bundle 才能 import GUI cv2 → 启动前注入 LD_LIBRARY_PATH。
 
 set -u
-PY=/home/myangsong/.conda/envs/tool-server/bin/python
-OCRPY=/home/myangsong/.conda/envs/ocr-server/bin/python   # OCR用独立env(paddle-gpu, 避免与torch cu124争CUDA)
-REPO=/home/myangsong/AdaReasoner
+PY=/data/songmingyang/miniforge3/envs/vllm2/bin/python
+OCRPY=/data/songmingyang/miniforge3/envs/ocr-server/bin/python   # OCR用独立env(paddle-gpu, 避免与torch cu124争CUDA)
+REPO=/data/songmingyang/code/reasoning/AdaReasoner-rebuttal
 export PYTHONPATH=$REPO
 CTRL=http://127.0.0.1:21112
-MOLMO=/home/myangsong/models/Molmo-7B-D-0924
+MOLMO=/data/songmingyang/models/Molmo-7B-D-0924
 OPENGL=/apdcephfs_cq11/share_1567347/share_info/myangsong/opengl_libs
 # 全组件现在都用GUI opencv → 都需要opengl bundle才能import cv2/transformers
 export LD_LIBRARY_PATH="$OPENGL:${LD_LIBRARY_PATH:-}"

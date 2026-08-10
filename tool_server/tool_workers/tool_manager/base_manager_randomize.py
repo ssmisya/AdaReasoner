@@ -1,10 +1,12 @@
 # base_manager_randomize.py
 import os
 import requests
+from requests.adapters import HTTPAdapter
 import random
 import string
 import re
 import json
+import queue
 from typing import Dict, List, Any, Optional, Tuple, Set
 
 from ..offline_workers import get_tool_generate_fn, get_available_tools, get_all_tool_instructions
@@ -18,18 +20,10 @@ from tool_server.utils.prompts import (
     tool_desc_dict
 )
 from contextlib import contextmanager
-import signal
+import threading
 import time
 
 logger = build_logger("tool_manager")
-
-class TimeoutException(Exception): 
-    pass
-
-def _timeout_handler(signum, frame):
-    raise TimeoutException("chat() timed out.")
-
-signal.signal(signal.SIGALRM, _timeout_handler)
 
 
 # 工具描述库
@@ -454,7 +448,10 @@ class ToolManager(object):
         self.randomize = randomize
         self.deterministic_id = deterministic_id
         self.headers = {"User-Agent": "LLaVA-Plus Client"}
-        
+        self.request_timeout = float(os.environ.get("TF_EVAL_TOOL_TIMEOUT", "300"))
+        self._thread_local = threading.local()
+        self._routing_lock = threading.Lock()
+
         # 设置随机种子或确定性ID
         if deterministic_id is not None:
             # 使用确定性ID生成固定的随机种子
@@ -513,6 +510,18 @@ class ToolManager(object):
             logger.info(f"Not all required online tools are prepared successfully, missing: {miss_tool}")     
             
         logger.info(f"ToolManager is initialized. Randomize mode: {self.randomize}, Deterministic ID: {self.deterministic_id}")
+
+    def _get_http_session(self):
+        """Return one proxy-free pooled session per calling thread."""
+        session = getattr(self._thread_local, "session", None)
+        if session is None:
+            session = requests.Session()
+            session.trust_env = False
+            adapter = HTTPAdapter(pool_connections=16, pool_maxsize=64)
+            session.mount("http://", adapter)
+            session.mount("https://", adapter)
+            self._thread_local.session = session
+        return session
     
     def _generate_deterministic_randomization_maps(self):
         """生成确定性的随机化映射表"""
@@ -1006,21 +1015,25 @@ class ToolManager(object):
 
     def _report_and_refresh_worker(self, model_name, bad_addr):
         """坏worker加黑名单+上报controller摘除, 再取一个健康worker地址刷新缓存。返回新地址或None。"""
-        if bad_addr:
-            self._bad_workers.add(bad_addr)
-        with self.disable_proxy():
-            session = requests.Session()
-            session.trust_env = False
+        with self._routing_lock:
+            if bad_addr:
+                self._bad_workers.add(bad_addr)
+            session = self._get_http_session()
             if bad_addr:
                 try:
-                    session.post(self.controller_addr + "/report_bad_worker",
-                                 json={"worker_name": bad_addr}, proxies={}, timeout=10)
+                    session.post(
+                        self.controller_addr + "/report_bad_worker",
+                        json={"worker_name": bad_addr},
+                        timeout=10,
+                    )
                 except Exception as e:
                     logger.error(f"report_bad_worker failed: {e}")
             try:
-                ret = session.post(self.controller_addr + "/get_worker_address",
-                                   json={"model": model_name, "exclude": list(self._bad_workers)},
-                                   proxies={}, timeout=10)
+                ret = session.post(
+                    self.controller_addr + "/get_worker_address",
+                    json={"model": model_name, "exclude": list(self._bad_workers)},
+                    timeout=10,
+                )
                 new_addr = ret.json().get("address", "")
                 if new_addr:
                     self.online_tool_addr_dict[model_name] = new_addr
@@ -1225,6 +1238,42 @@ class ToolManager(object):
     #         return ret_message
     
     
+    def _call_offline_tool_with_timeout(self, tool_name, tool_generate_fn, params):
+        """Run an in-process tool behind a daemon-thread timeout boundary."""
+        result_queue = queue.Queue(maxsize=1)
+
+        def invoke():
+            try:
+                result_queue.put((True, tool_generate_fn(params)))
+            except Exception as exc:
+                result_queue.put((False, exc))
+
+        worker = threading.Thread(
+            target=invoke,
+            name=f"offline-tool-{tool_name}",
+            daemon=True,
+        )
+        worker.start()
+        try:
+            succeeded, value = result_queue.get(timeout=self.request_timeout)
+        except queue.Empty:
+            logger.error(
+                "Offline tool %s timed out after %.1fs",
+                tool_name,
+                self.request_timeout,
+            )
+            return {
+                "status": "failed",
+                "text": (
+                    f"Offline tool {tool_name} timed out after "
+                    f"{self.request_timeout:.1f}s"
+                ),
+                "error_code": 504,
+            }
+        if not succeeded:
+            raise value
+        return value
+
     def call_tool(self, tool_name, params, randomized_to_original=None):
         """
         调用工具并返回结果
@@ -1238,7 +1287,6 @@ class ToolManager(object):
         Returns:
             dict: 工具执行结果
         """
-        timeout_sec = 500  # timeout per attempt
         ret_message = {"text": f"Failed to call tool {tool_name} for unknown reason", "error_code": 1}
         
         # 确定使用哪个映射字典
@@ -1270,15 +1318,17 @@ class ToolManager(object):
             original_params = params
         
         try:
-            signal.alarm(timeout_sec)
-            
             if original_tool_name in self.available_offline_tools:
                 try:
                     tool_generate_fn = get_tool_generate_fn(original_tool_name)
                     if tool_generate_fn is None:
                         ret_message = {"text": f"Tool {tool_name} not found.", "error_code": 1}
                     else:
-                        ret_message = tool_generate_fn(original_params)
+                        ret_message = self._call_offline_tool_with_timeout(
+                            original_tool_name,
+                            tool_generate_fn,
+                            original_params,
+                        )
                 except Exception as e:
                     logger.error(f"Failed to call tool {tool_name}: {e}")
                     ret_message = {"text": f"Failed to call tool {tool_name}: {e}", "error_code": 1}
@@ -1293,12 +1343,13 @@ class ToolManager(object):
                         ret_message = {"text": f"No healthy worker for {tool_name}", "error_code": 1}
                         break
                     try:
-                        with self.disable_proxy():
-                            session = requests.Session()
-                            session.trust_env = False
-                            ret = session.post(tool_worker_addr + "/worker_generate",
-                                            headers=self.headers, json=original_params, proxies={},
-                                            timeout=(300, 300))
+                        ret = self._get_http_session().post(
+                            tool_worker_addr + "/worker_generate",
+                            headers=self.headers,
+                            json=original_params,
+                            timeout=(self.request_timeout, self.request_timeout),
+                        )
+                        ret.raise_for_status()
                         ret_message = ret.json()
                     except Exception as e:
                         # 连接失败/超时 → 视worker不可用, 换worker重试
@@ -1323,18 +1374,17 @@ class ToolManager(object):
                 width, height = edited_image_pil.size
                 if width < 28 or height < 28:
                     ret_message.pop("edited_image")
-            signal.alarm(0)
-            
             # 将返回的工具名也随机化（如果需要）
             if "tool_response_from" in ret_message and mapping_dict is not None:
                 ret_message["tool_response_from"] = tool_name
-                
-        except TimeoutException as te:
-            logger.error(f"Timeout calling tool {original_tool_name}: {te}")
-            ret_message = {"text": f"Timeout calling tool {original_tool_name}: {te}", "error_code": 1}
-        finally:
-            signal.alarm(0)
-            return ret_message
+        except Exception as exc:
+            logger.error(f"Failed to call tool {original_tool_name}: {exc}")
+            ret_message = {
+                "status": "failed",
+                "text": f"Failed to call tool {original_tool_name}: {exc}",
+                "error_code": 1,
+            }
+        return ret_message
                 
     @contextmanager
     def disable_proxy(self):

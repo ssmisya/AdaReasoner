@@ -1,0 +1,17 @@
+{
+  "validated": true,
+  "task": "hrbench",
+  "seed": 1234,
+  "model_path": "/data/songmingyang/models/baselines/Qwen2.5-VL-7B-Instruct",
+  "samples": 800,
+  "stochastic_decoding": false,
+  "primary_metric": "overall_average",
+  "metric_label": "overall_average",
+  "metric": 0.63125,
+  "metric_percent": 63.125,
+  "evaluation_s": 132.72842797404155,
+  "instance_latency_file": "latency.jsonl",
+  "instance_latency_mean_s": 92.2423600175001,
+  "round_latency_mean_s": 86.56634251999934,
+  "round_latency_count": 800
+}

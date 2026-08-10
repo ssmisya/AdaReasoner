@@ -211,3 +211,6 @@ tool_server/tf_eval/scripts/*
 !tool_server/tf_eval/scripts/notebooks/form_llm_judge_res.ipynb
 
 tool_server/tool_workers/scripts/launch_scripts/
+
+# Large generated experiment artifacts (kept locally, not committed)
+rebuttal_exps/qwen25vl_eval/**/seed_*.bak_*/result.jsonl

@@ -1,0 +1,20 @@
+model_args:
+  model: openai
+  model_args: pretrained=gpt-5-2025-08-07,limit_mm_per_prompt=10,max_retry=5,request_timeout=600,retry_base_seconds=2,request_concurrency=4
+  batch_size: 4
+  max_rounds: 6
+  model_mode: general
+task_args:
+  task_name: vsp
+  save_to_ckpt:
+    vsp: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/gpt5_tools/20260806T075922Z/vsp_ckpt.jsonl
+  middle_images_save_dir:
+    vsp: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/gpt5_tools/20260806T075922Z/middle_images/vsp
+  tool_selection_dict:
+    vsp: AStarWithPixelCoordinate,Draw2DPath,Point
+script_args:
+  verbosity: INFO
+  output_path: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/gpt5_tools/20260806T075922Z/results.jsonl
+  controller_addr: http://127.0.0.1:21112
+  if_use_tool: true
+  if_randomize_tool: false

@@ -1,0 +1,21 @@
+{
+  "seed": 1234,
+  "status": "success",
+  "model_load_s": 63.25295621599071,
+  "evaluation_s": 154.43565047089942,
+  "process_total_s": 291.0813888439443,
+  "generation_s": 0.0,
+  "generation_calls": 0,
+  "preflight_samples": {
+    "hrbench": 800
+  },
+  "preflight_s": {
+    "hrbench": 68.08831544220448
+  },
+  "input_samples": {
+    "hrbench": 800
+  },
+  "remaining_samples_at_start": {
+    "hrbench": 0
+  }
+}

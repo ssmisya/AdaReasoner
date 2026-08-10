@@ -25,6 +25,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 logger = get_logger(__name__)
 task_config = get_task_config_from_current_dir(__file__)
+YUNWU_API_URL = "https://yunwu.ai/v1"
 
 
 class HRBenchEval:
@@ -32,16 +33,42 @@ class HRBenchEval:
         self.api_key = api_key
         self.gpt_model = gpt_model
         self.max_workers = max_workers
-        self.API_URL = os.getenv("OPENAI_API_URL", "https://api.openai.com/v1/chat/completions")
+        api_url = os.getenv("OPENAI_API_URL", YUNWU_API_URL).rstrip("/")
+        api_base_url = (
+            api_url[: -len("/chat/completions")]
+            if api_url.endswith("/chat/completions")
+            else api_url
+        )
+        if api_base_url != YUNWU_API_URL:
+            raise ValueError(
+                "HRBench judge is restricted to the yunwu endpoint; "
+                f"received OPENAI_API_URL={api_url!r}"
+            )
+        self.API_URL = f"{YUNWU_API_URL}/chat/completions"
+        proxy_url = os.getenv("YUNWU_PROXY_URL")
+        if not proxy_url:
+            raise RuntimeError("YUNWU_PROXY_URL is required for the HRBench yunwu judge")
+        self.session = requests.Session()
+        self.session.trust_env = False
+        self.proxies = {"http": proxy_url, "https": proxy_url}
 
     def _post_request(self, payload):
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
-        response = requests.post(self.API_URL, headers=headers, json=payload, timeout=30)
+        response = self.session.post(
+            self.API_URL,
+            headers=headers,
+            json=payload,
+            proxies=self.proxies,
+            timeout=(30, 120),
+        )
         response.raise_for_status()
-        return response.json()
+        body = response.json()
+        if not isinstance(body, dict) or not body.get("choices"):
+            raise RuntimeError("YunwuAI returned no choices")
+        return body
 
     def can_infer_option(self, answer, choices):
         if "Failed to obtain answer via API" in answer:
@@ -78,12 +105,13 @@ class HRBenchEval:
     def can_infer_text(self, answer, choices):
         answer = answer.lower()
         assert isinstance(choices, dict)
-        for k in choices:
+        normalized_choices = {}
+        for k, value in choices.items():
             assert k in string.ascii_uppercase
-            choices[k] = str(choices[k]).lower()
+            normalized_choices[k] = str(value).lower()
         cands = []
-        for k in choices:
-            if choices[k] in answer:
+        for k, value in normalized_choices.items():
+            if value in answer:
                 cands.append(k)
         if len(cands) == 1:
             return cands[0]
@@ -116,38 +144,59 @@ class HRBenchEval:
         )
         return tmpl.format(question, options_prompt, prediction)
 
-    def get_chat_response(self, data, temperature=0, max_tokens=256, patience=10, sleep_time=0):
+    @staticmethod
+    def parse_judge_option(answer):
+        normalized = str(answer).strip().upper().rstrip(".、)）")
+        return normalized if normalized in {"A", "B", "C", "D", "Z"} else False
+
+    def get_chat_response(self, data, temperature=0, max_tokens=16, patience=5, sleep_time=2):
         question = data["question"]
         options = data["options"]
         prediction = data["prediction"]
         ret = self.can_infer(prediction, options)
         if ret:
             data["gpt_prediction"] = ret
+            data["judge_source"] = "rule"
             return data
 
         prompt = self.build_prompt(question, options, prediction)
-        messages = [
-            {"role": "user", "content": prompt},
-        ]
-        payload = {"model": self.gpt_model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens, "n": 1}
+        messages = [{"role": "user", "content": prompt}]
+        payload = {
+            "model": self.gpt_model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "n": 1,
+        }
 
-        while patience > 0:
-            patience -= 1
+        last_error = None
+        for attempt in range(1, patience + 1):
             try:
                 response = self._post_request(payload)
-                prediction = response["choices"][0]["message"]["content"].strip()
-                if prediction and prediction != "" and "Failed to obtain answer via API" not in prediction:
-                    ret = self.can_infer(prediction, options)
-                    data["gpt_prediction"] = ret
+                judge_answer = response["choices"][0]["message"]["content"].strip()
+                judge_option = self.parse_judge_option(judge_answer)
+                if judge_option:
+                    data["gpt_prediction"] = judge_option
+                    data["judge_source"] = "yunwu"
+                    data["judge_attempts"] = attempt
                     return data
+                last_error = RuntimeError(
+                    f"YunwuAI returned an invalid option: {judge_answer!r}"
+                )
+            except Exception as exc:
+                last_error = exc
+            logger.warning(
+                "YunwuAI judge attempt %s/%s failed: %s",
+                attempt,
+                patience,
+                last_error,
+            )
+            if attempt < patience:
+                time.sleep(sleep_time * (2 ** (attempt - 1)))
 
-            except Exception as e:
-                logger.error(f"GPT API error: {e}")
-                if sleep_time > 0:
-                    time.sleep(sleep_time)
-        
-        data["gpt_prediction"] = "Z"  # 默认返回Z
-        return data
+        raise RuntimeError(
+            f"YunwuAI judge failed after {patience} attempts: {last_error}"
+        )
 
 
 def decode_base64_to_image(base64_string, target_size=-1):
@@ -227,7 +276,9 @@ def load_data_function():
 
 def evaluate_function(results, meta_data):
     # 初始化GPT评估器
-    api_key = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is required for the HRBench yunwu judge")
     gpt_model = os.getenv("MODEL_VERSION", "gpt-4o-2024-11-20")
     evaluator = HRBenchEval(api_key=api_key, gpt_model=gpt_model, max_workers=1)
     
@@ -277,6 +328,8 @@ def evaluate_function(results, meta_data):
             "gold": gt,
             "pred": pred,
             "gpt_prediction": gpt_prediction,
+            "judge_source": resp_dic["judge_source"],
+            "judge_attempts": resp_dic.get("judge_attempts", 0),
             "score": score
         })
     

@@ -1,0 +1,23 @@
+{
+  "model_size": "7B",
+  "model_slug": "adareasoner_randomized_7b",
+  "model_display_name": "AdaReasoner-7B-Randomized",
+  "model_path": "/data/songmingyang/models/adareasoner/AdaReasoner-7B-Randomized",
+  "backend": "vllm_models",
+  "mode": "with_tools",
+  "task": "vsp",
+  "seed": 42,
+  "cuda_visible_devices": "0,3",
+  "tensor_parallel": 2,
+  "batch_size": 64,
+  "max_model_len": 8192,
+  "resumed_samples": 0,
+  "tool_selection": "AStarWithPixelCoordinate,Draw2DPath,Point",
+  "if_randomize_tool": false,
+  "stochastic_decoding": true,
+  "controller_addr": "http://127.0.0.1:21112",
+  "latency_schema_version": 1,
+  "latency_required": true,
+  "created_at": "2026-08-05T13:09:30+0000",
+  "hostname": "dev-2b6f5601-0"
+}

@@ -1,0 +1,15 @@
+{
+  "seed": 42,
+  "status": "success",
+  "model_load_s": 60.27517316211015,
+  "evaluation_s": 1697.2835632981732,
+  "process_total_s": 1762.6258160872385,
+  "generation_s": 1654.0809688596055,
+  "generation_calls": 27,
+  "input_samples": {
+    "vspo": 1670
+  },
+  "remaining_samples_at_start": {
+    "vspo": 1670
+  }
+}

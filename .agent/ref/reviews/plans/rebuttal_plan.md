@@ -1,59 +1,82 @@
-# GenReasoner 期刊 Rebuttal 方案(point-by-point)
+# GenReasoner 期刊 Rebuttal 方案（2026-08-04 审计版）
 
-> Springer Major Revision。交付物 = point-by-point response PDF + 修订 manuscript(无 tracked changes)。
-> 两位 reviewer:R1(6 点)、R2(7 major + minors)。收敛于 A(与 ICLR 划界)+ B(泛化超证据)。
+> 交付物：point-by-point response PDF + 修订 manuscript。任何数字必须绑定配置、结果文件和评分协议；不得把计划、smoke run 或预期值写成完成结果。
 
-## 0. 继承 vs 新增(delta 地基)
-ICLR 三贡献 = ①多轮工具规划的数据构造 ②adaptive RL(Tool-GRPO)③轻/重工具套件;+ AdaReasoner SOTA + "超过 GPT-5/Claude"。
-**期刊 headline 几乎照搬。** 真正新增(delta):
-- (1) 标识符随机化 + 改述的 Adaptive Learning(期刊 Sec 2.4)—— ICLR 无此章节
-- (2) Rnd TC + Rnd TG 泛化研究(期刊 Table 4)
-- (3) V*/HRBench 工具规划对比(期刊 Tables 5-6)
-继承(已发表,须归到 ICLR 名下、别当新卖点):轨迹构造、Tool-GRPO、reward、7 工具、Table 2 单任务 SOTA、GPT-5 对比、emergent 行为。
+## 0. 总体判断
 
-## A. 与 ICLR 划界〔R1.1 + R2.1〕—— 纯写作,最高优先
-动作:① 正文显式引用 ICLR 2026;② 重写 contribution,把 headline 从"单任务 SOTA"移到 delta;③ 评估重心压到 delta。
-可直接用的 contribution 改写草案:
-"This work extends our conference paper (AdaReasoner, ICLR 2026 [cite]). The conference versio n established the trajectory-curation pipeline, the Tool-GRPO algorithm, the reward design, and the seven-tool suite, achieving single-task SOTA (Table 2). This journal extension makes three *new* contributions: (i) an identifier-randomization and description-paraphrasing Adaptive Learning method that yields interface-robust tool use (Sec 2.4); (ii) a systematic generalization study under randomized cold-start and RL (Rnd TC + Rnd TG, Table 4); and (iii) a tool-planning evaluation on V* and HRBench (Tables 5-6). We restate inherited results only as background."
+当前 rebuttal **已有主体证据，但尚不可提交**。优势是：固定 checkpoint 的多次随机推理、GUIChat 72B judge、500 条 judge semantic audit、阶段时延和 early-fault accuracy 已形成可复核结果。主要风险是：WebMMU 产物未同步、HRBench 评分器回退污染、E4 无 no-tool 样本、E5 detect 指标未校准，以及 judge 的作者/第二标注者确认、matched-budget 曲线和近重复检查未完成。
 
-## B. 泛化超证据〔R1.2 + R2.2〕—— delta 核心,复用+补一个实验
-- 收窄 claim:把"新任务 zero-shot"改述为"跨阶段 transfer"(承认三任务数据在 Tool-GRPO 见过);把"新工具"改述为"接口级鲁棒性(标识符/描述变化,功能不变)"。
-- 复用:Yfxj(ICLR rebuttal)已构造感知/操作类新工具,证明"选择性使用"(用有用的、忽略无关 RotateImage=0、弱化冗余)。可作为"工具选择判断力"证据。
-- 缺口→需补 1 个实验:引入一个"提供模型缺失能力、且被某个从所有阶段(TC+TG)都排除的任务真正需要"的新工具,证明 zero-shot 有效使用(不是冗余/无关)。这是唯一能正面顶住 R2.2 的硬证据。
+## 1. 会议版与期刊增量（R1-1 / R2-1）
 
-## C. baseline 公平/闭源透明〔R1.3 + R1.4〕—— 大部复用
-- 复用 W5WP(ICLR rebuttal)Q1/Q2/Q3:闭源模型如何评、是否一轮作答、用多步框架重评。→ 在正文补"闭源模型同工具集/同 prompt/同多步协议"的说明表,回应"超 GPT-5 是否公平"。
-- 补:DeepEyes/PixelReasoner 适配说明——它们为单工具/固定循环设计,说明我们做了何种最小适配;若不适配则明确标注,并解释 Table 6 低分含 prompt 不兼容成分,避免"贬低 baseline"读感。x
+会议版：*AdaReasoner: Dynamic Tool Orchestration for Iterative Visual Reasoning*，ICLR 2026，OpenReview `nUGPEmQ2ut`。
 
-## D. reward 理论 + hacking〔R1.5〕—— 辩 + 自查实验
-- 辩:非对称设计是"结果优先、工具为辅"的显式意图,不是漏洞;不硬造收敛定理(GRPO 收敛性沿用原文),改用"经验稳定性"回应。
-- 补:reward-hacking 自查——统计"答对样本中未调用工具的比例"及其正确率;做对称 vs 非对称 reward 的消融(是否损害该用工具的难题)。若自查显示未 hacking,直接摆数据。
+继承内容：轨迹构造、Tool-GRPO、composite reward、七工具套件、单任务结果。
 
-## E. 成本/延迟〔R1.6 + R2.5〕—— 必须新测(0 复用)
-测:latency 分布、吞吐、gen/exec/orch 三段拆分、per-tool 时间;画"匹配预算下 精度–延迟曲线"vs baseline。强调 CPS≠成本(本地算子 vs 专家模型差数量级)。
+期刊增量：
 
-## F. 失败鲁棒性〔R1.6c + R2.4〕—— 必须新补
-受控故障注入(错误但合理输出/缺失/畸形/超时/矛盾;早注入 vs 晚注入),测 检测/忽略/恢复/传播;补"有/无 failure&reflection 轨迹"的消融。
+1. identifier randomization + description paraphrasing 的 interface robustness；
+2. randomized cold-start/RL study；
+3. V\*/HRBench tool-planning evaluation。
 
-## G. 跨表数字打架〔R2.3〕—— ⚠️硬伤,先查后改
-硬 bug:裸 Qwen2.5-VL-7B GUIChat 59.46(T2) vs 68.09(T4/5);3B WebMMU 55.89 vs 54.47;GUIChat 45.11 vs 46.26。
-动作:定位两套数字的评测条件差异→统一口径重报→每张表标注评测设置;关键表补 multi-seed(≥3 seeds,mean±std)。**不查清不能提交**。
+**动作：**在 Abstract、Introduction、Contributions、Conclusion 和表格 caption 中统一该边界，不把会议版结果重新声明为新贡献。
 
-## H. Jigsaw-COCO 泄漏〔R2.6〕—— 核实+改split或声明
-核实 C.1:是否同图 3 patch 训、第 4 patch 测(=留位置非留图)。→ 改 image-disjoint(或 COCO-val)+ 近重复检查;至少在文中明确 disjointness 保证。
+## 2. 泛化 claim（R1-2 / R2-2）
 
-## I. LM-judge 验证〔R2.7〕—— 新补
-Qwen2.5-VL-72B 裁判(V*/WebMMU/GUIQA):补 人-机一致性定量研究(样本量/标注人数/一致性/盲评)+ "冗长答案不占便宜"的检验。
+- “new tasks”改为 **cross-stage transfer**：final policy 在 Tool-GRPO 阶段见过任务。
+- “new tools”改为 **interface-level robustness**：名称、描述、schema 或顺序变化，但功能不变。
+- 不声称 zero-shot new task family、abstract function understanding 或 genuinely novel capability。
 
-## Minors〔R2〕
-命名统一 GenReasoner(图1/10、repo 都改,别让它像 baseline);加 Limitations 章节(延迟成本/依赖手工轨迹与外部专家模型/任务专用工具/工具质量是双刃);软化两处过度声称("never explicitly trained"、"bottleneck 从 scale 到 tool quality"限定为结构化任务);释放轨迹/split/seed;332,649 冷启样本给分解;VSPO 网格、任务数(4 vs three)、表引用、术语(Tool-GRPO)、语法成功 vs 语义有用 —— 逐条改。
+E1 不再作为硬实验执行；采用 claim narrowing。
 
-## 工作量三分
-- 纯写作/硬改(0 实验):A、G(对齐)、H(声明)、命名、Limitations、minors、软化 claim
-- 复用已有(改写即可):B(部分)、C(大部)、复现/超参(W5WP Q4-6)
-- 必须新跑实验:E(成本)、F(故障)、G(multi-seed)、I(judge 一致性)、B(补 1 个真新能力工具实验)、D(hacking 自查)
+## 3. 数字可靠性（R2-3）
 
-## 建议推进顺序
-1) 先清"不需实验、最锋利"的刀:A(delta 改写)+ G(数字对齐)+ 命名 + Limitations —— 直接消掉"restate published""numbers don't reconcile"两条致命指控。
-2) 再复用 B/C 已有弹药改写。
-3) 最后排新实验:优先 G-multiseed、E-成本、F-故障、B-新能力工具、I-judge、D-hacking(按算力/时间排期)。
+已可用的固定-checkpoint inference repeats：VSP 89.27±0.88、VSPO 78.64±0.33、Jigsaw 88.27±0.12、BLINK-J 88.22±0.39、V\* 68.06±0.53、GUIChat 72B judge 73.60±0.11。
+
+必须明确：这些是 stochastic inference repeats，不是 training-seed variance，也不是显著性检验。
+
+阻塞项：
+
+- WebMMU 71.75±0.53 仅由执行日志记录；当前副本缺三次 full/judged artifacts。
+- HRBench 63.04 含每 run 108–111 个 `Z` 回退；明确答案重提取仅给出 ≥68.92±0.14 的下界，终值需统一重判。
+
+## 4. Reward（R1-5）
+
+现有结果不支持 cost-aware abstention：VSP/Jigsaw 近全量用工具，GUIChat 三次均 962/962 样本至少调用一次工具。难度与调用数相关，但不能因果归因于 asymmetric reward。
+
+**策略：**删除“正确且不调用工具”实证 claim；只保留 bounded reward shaping 和无额外 convergence proof。若要保留 selective-use claim，必须补 easy/no-tool 对照及 symmetric/asymmetric reward ablation。
+
+## 5. 成本与时延（R1-6 / R2-5）
+
+正式 JSON 口径：Jigsaw generation/tool=90.95/0.55%，VSP=39.11/59.42%；AStar/Point=0.092/255.333 ms，约 2,775×。
+
+这只支持“CPS 不是成本 proxy”。Reviewer 要求的 matched-budget accuracy–latency curve 仍缺，不能用 stage totals 代替。
+
+## 6. 故障鲁棒性（R1-6c / R2-4）
+
+已有 VSP/Jigsaw 各 100 条、五类 early fault。可信结论是 accuracy delta：VSP 最差 timeout −6pp，Jigsaw 最差 missing −17pp。
+
+当前 detect/react 启发式把 fault 后任意工具调用计为检测，clean baseline 也为 1.0。必须人工校准或删除 detect/propagate 数字。Late injection 和 with/without failure-reflection 训练消融未完成，不做训练归因。
+
+## 7. Baseline 公平性（R1-3 / R1-4）
+
+- 明确 proprietary main-table rows 是 no-tool、single-turn。
+- 保留 GPT-5+Tools matched protocol：VSP 55.64→71.36，Jigsaw 80.10→84.50。
+- DeepEyes/Pixel-Reasoner 未适配 multi-tool interface；只能解释为 unseen-interface brittleness，不能解释为 inherent inferiority。
+
+## 8. Judge、泄漏与复现（R2-6 / R2-7 / Minors）
+
+- 已完成 500 条 judge semantic audit：498 条有效，agreement=90.76%（Wilson 95% CI 87.90%–93.00%），κ=0.781，FP/FN=15/31；GUIChat/WebMMU agreement=86.29%/93.69%。
+- 已完成描述性长度四分位检查；最长 quartile 的 agreement 为 91.20%，未呈单调优势。若正文声称 human validation，需作者盲审确认或第二独立人类标注，并可补控制 correctness 的正式长度回归。
+- 在完整 Jigsaw train/test source images 上运行 pHash Hamming≤5 + CLIP cosine≥0.95，报告真实 overlap/flagged pairs。
+- 核对 332,649 cold-start 样本按任务/阶段分解。
+- 统一模型命名、网格大小、任务数、表引用、Tool-GRPO 术语及 syntactic/semantic success 定义。
+
+## 9. 提交顺序
+
+1. 同步 WebMMU full/judged artifacts；统一重判 HRBench `Z`。
+2. 决定 judge 口径：称 single-reviewer semantic audit，或补作者/第二人类标注者确认；可选补正式长度回归。
+3. 生成 matched-budget accuracy–latency curve。
+4. 校准 E5；决定是否承担 late fault / 训练消融。
+5. 运行 pHash+CLIP；核对 332,649 分解。
+6. 将引用、真实 section/table/figure 编号和 limitations 落入 manuscript。
+7. 对照 `RESULTS_TABLE.md` 做最终数字审计并生成 point-by-point PDF。

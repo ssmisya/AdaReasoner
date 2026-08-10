@@ -261,7 +261,11 @@ class PathNavigationGenerator:
             self.client = genai.Client(api_key=self.api_key)
         elif self.api_provider == "openai":
             self.openai_api_key = args.openai_api_key or os.environ.get("OPENAI_API_KEY")
-            self.openai_base_url = args.openai_base_url or os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+            self.openai_base_url = (
+                args.openai_base_url
+                or os.environ.get("OPENAI_BASE_URL")
+                or os.environ.get("OPENAI_API_URL", "https://yunwu.ai/v1")
+            )
             assert self.openai_api_key, "OPENAI_API_KEY环境变量或参数未设置"
             self.openai_client = openai.OpenAI(
                 api_key=self.openai_api_key,

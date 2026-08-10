@@ -1,0 +1,17 @@
+{
+  "validated": true,
+  "task": "vspo",
+  "seed": 42,
+  "model_path": "/data/songmingyang/model/adareasoner/AdaReasoner-7B-Randomized",
+  "samples": 1670,
+  "stochastic_decoding": false,
+  "primary_metric": "overall_accuracy",
+  "metric_label": "overall_accuracy",
+  "metric": 0.5365269461077844,
+  "metric_percent": 53.65269461077844,
+  "evaluation_s": 11509.95149072283,
+  "instance_latency_file": "latency.jsonl",
+  "instance_latency_mean_s": 1294.9403229550896,
+  "round_latency_mean_s": 228.39708025465902,
+  "round_latency_count": 8423
+}

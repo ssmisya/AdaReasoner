@@ -1,0 +1,21 @@
+{
+  "seed": 1234,
+  "status": "success",
+  "model_load_s": 80.98309762193821,
+  "evaluation_s": 1096.5316141510848,
+  "process_total_s": 1186.9267196538858,
+  "generation_s": 1069.904366206145,
+  "generation_calls": 31,
+  "preflight_samples": {
+    "vsp": 1100
+  },
+  "preflight_s": {
+    "vsp": 1.9908308999147266
+  },
+  "input_samples": {
+    "vsp": 1100
+  },
+  "remaining_samples_at_start": {
+    "vsp": 1100
+  }
+}

@@ -1,0 +1,18 @@
+model_args:
+  model: vllm_models
+  # AdaReasoner-7B weights blocked by HF CDN; smoke with local Qwen2.5-VL-7B first
+  model_args: pretrained=/data/songmingyang/models/baselines/Qwen2.5-VL-7B-Instruct,tensor_parallel=1,limit_mm_per_prompt=10
+  batch_size: 2
+  max_rounds: 6
+  model_mode: general
+task_args:
+  task_name: vsp
+  tool_selection: AStarWithPixelCoordinate,Draw2DPath
+  save_to_ckpt:
+    vsp: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/local_smoke_vsp/ckpt.jsonl
+  middle_images_save_dir:
+    vsp: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/local_smoke_vsp/middle_images
+script_args:
+  verbosity: INFO
+  output_path: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/local_smoke_vsp/result.jsonl
+  if_use_tool: True

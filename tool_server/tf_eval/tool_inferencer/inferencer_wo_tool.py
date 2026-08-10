@@ -10,6 +10,7 @@ import requests
 import re
 import copy
 import json
+import time
 
 
 from tool_server.utils.debug import remote_breakpoint
@@ -76,8 +77,12 @@ class BaseInferencer(object):
         
         for idx, item in enumerate(self.manager.get_current_batch()):
             if item.status == "finished":
+                self.manager.finish_instance_timing(item)
                 image_history = item.image_history
                 item_dict = asdict(item)
+                item_dict.pop("_latency_instance_start_ns", None)
+                item_dict.pop("_latency_round_start_ns", None)
+                item_dict.pop("_backend_generation_metrics", None)
                 item_dict = remove_pil_objects(item_dict)
                 item_dict = remove_non_serializable(item_dict)
                 
@@ -142,9 +147,16 @@ class BaseInferencer(object):
                 break
                 
             # Generate single-round response using the model
+            self.manager.start_generation_timing(current_batch)
+            generation_start_ns = time.perf_counter_ns()
             self.tp_model.generate(current_batch)
+            generation_wall_s = (
+                time.perf_counter_ns() - generation_start_ns
+            ) / 1_000_000_000.0
+            self.manager.record_generation_timing(current_batch, generation_wall_s)
             # Update status in the manager
             self.manager.update_item_status()
+            self.manager.finish_round_timing(current_batch)
             
             # Pop all completed items
             results = self.pop_qualified_items()

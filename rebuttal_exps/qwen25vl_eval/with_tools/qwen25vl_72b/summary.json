@@ -1,0 +1,635 @@
+{
+  "experiment_dir": "/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/qwen25vl_eval/with_tools/qwen25vl_72b",
+  "variance_definition": "sample variance across 3 controlled inference seed(s) (ddof=1); undefined when only one seed is present",
+  "task_count": 8,
+  "complete_task_count": 0,
+  "all_tasks_complete": false,
+  "macro_average_percent": null,
+  "tasks": [
+    {
+      "task": "vsp",
+      "primary_metric": null,
+      "metric_label": null,
+      "stochastic_decoding": null,
+      "complete": false,
+      "expected_seeds": [
+        42,
+        1234,
+        2026
+      ],
+      "completed_seeds": [],
+      "metric_percent": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_ms_per_sample": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "generation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_exec_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "instance_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "round_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_call_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "runs": []
+    },
+    {
+      "task": "vspo",
+      "primary_metric": null,
+      "metric_label": null,
+      "stochastic_decoding": null,
+      "complete": false,
+      "expected_seeds": [
+        42,
+        1234,
+        2026
+      ],
+      "completed_seeds": [],
+      "metric_percent": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_ms_per_sample": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "generation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_exec_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "instance_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "round_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_call_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "runs": []
+    },
+    {
+      "task": "jigsaw_coco",
+      "primary_metric": null,
+      "metric_label": null,
+      "stochastic_decoding": null,
+      "complete": false,
+      "expected_seeds": [
+        42,
+        1234,
+        2026
+      ],
+      "completed_seeds": [],
+      "metric_percent": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_ms_per_sample": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "generation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_exec_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "instance_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "round_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_call_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "runs": []
+    },
+    {
+      "task": "jigsaw_blink",
+      "primary_metric": null,
+      "metric_label": null,
+      "stochastic_decoding": null,
+      "complete": false,
+      "expected_seeds": [
+        42,
+        1234,
+        2026
+      ],
+      "completed_seeds": [],
+      "metric_percent": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_ms_per_sample": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "generation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_exec_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "instance_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "round_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_call_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "runs": []
+    },
+    {
+      "task": "vstar",
+      "primary_metric": null,
+      "metric_label": null,
+      "stochastic_decoding": null,
+      "complete": false,
+      "expected_seeds": [
+        42,
+        1234,
+        2026
+      ],
+      "completed_seeds": [],
+      "metric_percent": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_ms_per_sample": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "generation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_exec_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "instance_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "round_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_call_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "runs": []
+    },
+    {
+      "task": "web_guichat",
+      "primary_metric": null,
+      "metric_label": null,
+      "stochastic_decoding": null,
+      "complete": false,
+      "expected_seeds": [
+        42,
+        1234,
+        2026
+      ],
+      "completed_seeds": [],
+      "metric_percent": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_ms_per_sample": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "generation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_exec_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "instance_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "round_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_call_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "runs": []
+    },
+    {
+      "task": "webmmu",
+      "primary_metric": null,
+      "metric_label": null,
+      "stochastic_decoding": null,
+      "complete": false,
+      "expected_seeds": [
+        42,
+        1234,
+        2026
+      ],
+      "completed_seeds": [],
+      "metric_percent": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_ms_per_sample": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "generation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_exec_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "instance_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "round_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_call_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "runs": []
+    },
+    {
+      "task": "hrbench",
+      "primary_metric": null,
+      "metric_label": null,
+      "stochastic_decoding": null,
+      "complete": false,
+      "expected_seeds": [
+        42,
+        1234,
+        2026
+      ],
+      "completed_seeds": [],
+      "metric_percent": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "evaluation_ms_per_sample": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "generation_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_exec_s": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "instance_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "round_e2e_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "tool_call_mean_s_across_seeds": {
+        "count": 0,
+        "mean": null,
+        "variance": null,
+        "std": null,
+        "min": null,
+        "max": null
+      },
+      "runs": []
+    }
+  ],
+  "runs": []
+}

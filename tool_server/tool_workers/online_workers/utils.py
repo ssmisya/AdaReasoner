@@ -174,10 +174,13 @@ def get_gpu_memory(max_gpus=None):
 
 
 def violates_moderation(text):
-    """
-    Check whether the text violates OpenAI moderation API.
-    """
-    url = "https://api.openai.com/v1/moderations"
+    """Check text with the configured yunwu-compatible moderation endpoint."""
+    api_base_url = os.environ.get(
+        "OPENAI_API_URL", "https://yunwu.ai/v1"
+    ).rstrip("/")
+    if api_base_url != "https://yunwu.ai/v1":
+        raise ValueError("Moderation is restricted to https://yunwu.ai/v1")
+    url = f"{api_base_url}/moderations"
     headers = {
         "Content-Type": "application/json",
         "Authorization": "Bearer " + os.environ["OPENAI_API_KEY"],

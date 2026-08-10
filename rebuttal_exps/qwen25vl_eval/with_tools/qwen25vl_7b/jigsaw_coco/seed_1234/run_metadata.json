@@ -1,0 +1,33 @@
+{
+  "model_size": "7B",
+  "model_slug": "qwen25vl_7b",
+  "model_display_name": "Qwen2.5-VL-7B-Instruct",
+  "model_path": "/data/songmingyang/models/baselines/Qwen2.5-VL-7B-Instruct",
+  "backend": "vllm_models",
+  "mode": "with_tools",
+  "task": "jigsaw_coco",
+  "seed": 1234,
+  "cuda_visible_devices": "0,3",
+  "tensor_parallel": 2,
+  "batch_size": 64,
+  "pipeline_enabled": "1",
+  "pipeline_max_active": 192,
+  "tool_concurrency": 16,
+  "max_model_len": 32768,
+  "max_rounds": 6,
+  "resumed_samples": 0,
+  "tool_selection": "DetectBlackArea,InsertImage",
+  "if_randomize_tool": false,
+  "stochastic_decoding": true,
+  "controller_addr": "http://127.0.0.1:21112",
+  "latency_schema_version": 1,
+  "latency_required": true,
+  "latency_definition": {
+    "instance_e2e_s": "from admission before conversation construction until the final round is recognized as finished; excludes final result serialization and checkpoint writes",
+    "round_model_generate_s": "wall time around model.generate()",
+    "round_tool_call_s": "wall time around the tool RPC"
+  },
+  "protocol_fingerprint": "2735a292807feebb8921bfd362ddaf21ac870ad98dc13cd5e55f16ca5a15c792",
+  "created_at": "2026-08-09T16:23:15+0000",
+  "hostname": "dev-15cf4a58-0"
+}

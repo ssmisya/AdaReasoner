@@ -1,0 +1,13 @@
+{
+  "seed": 1234,
+  "status": "failed",
+  "model_load_s": 0.008139217039570212,
+  "evaluation_s": null,
+  "process_total_s": 4.08881651586853,
+  "generation_s": 0.0,
+  "generation_calls": 0,
+  "backend": "openai",
+  "vllm_base_url": "http://localhost:8001/v1",
+  "error": "Error: Incorrect padding",
+  "traceback": "Traceback (most recent call last):\n  File \"/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/.agent/ref/scripts/exps/with_tools/eval_entry_openai.py\", line 403, in main\n    evaluator.evaluate()\n  File \"/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/.agent/ref/scripts/exps/with_tools/eval_entry_openai.py\", line 274, in evaluate_with_metadata\n    TFEvaluator._original_evaluate_for_metadata(self)\n  File \"/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/tool_server/tf_eval/evaluator.py\", line 92, in evaluate\n    dataset = BaseEvalDataset(\n              ^^^^^^^^^^^^^^^^\n  File \"/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/.agent/ref/scripts/exps/with_tools/eval_entry_openai.py\", line 241, in __init__\n    super().__init__(*args, **kwargs)\n  File \"/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/tool_server/tf_eval/tasks/base_dataset/base_evaluation_dataset.py\", line 60, in __init__\n    self.full_data = self.load_data_function()\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/tool_server/tf_eval/tasks/vstar/task.py\", line 26, in load_data_function\n    image = load_image(item[\"image\"])\n            ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/tool_server/tf_eval/utils/utils.py\", line 243, in load_image\n    return load_image_from_base64(image)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/data/songmingyang/code/reasoning/AdaReasoner-rebuttal/tool_server/tf_eval/utils/utils.py\", line 199, in load_image_from_base64\n    return Image.open(BytesIO(base64.b64decode(image)))\n                              ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/data/songmingyang/miniforge3/envs/vllm-latest/lib/python3.12/base64.py\", line 88, in b64decode\n    return binascii.a2b_base64(s, strict_mode=validate)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nbinascii.Error: Incorrect padding\n"
+}

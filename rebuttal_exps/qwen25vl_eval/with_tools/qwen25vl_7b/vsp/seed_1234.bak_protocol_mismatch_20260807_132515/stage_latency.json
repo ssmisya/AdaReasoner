@@ -1,0 +1,18 @@
+{
+  "generation_s": 0.0,
+  "tool_exec_s": 0.0,
+  "orchestration_s": 0.0,
+  "gen_calls": 0,
+  "tool_batches": 0,
+  "wall_start": 1786040852.6636941,
+  "pipeline_enabled": true,
+  "pipeline_backend": "native_batch",
+  "pipeline_max_active": 192,
+  "pipeline_scheduler_wall_s": 0.05122,
+  "pipeline_generation_busy_s": 0.0,
+  "pipeline_tool_busy_s": 0.0,
+  "pipeline_overlap_s": 0.0,
+  "pipeline_lm_only_s": 0.0,
+  "pipeline_tool_only_s": 0.0,
+  "wall_total_s": 5.998286485671997
+}

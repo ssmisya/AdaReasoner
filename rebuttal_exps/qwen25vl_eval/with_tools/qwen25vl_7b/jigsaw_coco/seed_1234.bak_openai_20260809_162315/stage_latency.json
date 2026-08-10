@@ -1,0 +1,9 @@
+{
+  "generation_s": 0.0,
+  "tool_exec_s": 0.0,
+  "orchestration_s": 0.0,
+  "gen_calls": 0,
+  "tool_batches": 0,
+  "wall_start": 1785929109.0446072,
+  "wall_total_s": 0.014490127563476562
+}

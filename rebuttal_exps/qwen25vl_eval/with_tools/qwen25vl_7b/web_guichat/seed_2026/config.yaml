@@ -1,0 +1,21 @@
+model_args:
+  model: openai
+  model_args: pretrained=Qwen2.5-VL-7B-Instruct,temperature=0.0,limit_mm_per_prompt=10,max_retry=5,tensor_parallel=1
+  batch_size: 1
+  max_rounds: 6
+  model_mode: general
+task_args:
+  task_name: web_guichat
+  tool_selection: OCR,Point,Crop
+  resume_from_ckpt:
+    web_guichat: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/qwen25vl_eval/with_tools/qwen25vl_7b/web_guichat/seed_2026/ckpt.jsonl
+  save_to_ckpt:
+    web_guichat: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/qwen25vl_eval/with_tools/qwen25vl_7b/web_guichat/seed_2026/ckpt.jsonl
+  middle_images_save_dir:
+    web_guichat: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/qwen25vl_eval/with_tools/qwen25vl_7b/web_guichat/seed_2026/middle_images
+script_args:
+  verbosity: INFO
+  output_path: /data/songmingyang/code/reasoning/AdaReasoner-rebuttal/rebuttal_exps/qwen25vl_eval/with_tools/qwen25vl_7b/web_guichat/seed_2026/result.jsonl
+  controller_addr: http://127.0.0.1:21112
+  if_use_tool: true
+  if_randomize_tool: false
